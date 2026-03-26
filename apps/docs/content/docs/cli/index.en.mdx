@@ -5,9 +5,9 @@ description: "CLI tool and Pack Registry for Ambrosia — distribute and integra
 
 import {Card, Cards} from 'fumadocs-ui/components/card';
 
-# @ambrosia/cli
+# @ambrosia-unce/cli
 
-**@ambrosia/cli** is a command-line tool for Ambrosia that lets you create projects, generate resources, and add **ready-made modules (packs)** from a registry directly into your project's source code.
+**@ambrosia-unce/cli** is a command-line tool for Ambrosia that lets you create projects, generate resources, and add **ready-made modules (packs)** from a registry directly into your project's source code.
 
 ## Philosophy
 
@@ -73,8 +73,8 @@ my-app/
 Wire up the pack in your application:
 
 ```typescript title="src/main.ts"
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import { JwtAuthPack } from './packs/jwt-auth';
 
 const app = await HttpApplication.create({
@@ -95,7 +95,7 @@ await app.listen(3000);
 <Cards>
     <Card
         title="Installation"
-        description="Install @ambrosia/cli globally"
+        description="Install @ambrosia-unce/cli globally"
         href="/docs/cli/getting-started/installation"
     />
     <Card

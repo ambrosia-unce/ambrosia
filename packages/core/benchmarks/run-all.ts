@@ -4,7 +4,7 @@
  */
 
 async function main() {
-  console.log("🚀 Starting @ambrosia/core benchmark suite...\n");
+  console.log("🚀 Starting @ambrosia-unce/core benchmark suite...\n");
   console.log(`Runtime: Bun ${Bun.version}`);
   console.log(`Platform: ${process.platform} ${process.arch}`);
   console.log(`Date: ${new Date().toISOString()}`);

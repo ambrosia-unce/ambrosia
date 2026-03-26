@@ -2,7 +2,7 @@
  * Metadata types for HTTP decorators
  */
 
-import type { Constructor, Scope } from "@ambrosia/core";
+import type { Constructor, Scope } from "@ambrosia-unce/core";
 import type { HttpMethod } from "./common.ts";
 
 /**

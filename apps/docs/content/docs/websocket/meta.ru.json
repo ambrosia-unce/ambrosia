@@ -1,5 +1,5 @@
 {
-  "title": "@ambrosia/websocket",
+  "title": "@ambrosia-unce/websocket",
   "description": "WebSocket слой для Ambrosia",
   "pages": ["index", "getting-started", "guides", "api"],
   "root": true

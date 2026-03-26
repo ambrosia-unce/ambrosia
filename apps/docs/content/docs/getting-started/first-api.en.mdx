@@ -25,7 +25,7 @@ ambrosia g controller posts
 This creates `src/posts/posts.controller.ts`. Open it and replace the contents with:
 
 ```ts
-import { Controller, Http } from '@ambrosia/http';
+import { Controller, Http } from '@ambrosia-unce/http';
 
 @Controller('/posts')
 export class PostsController {
@@ -48,8 +48,8 @@ Open `src/main.ts` and add the controller:
 
 ```ts
 import 'reflect-metadata';
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import { AppPack } from './app.pack.ts';
 import { PostsController } from './posts/posts.controller.ts';
 
@@ -90,7 +90,7 @@ ambrosia g service posts
 This creates `src/posts/posts.service.ts`. Replace the contents with:
 
 ```ts
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 
 export interface Post {
   id: string;
@@ -146,7 +146,7 @@ The `@Injectable()` decorator registers this class with the DI container. The co
 Update `posts.controller.ts` to inject the service:
 
 ```ts
-import { Controller, Http, Body, Param, Status } from '@ambrosia/http';
+import { Controller, Http, Body, Param, Status } from '@ambrosia-unce/http';
 import { PostsService } from './posts.service.ts';
 
 @Controller('/posts')
@@ -197,7 +197,7 @@ New concepts introduced:
 Add `PostsService` to the providers in `app.pack.ts`:
 
 ```ts
-import { definePack } from '@ambrosia/core';
+import { definePack } from '@ambrosia-unce/core';
 import { PostsService } from './posts/posts.service.ts';
 
 export const AppPack = definePack({
@@ -252,8 +252,8 @@ Right now the controller and service are registered in two places. Let's group t
 Create `src/posts/posts.pack.ts`:
 
 ```ts
-import { definePack } from '@ambrosia/core';
-import type { HttpPackDefinition } from '@ambrosia/http';
+import { definePack } from '@ambrosia-unce/core';
+import type { HttpPackDefinition } from '@ambrosia-unce/http';
 import { PostsController } from './posts.controller.ts';
 import { PostsService } from './posts.service.ts';
 
@@ -269,7 +269,7 @@ export const PostsPack: HttpPackDefinition = {
 Now simplify `app.pack.ts`:
 
 ```ts
-import { definePack } from '@ambrosia/core';
+import { definePack } from '@ambrosia-unce/core';
 import { PostsPack } from './posts/posts.pack.ts';
 
 export const AppPack = definePack({
@@ -281,8 +281,8 @@ And simplify `main.ts` -- remove the explicit `controllers` array since the pack
 
 ```ts
 import 'reflect-metadata';
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import { AppPack } from './app.pack.ts';
 
 const app = await HttpApplication.create({
@@ -300,18 +300,18 @@ await app.listen();
 
 ## Step 4: Add Validation
 
-Raw `body` types provide no runtime guarantees. Let's add compile-time validation with `@ambrosia/validator`.
+Raw `body` types provide no runtime guarantees. Let's add compile-time validation with `@ambrosia-unce/validator`.
 
 First, install the validator:
 
 ```bash
-bun add @ambrosia/validator
+bun add @ambrosia-unce/validator
 ```
 
 Make sure `bunfig.toml` has the preload:
 
 ```toml
-preload = ["@ambrosia/validator/preload"]
+preload = ["@ambrosia-unce/validator/preload"]
 ```
 
 Create a DTO (Data Transfer Object) in `src/posts/dto/create-post.dto.ts`:
@@ -330,7 +330,7 @@ export interface CreatePostDto {
 Update the controller to use validation:
 
 ```ts
-import { Controller, Http, Body, Param, Status, Validate } from '@ambrosia/http';
+import { Controller, Http, Body, Param, Status, Validate } from '@ambrosia-unce/http';
 import { PostsService } from './posts.service.ts';
 import type { CreatePostDto } from './dto/create-post.dto.ts';
 
@@ -370,7 +370,7 @@ export class PostsController {
 }
 ```
 
-The `@Validate()` decorator is a marker -- the `@ambrosia/validator` TypeScript transformer detects it at compile time and generates inline validation code. No runtime schema library needed.
+The `@Validate()` decorator is a marker -- the `@ambrosia-unce/validator` TypeScript transformer detects it at compile time and generates inline validation code. No runtime schema library needed.
 
 ### Test validation
 
@@ -383,21 +383,21 @@ curl -X POST http://localhost:3000/posts \
 This will return a `400 Bad Request` because the title violates the `@minLength 1` constraint.
 
 <Callout type="warn">
-The `@Validate()` decorator requires the `@ambrosia/validator/preload` to be active in `bunfig.toml`. Without it, the decorator is a no-op and no validation occurs.
+The `@Validate()` decorator requires the `@ambrosia-unce/validator/preload` to be active in `bunfig.toml`. Without it, the decorator is a no-op and no validation occurs.
 </Callout>
 
 ## Step 5: Add Configuration
 
-Hardcoding the port and other values is fragile. Let's use `@ambrosia/config` for type-safe environment configuration.
+Hardcoding the port and other values is fragile. Let's use `@ambrosia-unce/config` for type-safe environment configuration.
 
 ```bash
-bun add @ambrosia/config
+bun add @ambrosia-unce/config
 ```
 
 Create a config schema in `src/config/app.config.ts`:
 
 ```ts
-import { defineConfig } from '@ambrosia/config';
+import { defineConfig } from '@ambrosia-unce/config';
 
 export const AppConfig = defineConfig({
   port: { env: 'PORT', type: 'int', default: 3000 },
@@ -417,8 +417,8 @@ LOG_LEVEL=info
 Update `app.pack.ts` to import the config module:
 
 ```ts
-import { definePack } from '@ambrosia/core';
-import { ConfigModule } from '@ambrosia/config';
+import { definePack } from '@ambrosia-unce/core';
+import { ConfigModule } from '@ambrosia-unce/config';
 import { AppConfig } from './config/app.config.ts';
 import { PostsPack } from './posts/posts.pack.ts';
 
@@ -438,10 +438,10 @@ Now use `ConfigService` in `main.ts`:
 
 ```ts
 import 'reflect-metadata';
-import { Container } from '@ambrosia/core';
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
-import { ConfigService } from '@ambrosia/config';
+import { Container } from '@ambrosia-unce/core';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
+import { ConfigService } from '@ambrosia-unce/config';
 import { AppPack } from './app.pack.ts';
 
 const app = await HttpApplication.create({
@@ -465,7 +465,7 @@ await app.listen(port);
 Let's emit an event when a post is created so other parts of the system can react without tight coupling.
 
 ```bash
-bun add @ambrosia/events
+bun add @ambrosia-unce/events
 ```
 
 Create the event class in `src/posts/events/post-created.event.ts`:
@@ -482,8 +482,8 @@ export class PostCreatedEvent {
 Create a listener in `src/posts/listeners/post-created.listener.ts`:
 
 ```ts
-import { Injectable } from '@ambrosia/core';
-import { OnEvent } from '@ambrosia/events';
+import { Injectable } from '@ambrosia-unce/core';
+import { OnEvent } from '@ambrosia-unce/events';
 import { PostCreatedEvent } from '../events/post-created.event.ts';
 
 @Injectable()
@@ -498,8 +498,8 @@ export class PostCreatedListener {
 Update the service to emit the event:
 
 ```ts
-import { Injectable } from '@ambrosia/core';
-import { EventBus } from '@ambrosia/events';
+import { Injectable } from '@ambrosia-unce/core';
+import { EventBus } from '@ambrosia-unce/events';
 import { PostCreatedEvent } from './events/post-created.event.ts';
 
 export interface Post {
@@ -558,9 +558,9 @@ export class PostsService {
 Update the posts pack to include the event module and listener:
 
 ```ts
-import { definePack } from '@ambrosia/core';
-import type { HttpPackDefinition } from '@ambrosia/http';
-import { EventBusModule } from '@ambrosia/events';
+import { definePack } from '@ambrosia-unce/core';
+import type { HttpPackDefinition } from '@ambrosia-unce/http';
+import { EventBusModule } from '@ambrosia-unce/events';
 import { PostsController } from './posts.controller.ts';
 import { PostsService } from './posts.service.ts';
 import { PostCreatedListener } from './listeners/post-created.listener.ts';

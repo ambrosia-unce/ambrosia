@@ -1,6 +1,6 @@
 ---
 title: "Getting Started"
-description: "Installation and basic usage of @ambrosia/validator"
+description: "Installation and basic usage of @ambrosia-unce/validator"
 ---
 
 # Getting Started
@@ -8,7 +8,7 @@ description: "Installation and basic usage of @ambrosia/validator"
 ## Installation
 
 ```bash
-bun add @ambrosia/validator
+bun add @ambrosia-unce/validator
 ```
 
 ## Setup
@@ -16,7 +16,7 @@ bun add @ambrosia/validator
 Add to your `bunfig.toml`:
 
 ```toml
-preload = ["@ambrosia/validator/preload"]
+preload = ["@ambrosia-unce/validator/preload"]
 ```
 
 This activates the Bun plugin that will automatically transform your code.
@@ -26,7 +26,7 @@ This activates the Bun plugin that will automatically transform your code.
 ### validate() - returns a result
 
 ```typescript
-import { validate } from '@ambrosia/validator';
+import { validate } from '@ambrosia-unce/validator';
 
 interface User {
   name: string;
@@ -47,7 +47,7 @@ if (result.success) {
 ### assert() - throws an exception
 
 ```typescript
-import { assert } from '@ambrosia/validator';
+import { assert } from '@ambrosia-unce/validator';
 
 try {
   const user = assert<User>(data);
@@ -62,7 +62,7 @@ try {
 ### is() - type guard
 
 ```typescript
-import { is } from '@ambrosia/validator';
+import { is } from '@ambrosia-unce/validator';
 
 if (is<User>(data)) {
   // data has type User in this block
@@ -128,7 +128,7 @@ To view the generated code, enable debug mode:
 ```typescript
 // validator-config.ts
 import { plugin } from "bun";
-import { createValidatorPlugin } from "@ambrosia/validator/plugin";
+import { createValidatorPlugin } from "@ambrosia-unce/validator/plugin";
 
 plugin(createValidatorPlugin({
   debug: true, // Log transformations
@@ -145,4 +145,4 @@ preload = ["./validator-config.ts"]
 
 - [Branded Types](./branded-types) - specialized types with validation
 - [JSDoc Constraints](./jsdoc-constraints) - constraints via JSDoc tags
-- [HTTP Integration](./http-integration) - usage with @ambrosia/http
+- [HTTP Integration](./http-integration) - usage with @ambrosia-unce/http

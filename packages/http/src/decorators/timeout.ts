@@ -2,7 +2,7 @@
  * @Timeout() decorator - sets a timeout for the route handler
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import { HttpMetadataManager } from "../metadata/http-metadata-manager.ts";
 
 /**

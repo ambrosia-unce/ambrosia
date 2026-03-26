@@ -1,7 +1,7 @@
 export function mainTs(): string {
   return `import "reflect-metadata";
-import { HttpApplication } from "@ambrosia/http";
-import { ElysiaProvider } from "@ambrosia/http-elysia";
+import { HttpApplication } from "@ambrosia-unce/http";
+import { ElysiaProvider } from "@ambrosia-unce/http-elysia";
 import { HealthPack } from "./modules/health/health.pack";
 import { UserPack } from "./modules/user/user.pack";
 

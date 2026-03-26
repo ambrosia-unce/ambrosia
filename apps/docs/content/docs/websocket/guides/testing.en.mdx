@@ -5,7 +5,7 @@ description: "Testing WebSocket gateways with TestingWsFactory"
 
 # Testing WebSocket
 
-`@ambrosia/websocket` provides utilities for testing gateways without starting a real server.
+`@ambrosia-unce/websocket` provides utilities for testing gateways without starting a real server.
 
 ## TestingWsFactory
 
@@ -14,7 +14,7 @@ Creates a WebSocket application with a mock provider:
 ```typescript title="chat.gateway.test.ts"
 import { describe, test, expect } from "bun:test";
 import "reflect-metadata";
-import { TestingWsFactory, MockWsClient } from "@ambrosia/websocket";
+import { TestingWsFactory, MockWsClient } from "@ambrosia-unce/websocket";
 import { ChatGateway } from "./chat.gateway";
 
 describe("ChatGateway", () => {

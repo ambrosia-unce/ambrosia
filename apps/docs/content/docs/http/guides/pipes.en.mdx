@@ -12,8 +12,8 @@ Pipes transform and validate input data before passing it to the handler. They e
 A Pipe is a class with a `transform()` method that receives a value and metadata:
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
-import { Pipe, BadRequestException } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { Pipe, BadRequestException } from '@ambrosia-unce/http';
 
 @Injectable()
 export class ParseIntPipe implements Pipe {
@@ -39,7 +39,7 @@ Automatically validates DTOs using TypeBox:
 
 ```typescript
 import { Type, Static } from '@sinclair/typebox';
-import { Body, Http, Controller } from '@ambrosia/http';
+import { Body, Http, Controller } from '@ambrosia-unce/http';
 
 class CreateUserDto {
   static schema = Type.Object({
@@ -70,7 +70,7 @@ ValidationPipe is automatically applied to `@Body()` parameters if the class has
 Converts a string to a number:
 
 ```typescript
-import { Http, Param, ParseIntPipe } from '@ambrosia/http';
+import { Http, Param, ParseIntPipe } from '@ambrosia-unce/http';
 
 @Controller('/users')
 export class UserController {
@@ -87,7 +87,7 @@ export class UserController {
 Converts a string to a boolean:
 
 ```typescript
-import { Http, Query, ParseBoolPipe } from '@ambrosia/http';
+import { Http, Query, ParseBoolPipe } from '@ambrosia-unce/http';
 
 @Controller('/posts')
 export class PostController {
@@ -104,7 +104,7 @@ export class PostController {
 Converts a string to a floating-point number:
 
 ```typescript
-import { Http, Query, ParseFloatPipe } from '@ambrosia/http';
+import { Http, Query, ParseFloatPipe } from '@ambrosia-unce/http';
 
 @Controller('/products')
 export class ProductController {
@@ -121,7 +121,7 @@ export class ProductController {
 Validates UUID v4 format:
 
 ```typescript
-import { Http, Param, ParseUUIDPipe } from '@ambrosia/http';
+import { Http, Param, ParseUUIDPipe } from '@ambrosia-unce/http';
 
 @Controller('/orders')
 export class OrderController {
@@ -140,7 +140,7 @@ If the value is not a valid UUID v4, a `BadRequestException` is thrown.
 A factory function that returns a pipe for setting a default value:
 
 ```typescript
-import { Http, Query, DefaultValuePipe, ParseIntPipe } from '@ambrosia/http';
+import { Http, Query, DefaultValuePipe, ParseIntPipe } from '@ambrosia-unce/http';
 
 @Controller('/posts')
 export class PostController {
@@ -162,7 +162,7 @@ export class PostController {
 A factory function that validates a value against an enum:
 
 ```typescript
-import { Http, Query, ParseEnumPipe } from '@ambrosia/http';
+import { Http, Query, ParseEnumPipe } from '@ambrosia-unce/http';
 
 enum SortOrder {
   ASC = 'asc',
@@ -200,7 +200,7 @@ async getOne(
 ### At the Method Level
 
 ```typescript
-import { UsePipe } from '@ambrosia/http';
+import { UsePipe } from '@ambrosia-unce/http';
 
 @Http.Post('/')
 @UsePipe(ValidationPipe, SanitizePipe)

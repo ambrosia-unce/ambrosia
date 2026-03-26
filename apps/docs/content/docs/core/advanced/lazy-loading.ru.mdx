@@ -38,7 +38,7 @@ sequenceDiagram
 ```
 
 ```typescript
-import { Container, Injectable } from "@ambrosia/core";
+import { Container, Injectable } from "@ambrosia-unce/core";
 
 // Включаем auto-resolve для циклов
 const container = new Container({ autoResolveCircular: true });
@@ -94,7 +94,7 @@ class ServiceA {
 Для тяжёлых ресурсов используйте `FactoryProvider` с `Scope.SINGLETON`:
 
 ```typescript
-import { Container, InjectionToken, Scope, Injectable, Inject } from "@ambrosia/core";
+import { Container, InjectionToken, Scope, Injectable, Inject } from "@ambrosia-unce/core";
 
 const ML_MODEL = new InjectionToken<MLModel>("MLModel");
 
@@ -153,7 +153,7 @@ sequenceDiagram
 Динамический `import()` для code splitting:
 
 ```typescript
-import { Container, InjectionToken, Scope } from "@ambrosia/core";
+import { Container, InjectionToken, Scope } from "@ambrosia-unce/core";
 
 const SHARP = new InjectionToken<typeof import("sharp")>("Sharp");
 
@@ -182,7 +182,7 @@ class ImageService {
 Для разрыва циклических импортов между паками используйте `lazyImports`:
 
 ```typescript
-import { definePack, type PackDefinition } from "@ambrosia/core";
+import { definePack, type PackDefinition } from "@ambrosia-unce/core";
 
 const PackA: PackDefinition = definePack({
   meta: { name: "pack-a" },

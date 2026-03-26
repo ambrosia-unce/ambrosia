@@ -10,8 +10,8 @@ import { validate } from "./validate.ts";
 /**
  * Type guard that validates data against type T.
  *
- * **Plugin Required:** This function requires the @ambrosia/validator plugin
- * to be active. Add `preload = ["@ambrosia/validator/preload"]` to bunfig.toml.
+ * **Plugin Required:** This function requires the @ambrosia-unce/validator plugin
+ * to be active. Add `preload = ["@ambrosia-unce/validator/preload"]` to bunfig.toml.
  *
  * @example
  * ```typescript

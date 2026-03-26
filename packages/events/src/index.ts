@@ -1,10 +1,10 @@
 /**
- * @ambrosia/events — High-performance event bus for Ambrosia DI framework
+ * @ambrosia-unce/events — High-performance event bus for Ambrosia DI framework
  *
  * @example
  * ```typescript
- * import { EventBus, EventBusModule, OnEvent } from '@ambrosia/events';
- * import { Injectable, definePack } from '@ambrosia/core';
+ * import { EventBus, EventBusModule, OnEvent } from '@ambrosia-unce/events';
+ * import { Injectable, definePack } from '@ambrosia-unce/core';
  *
  * // 1. Define event classes
  * class UserRegisteredEvent {
@@ -27,7 +27,7 @@
  * });
  * ```
  *
- * @module @ambrosia/events
+ * @module @ambrosia-unce/events
  */
 
 import "reflect-metadata";

@@ -1,8 +1,8 @@
 /**
- * Injection tokens for @ambrosia/devtools
+ * Injection tokens for @ambrosia-unce/devtools
  */
 
-import { InjectionToken } from "@ambrosia/core";
+import { InjectionToken } from "@ambrosia-unce/core";
 import type { DevToolsOptions } from "./types.ts";
 
 /**

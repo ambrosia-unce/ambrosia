@@ -1,5 +1,5 @@
 {
-  "name": "@ambrosia/websocket",
+  "name": "@ambrosia-unce/websocket",
   "version": "0.1.0",
   "description": "Provider-agnostic WebSocket layer with decorators for the Ambrosia framework",
   "type": "module",
@@ -37,7 +37,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ambrosia/core": "workspace:*",
+    "@ambrosia-unce/core": "workspace:*",
     "reflect-metadata": "^0.2.1"
   }
 }

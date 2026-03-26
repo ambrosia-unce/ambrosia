@@ -1,6 +1,6 @@
 ---
 title: "CLI приложение"
-description: "Пример использования @ambrosia/core в консольном приложении с паттерном Command"
+description: "Пример использования @ambrosia-unce/core в консольном приложении с паттерном Command"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -70,7 +70,7 @@ export abstract class Command {
 ### ConfigService
 
 ```typescript title="src/config/config.service.ts"
-import { Injectable, type OnInit } from "@ambrosia/core";
+import { Injectable, type OnInit } from "@ambrosia-unce/core";
 import { readFileSync, existsSync } from "fs";
 
 @Injectable()
@@ -97,7 +97,7 @@ export class ConfigService implements OnInit {
 ### FileService
 
 ```typescript title="src/services/file.service.ts"
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import { readdir, readFile, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 
@@ -121,7 +121,7 @@ export class FileService {
 ### GitService
 
 ```typescript title="src/services/git.service.ts"
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 
 @Injectable()
 export class GitService {
@@ -142,7 +142,7 @@ export class GitService {
 ### Команды (TRANSIENT scope)
 
 ```typescript title="src/commands/init.command.ts"
-import { Injectable, Scope, Implements } from "@ambrosia/core";
+import { Injectable, Scope, Implements } from "@ambrosia-unce/core";
 import { Command } from "./command.interface";
 import { FileService } from "../services/file.service";
 import { ConfigService } from "../config/config.service";
@@ -180,7 +180,7 @@ export class InitCommand extends Command {
 ```
 
 ```typescript title="src/commands/build.command.ts"
-import { Injectable, Scope } from "@ambrosia/core";
+import { Injectable, Scope } from "@ambrosia-unce/core";
 import { Command } from "./command.interface";
 import { FileService } from "../services/file.service";
 import { ConfigService } from "../config/config.service";
@@ -221,7 +221,7 @@ export class BuildCommand extends Command {
 ```
 
 ```typescript title="src/commands/deploy.command.ts"
-import { Injectable, Scope } from "@ambrosia/core";
+import { Injectable, Scope } from "@ambrosia-unce/core";
 import { Command } from "./command.interface";
 import { GitService } from "../services/git.service";
 import { ConfigService } from "../config/config.service";
@@ -253,7 +253,7 @@ export class DeployCommand extends Command {
 ### CommandRegistry
 
 ```typescript title="src/registry/command.registry.ts"
-import { Injectable, Container } from "@ambrosia/core";
+import { Injectable, Container } from "@ambrosia-unce/core";
 import { Command } from "../commands/command.interface";
 
 // Импортируем команды для авто-регистрации
@@ -296,7 +296,7 @@ export class CommandRegistry {
 ### Точка входа
 
 ```typescript title="src/index.ts"
-import { Container } from "@ambrosia/core";
+import { Container } from "@ambrosia-unce/core";
 import { CommandRegistry } from "./registry/command.registry";
 
 const container = new Container({ mode: "production" });

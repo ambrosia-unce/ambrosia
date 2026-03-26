@@ -5,7 +5,7 @@
  * Static assets (JS/CSS) from dist/ui/ and fallback to index.html for SPA routing.
  */
 
-import { Controller, Http, Req, UseGuard } from "@ambrosia/http";
+import { Controller, Http, Req, UseGuard } from "@ambrosia-unce/http";
 import { DevToolsGuard } from "./middleware/devtools-guard.ts";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

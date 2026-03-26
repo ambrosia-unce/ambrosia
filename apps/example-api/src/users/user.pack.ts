@@ -1,4 +1,4 @@
-import type { HttpPackDefinition } from "@ambrosia/http";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import { UserController } from "./user.controller.ts";
 import { UserService } from "./user.service.ts";
 

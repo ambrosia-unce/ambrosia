@@ -1,5 +1,5 @@
 export function healthPack(): string {
-  return `import type { HttpPackDefinition } from "@ambrosia/http";
+  return `import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import { HealthController } from "./health.controller";
 import { HealthService } from "./health.service";
 
@@ -11,7 +11,7 @@ export const HealthPack: HttpPackDefinition = {
 }
 
 export function userPack(): string {
-  return `import type { HttpPackDefinition } from "@ambrosia/http";
+  return `import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import { UserController } from "./user.controller";
 import { UserService } from "./user.service";
 

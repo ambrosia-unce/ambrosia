@@ -4,7 +4,7 @@
  * MockWsProvider captures registered gateways for unit testing.
  */
 
-import type { Constructor, Token } from "@ambrosia/core";
+import type { Constructor, Token } from "@ambrosia-unce/core";
 import type { WsProvider, WsGatewayConfig } from "../interfaces/ws-provider.ts";
 import type { WsClient, WsMessage } from "../types/common.ts";
 import { WsApplication, type WsApplicationOptions } from "../ws-application.ts";

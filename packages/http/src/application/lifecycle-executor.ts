@@ -4,7 +4,7 @@
  * Order: Middleware → Guards → Interceptors (before) → Pipes → Handler → Interceptors (after) → Filters
  */
 
-import type { Constructor, Container } from "@ambrosia/core";
+import type { Constructor, Container } from "@ambrosia-unce/core";
 import { CallHandlerImpl } from "../context/call-handler.ts";
 import type { ExecutionContext } from "../context/execution-context.ts";
 import type { ExceptionFilter } from "../filters/exception-filter.interface.ts";

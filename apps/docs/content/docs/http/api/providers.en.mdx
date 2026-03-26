@@ -34,14 +34,14 @@ Provider for integration with [Elysia.js](https://elysiajs.com/).
 ### Installation
 
 ```bash
-npm install @ambrosia/http-elysia elysia
+npm install @ambrosia-unce/http-elysia elysia
 ```
 
 ### Usage
 
 ```typescript
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 
 const app = await HttpApplication.create({
   provider: ElysiaProvider,
@@ -96,7 +96,7 @@ You can create a provider for any HTTP framework:
 
 ```typescript
 import { Hono } from 'hono';
-import { HttpProvider, RouteConfig, HttpMethod } from '@ambrosia/http';
+import { HttpProvider, RouteConfig, HttpMethod } from '@ambrosia-unce/http';
 
 export class HonoProvider implements HttpProvider<Hono, any> {
   readonly name = 'hono';
@@ -172,7 +172,7 @@ await app.listen();
 
 ```typescript
 import Fastify, { FastifyInstance } from 'fastify';
-import { HttpProvider, RouteConfig } from '@ambrosia/http';
+import { HttpProvider, RouteConfig } from '@ambrosia-unce/http';
 
 export class FastifyProvider implements HttpProvider<FastifyInstance, any> {
   readonly name = 'fastify';

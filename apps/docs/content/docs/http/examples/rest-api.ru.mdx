@@ -122,7 +122,7 @@ export class UpdatePostDto {
 
 ```typescript
 // database/database.service.ts
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 import { Post } from '../models/post.model';
 
 @Injectable()
@@ -182,7 +182,7 @@ export class DatabaseService {
 
 ```typescript
 // modules/posts/post.service.ts
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 import { DatabaseService } from '../../database/database.service';
 import { Post } from '../../models/post.model';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -241,8 +241,8 @@ export class PostService {
 
 ```typescript
 // shared/guards/auth.guard.ts
-import { Injectable } from '@ambrosia/core';
-import { Guard, ExecutionContext, UnauthorizedException } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { Guard, ExecutionContext, UnauthorizedException } from '@ambrosia-unce/http';
 
 @Injectable()
 export class AuthGuard implements Guard {
@@ -274,8 +274,8 @@ export class AuthGuard implements Guard {
 
 ```typescript
 // shared/guards/ownership.guard.ts
-import { Injectable } from '@ambrosia/core';
-import { Guard, ExecutionContext, ForbiddenException } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { Guard, ExecutionContext, ForbiddenException } from '@ambrosia-unce/http';
 import { PostService } from '../../modules/posts/post.service';
 
 @Injectable()
@@ -308,8 +308,8 @@ export class OwnershipGuard implements Guard {
 
 ```typescript
 // shared/interceptors/transform.interceptor.ts
-import { Injectable } from '@ambrosia/core';
-import { Interceptor, ExecutionContext, CallHandler } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { Interceptor, ExecutionContext, CallHandler } from '@ambrosia-unce/http';
 
 @Injectable()
 export class TransformInterceptor implements Interceptor {
@@ -330,8 +330,8 @@ export class TransformInterceptor implements Interceptor {
 
 ```typescript
 // shared/interceptors/logging.interceptor.ts
-import { Injectable } from '@ambrosia/core';
-import { Interceptor, ExecutionContext, CallHandler } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { Interceptor, ExecutionContext, CallHandler } from '@ambrosia-unce/http';
 
 @Injectable()
 export class LoggingInterceptor implements Interceptor {
@@ -361,12 +361,12 @@ export class LoggingInterceptor implements Interceptor {
 
 ```typescript
 // shared/filters/http-exception.filter.ts
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 import { 
   ExceptionFilter, 
   ExceptionFilterArgs, 
   HttpException 
-} from '@ambrosia/http';
+} from '@ambrosia-unce/http';
 
 @Injectable()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -416,7 +416,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
 ```typescript
 // modules/posts/post.controller.ts
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 import {
   Controller,
   Http,
@@ -429,7 +429,7 @@ import {
   ParseIntPipe,
   ParseBoolPipe,
   NotFoundException
-} from '@ambrosia/http';
+} from '@ambrosia-unce/http';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -555,8 +555,8 @@ export class PostController {
 
 ```typescript
 // main.ts
-import { HttpApplication, ValidationPipe } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication, ValidationPipe } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 

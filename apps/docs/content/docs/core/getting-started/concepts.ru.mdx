@@ -1,13 +1,13 @@
 ---
 title: "Основные концепции"
-description: "Поймите фундаментальные принципы dependency injection и @ambrosia/core"
+description: "Поймите фундаментальные принципы dependency injection и @ambrosia-unce/core"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
 # Основные концепции
 
-Изучите фундаментальные концепции dependency injection и как @ambrosia/core их реализует.
+Изучите фундаментальные концепции dependency injection и как @ambrosia-unce/core их реализует.
 
 ## Что такое Dependency Injection?
 
@@ -50,7 +50,7 @@ class UserService {
 
 ## DI Контейнер
 
-**Container** — это сердце @ambrosia/core. Он управляет:
+**Container** — это сердце @ambrosia-unce/core. Он управляет:
 
 1. **Регистрацией** — какие классы доступны
 2. **Разрешением** — создание экземпляров с зависимостями
@@ -76,7 +76,7 @@ sequenceDiagram
 ```
 
 ```typescript
-import { Container } from '@ambrosia/core';
+import { Container } from '@ambrosia-unce/core';
 
 const container = new Container({
   mode: 'production',
@@ -93,7 +93,7 @@ const container = new Container({
 Помечает класс как доступный для dependency injection:
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 
 @Injectable()
 class MyService {
@@ -112,7 +112,7 @@ class MyService {
 Явно указывает, какую зависимость инъектировать (полезно для интерфейсов или абстрактных классов):
 
 ```typescript
-import { Injectable, Inject } from '@ambrosia/core';
+import { Injectable, Inject } from '@ambrosia-unce/core';
 
 abstract class Logger {
   abstract log(message: string): void;
@@ -143,7 +143,7 @@ container.register({
 Инъекция через свойства (альтернатива инъекции через конструктор):
 
 ```typescript
-import { Injectable, Autowired } from '@ambrosia/core';
+import { Injectable, Autowired } from '@ambrosia-unce/core';
 
 @Injectable()
 class UserService {
@@ -165,7 +165,7 @@ class UserService {
 Помечает зависимость как опциональную:
 
 ```typescript
-import { Injectable, Optional, Inject } from '@ambrosia/core';
+import { Injectable, Optional, Inject } from '@ambrosia-unce/core';
 
 @Injectable()
 class UserService {
@@ -226,7 +226,7 @@ sequenceDiagram
 Один экземпляр для всего приложения:
 
 ```typescript
-import { Injectable, Scope } from '@ambrosia/core';
+import { Injectable, Scope } from '@ambrosia-unce/core';
 
 @Injectable({ scope: Scope.SINGLETON }) // По умолчанию
 class DatabaseService {
@@ -291,7 +291,7 @@ container.createRequestScope(async () => {
 
 ## Провайдеры
 
-Провайдеры определяют, как контейнер создаёт экземпляры. В @ambrosia/core есть **4 типа** провайдеров:
+Провайдеры определяют, как контейнер создаёт экземпляры. В @ambrosia-unce/core есть **4 типа** провайдеров:
 
 ```mermaid
 sequenceDiagram
@@ -383,7 +383,7 @@ container.register({
 
 ## Токены
 
-Токены однозначно идентифицируют зависимости. В @ambrosia/core есть **4 вида** токенов:
+Токены однозначно идентифицируют зависимости. В @ambrosia-unce/core есть **4 вида** токенов:
 
 ### Class Tokens (рекомендуется)
 
@@ -430,7 +430,7 @@ const db = container.resolve(DB_TOKEN);
 Типизированный токен с описанием — лучший выбор для библиотек:
 
 ```typescript
-import { InjectionToken } from '@ambrosia/core';
+import { InjectionToken } from '@ambrosia-unce/core';
 
 const CACHE_CONFIG = new InjectionToken<CacheConfig>('CacheConfig');
 

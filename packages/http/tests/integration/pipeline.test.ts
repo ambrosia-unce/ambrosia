@@ -6,7 +6,7 @@
 
 import { beforeEach, describe, expect, test } from "bun:test";
 import "reflect-metadata";
-import { Injectable, InjectionToken } from "@ambrosia/core";
+import { Injectable, InjectionToken } from "@ambrosia-unce/core";
 import { Controller } from "../../src/decorators/controller.ts";
 import { Http } from "../../src/decorators/methods.ts";
 import { Body, Param, Query } from "../../src/decorators/parameters.ts";

@@ -1,4 +1,4 @@
-import { definePack } from "@ambrosia/core";
+import { definePack } from "@ambrosia-unce/core";
 import { AuthGuard } from "./auth.guard.ts";
 
 /**

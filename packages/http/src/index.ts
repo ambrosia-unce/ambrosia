@@ -1,5 +1,5 @@
 /**
- * @ambrosia/http - HTTP Module для Ambrosia DI Framework
+ * @ambrosia-unce/http - HTTP Module для Ambrosia DI Framework
  *
  * Провайдеро-агностичная библиотека для создания HTTP серверов с DI
  */

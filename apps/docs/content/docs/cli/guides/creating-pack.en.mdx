@@ -59,7 +59,7 @@ To publish a pack to a registry, you need a `registry.json` file in the project 
       "dependencies": {},
       "devDependencies": {},
       "registryDependencies": [],
-      "ambrosiaDependencies": ["@ambrosia/core"]
+      "ambrosiaDependencies": ["@ambrosia-unce/core"]
     }
   ]
 }
@@ -79,7 +79,7 @@ To publish a pack to a registry, you need a `registry.json` file in the project 
 | `dependencies` | `object` | npm runtime dependencies with versions |
 | `devDependencies` | `object` | npm dev dependencies |
 | `registryDependencies` | `string[]` | Dependencies on other packs from the registry |
-| `ambrosiaDependencies` | `string[]` | Required `@ambrosia/*` packages |
+| `ambrosiaDependencies` | `string[]` | Required `@ambrosia-unce/*` packages |
 
 ### File Types
 
@@ -142,7 +142,7 @@ Framework packages required for operation:
 
 ```json
 {
-  "ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+  "ambrosiaDependencies": ["@ambrosia-unce/core", "@ambrosia-unce/http"]
 }
 ```
 

@@ -1,4 +1,4 @@
-import { Controller, Http, Body, Param, Status } from "@ambrosia/http";
+import { Controller, Http, Body, Param, Status } from "@ambrosia-unce/http";
 import type { CreateUserDto } from "./dto/create-user.dto.ts";
 import { UserService } from "./user.service.ts";
 

@@ -10,7 +10,7 @@ Let's build a simple chat in 5 minutes.
 ## 1. Service
 
 ```typescript title="chat.service.ts"
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 
 @Injectable()
 export class ChatService {
@@ -36,8 +36,8 @@ import {
   SubscribeMessage,
   OnConnection,
   OnDisconnection,
-} from "@ambrosia/websocket";
-import type { WsClient } from "@ambrosia/websocket";
+} from "@ambrosia-unce/websocket";
+import type { WsClient } from "@ambrosia-unce/websocket";
 import { ChatService } from "./chat.service";
 
 @WebSocketGateway("/chat")

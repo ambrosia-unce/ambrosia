@@ -1,11 +1,11 @@
 ---
 title: "Installation"
-description: "Install @ambrosia/http and set up your project"
+description: "Install @ambrosia-unce/http and set up your project"
 ---
 
 # Installation
 
-Install **@ambrosia/http** and an HTTP provider to get started.
+Install **@ambrosia-unce/http** and an HTTP provider to get started.
 
 ## Prerequisites
 
@@ -18,25 +18,25 @@ Install **@ambrosia/http** and an HTTP provider to get started.
 <Tabs items={['bun', 'npm', 'pnpm', 'yarn']}>
   <Tab value="bun">
     ```bash
-    bun add @ambrosia/http @ambrosia/http-elysia @ambrosia/core
+    bun add @ambrosia-unce/http @ambrosia-unce/http-elysia @ambrosia-unce/core
     bun add -d @sinclair/typebox
     ```
   </Tab>
   <Tab value="npm">
     ```bash
-    npm install @ambrosia/http @ambrosia/http-elysia @ambrosia/core
+    npm install @ambrosia-unce/http @ambrosia-unce/http-elysia @ambrosia-unce/core
     npm install --save-dev @sinclair/typebox
     ```
   </Tab>
   <Tab value="pnpm">
     ```bash
-    pnpm add @ambrosia/http @ambrosia/http-elysia @ambrosia/core
+    pnpm add @ambrosia-unce/http @ambrosia-unce/http-elysia @ambrosia-unce/core
     pnpm add -D @sinclair/typebox
     ```
   </Tab>
   <Tab value="yarn">
     ```bash
-    yarn add @ambrosia/http @ambrosia/http-elysia @ambrosia/core
+    yarn add @ambrosia-unce/http @ambrosia-unce/http-elysia @ambrosia-unce/core
     yarn add --dev @sinclair/typebox
     ```
   </Tab>
@@ -44,9 +44,9 @@ Install **@ambrosia/http** and an HTTP provider to get started.
 
 ### Packages
 
-- **@ambrosia/core** - DI container (base dependency)
-- **@ambrosia/http** - HTTP framework (core functionality)
-- **@ambrosia/http-elysia** - Elysia.js provider
+- **@ambrosia-unce/core** - DI container (base dependency)
+- **@ambrosia-unce/http** - HTTP framework (core functionality)
+- **@ambrosia-unce/http-elysia** - Elysia.js provider
 - **@sinclair/typebox** - TypeBox for validation (optional but recommended)
 
 ## TypeScript Configuration
@@ -80,8 +80,8 @@ Update `tsconfig.json` to support decorators:
 Create a simple file for verification:
 
 ```typescript title="test.ts"
-import { HttpApplication, Controller, Http } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication, Controller, Http } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 
 @Controller('/')
 class AppController {

@@ -1,6 +1,6 @@
 ---
 title: "Базовое использование"
-description: "Изучите общие паттерны и лучшие практики использования @ambrosia/core"
+description: "Изучите общие паттерны и лучшие практики использования @ambrosia-unce/core"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -8,7 +8,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Базовое использование
 
-Освойте фундаментальные паттерны использования @ambrosia/core в ваших приложениях.
+Освойте фундаментальные паттерны использования @ambrosia-unce/core в ваших приложениях.
 
 ## Как работает разрешение зависимостей
 
@@ -43,7 +43,7 @@ sequenceDiagram
 Самая базовая настройка:
 
 ```typescript
-import { Container } from '@ambrosia/core';
+import { Container } from '@ambrosia-unce/core';
 
 const container = new Container();
 ```
@@ -82,7 +82,7 @@ const container = new Container({
 Используйте `@Injectable()` для автоматической регистрации:
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 
 @Injectable()
 class UserService {
@@ -106,7 +106,7 @@ const service = container.resolve(UserService);
 <Tabs items={['Класс', 'Фабрика', 'Значение']}>
   <Tab value="Класс">
     ```typescript
-    import { Scope } from '@ambrosia/core';
+    import { Scope } from '@ambrosia-unce/core';
 
     class UserService {
       getUser(id: string) {
@@ -310,7 +310,7 @@ container.register({
 Инъектируйте зависимости через свойства:
 
 ```typescript
-import { Injectable, Autowired } from '@ambrosia/core';
+import { Injectable, Autowired } from '@ambrosia-unce/core';
 
 @Injectable()
 class UserService {
@@ -338,7 +338,7 @@ class UserService {
 Используйте `@Optional()` для опциональных параметров конструктора:
 
 ```typescript
-import { Injectable, Optional, Inject } from '@ambrosia/core';
+import { Injectable, Optional, Inject } from '@ambrosia-unce/core';
 
 @Injectable()
 class UserService {
@@ -438,7 +438,7 @@ if (provider) {
 Очистите все кэшированные экземпляры в области видимости:
 
 ```typescript
-import { Scope } from '@ambrosia/core';
+import { Scope } from '@ambrosia-unce/core';
 
 // Очистить кэш singleton
 container.clearScope(Scope.SINGLETON);

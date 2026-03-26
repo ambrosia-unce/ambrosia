@@ -1,7 +1,7 @@
 /**
  * Logger types and interfaces for the standardized logging system.
  *
- * @module @ambrosia/core/logger
+ * @module @ambrosia-unce/core/logger
  */
 
 export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";

@@ -5,7 +5,7 @@
  * to the DevTools dashboard.
  */
 
-import { Controller, Http, Sse, SseStream, UseGuard } from "@ambrosia/http";
+import { Controller, Http, Sse, SseStream, UseGuard } from "@ambrosia-unce/http";
 import { DevToolsEventCollector } from "./collectors/event-collector.ts";
 import { PluginRegistry } from "./plugin/plugin-registry.ts";
 import { DevToolsGuard } from "./middleware/devtools-guard.ts";

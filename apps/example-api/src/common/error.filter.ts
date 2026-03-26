@@ -1,9 +1,9 @@
-import { Injectable, LoggerService } from "@ambrosia/core";
+import { Injectable, LoggerService } from "@ambrosia-unce/core";
 import {
   HttpException,
   type ExceptionFilter,
   type ExceptionFilterArgs,
-} from "@ambrosia/http";
+} from "@ambrosia-unce/http";
 
 /**
  * Global error filter — catches all exceptions and formats

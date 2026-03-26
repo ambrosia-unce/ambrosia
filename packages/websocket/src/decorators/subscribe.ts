@@ -4,7 +4,7 @@
  * Subscribes a method to handle a specific WebSocket event.
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import { WsMetadataManager } from "../metadata/ws-metadata-manager.ts";
 
 /**

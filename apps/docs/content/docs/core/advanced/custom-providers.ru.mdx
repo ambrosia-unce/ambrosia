@@ -43,7 +43,7 @@ sequenceDiagram
 ### ClassProvider — создание через конструктор
 
 ```typescript
-import { Container, Injectable, Scope } from "@ambrosia/core";
+import { Container, Injectable, Scope } from "@ambrosia-unce/core";
 
 @Injectable({ scope: Scope.SINGLETON })
 class CacheService {
@@ -77,7 +77,7 @@ container.register({
 ### FactoryProvider — кастомная логика создания
 
 ```typescript
-import { Container, InjectionToken, Scope } from "@ambrosia/core";
+import { Container, InjectionToken, Scope } from "@ambrosia-unce/core";
 
 const DB_POOL = new InjectionToken<ConnectionPool>("DbPool");
 
@@ -99,7 +99,7 @@ container.register({
 ### ValueProvider — готовое значение
 
 ```typescript
-import { InjectionToken } from "@ambrosia/core";
+import { InjectionToken } from "@ambrosia-unce/core";
 
 interface AppConfig {
   apiUrl: string;
@@ -122,7 +122,7 @@ container.register({
 ### ExistingProvider — алиас токена
 
 ```typescript
-import { Injectable, Implements } from "@ambrosia/core";
+import { Injectable, Implements } from "@ambrosia-unce/core";
 
 abstract class Logger {
   abstract log(msg: string): void;
@@ -148,7 +148,7 @@ container.register({
 Создание разных экземпляров в зависимости от условий:
 
 ```typescript
-import { Container, InjectionToken, Injectable } from "@ambrosia/core";
+import { Container, InjectionToken, Injectable } from "@ambrosia-unce/core";
 
 abstract class CacheProvider {
   abstract get(key: string): Promise<string | null>;
@@ -205,7 +205,7 @@ sequenceDiagram
 Несколько реализаций под одним токеном (через массив):
 
 ```typescript
-import { InjectionToken, Injectable } from "@ambrosia/core";
+import { InjectionToken, Injectable } from "@ambrosia-unce/core";
 
 interface HealthCheck {
   name: string;
@@ -267,7 +267,7 @@ class HealthService {
 Отложенная инициализация тяжёлых ресурсов:
 
 ```typescript
-import { Container, InjectionToken, Scope } from "@ambrosia/core";
+import { Container, InjectionToken, Scope } from "@ambrosia-unce/core";
 
 interface S3Client {
   upload(key: string, data: Buffer): Promise<string>;
@@ -301,7 +301,7 @@ container.register({
 Фабрика, создающая разные экземпляры в зависимости от scope:
 
 ```typescript
-import { Injectable, Scope, InjectionToken } from "@ambrosia/core";
+import { Injectable, Scope, InjectionToken } from "@ambrosia-unce/core";
 
 const TRACE_ID = new InjectionToken<string>("TraceId");
 

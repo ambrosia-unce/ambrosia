@@ -298,7 +298,7 @@ interface CreatePostDto {
 Комбинирование JSDoc constraints и branded types:
 
 ```typescript
-import type { Email, PositiveInt } from '@ambrosia/validator/types';
+import type { Email, PositiveInt } from '@ambrosia-unce/validator/types';
 
 interface CreateUserDto {
   /**
@@ -433,7 +433,7 @@ interface UserDto {
 ```typescript
 // validator-config.ts
 import { plugin } from "bun";
-import { createValidatorPlugin } from "@ambrosia/validator/plugin";
+import { createValidatorPlugin } from "@ambrosia-unce/validator/plugin";
 
 plugin(createValidatorPlugin({
   debug: true,

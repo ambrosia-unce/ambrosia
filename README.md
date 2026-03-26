@@ -17,7 +17,7 @@ Built from the ground up for Bun.
 ## Quick Start
 
 ```bash
-bun add -g @ambrosia/cli
+bun add -g @ambrosia-unce/cli
 ambrosia new my-app
 cd my-app && bun run dev
 ```
@@ -50,7 +50,7 @@ class UserController {
 **Compile-Time Validation** -- TypeScript types become runtime validators at build time. Zero overhead, no schemas.
 
 ```typescript
-import { assert, type Email } from "@ambrosia/validator";
+import { assert, type Email } from "@ambrosia-unce/validator";
 
 interface CreateUser { name: string; email: Email }
 const user = assert<CreateUser>(body); // validated + typed
@@ -65,7 +65,7 @@ const user = assert<CreateUser>(body); // validated + typed
 ```bash
 ambrosia new my-app
 ambrosia g controller users
-ambrosia add @ambrosia/auth
+ambrosia add @ambrosia-unce/auth
 ```
 
 **Pack Ecosystem** -- Installable feature modules via the pack marketplace.
@@ -74,21 +74,21 @@ ambrosia add @ambrosia/auth
 
 | Package | Description | Version |
 |---------|-------------|---------|
-| [`@ambrosia/core`](packages/core) | Decorator-based DI container | [![npm](https://img.shields.io/npm/v/@ambrosia/core.svg)](https://www.npmjs.com/package/@ambrosia/core) |
-| [`@ambrosia/http`](packages/http) | Provider-agnostic HTTP layer | [![npm](https://img.shields.io/npm/v/@ambrosia/http.svg)](https://www.npmjs.com/package/@ambrosia/http) |
-| [`@ambrosia/http-elysia`](packages/http-elysia) | Elysia.js HTTP adapter | [![npm](https://img.shields.io/npm/v/@ambrosia/http-elysia.svg)](https://www.npmjs.com/package/@ambrosia/http-elysia) |
-| [`@ambrosia/validator`](packages/validator) | Compile-time type validation | [![npm](https://img.shields.io/npm/v/@ambrosia/validator.svg)](https://www.npmjs.com/package/@ambrosia/validator) |
-| [`@ambrosia/config`](packages/config) | Type-safe environment config | [![npm](https://img.shields.io/npm/v/@ambrosia/config.svg)](https://www.npmjs.com/package/@ambrosia/config) |
-| [`@ambrosia/events`](packages/events) | DI-integrated event bus | [![npm](https://img.shields.io/npm/v/@ambrosia/events.svg)](https://www.npmjs.com/package/@ambrosia/events) |
-| [`@ambrosia/cli`](packages/cli) | Project scaffolding CLI | [![npm](https://img.shields.io/npm/v/@ambrosia/cli.svg)](https://www.npmjs.com/package/@ambrosia/cli) |
+| [`@ambrosia-unce/core`](packages/core) | Decorator-based DI container | [![npm](https://img.shields.io/npm/v/@ambrosia-unce/core.svg)](https://www.npmjs.com/package/@ambrosia-unce/core) |
+| [`@ambrosia-unce/http`](packages/http) | Provider-agnostic HTTP layer | [![npm](https://img.shields.io/npm/v/@ambrosia-unce/http.svg)](https://www.npmjs.com/package/@ambrosia-unce/http) |
+| [`@ambrosia-unce/http-elysia`](packages/http-elysia) | Elysia.js HTTP adapter | [![npm](https://img.shields.io/npm/v/@ambrosia-unce/http-elysia.svg)](https://www.npmjs.com/package/@ambrosia-unce/http-elysia) |
+| [`@ambrosia-unce/validator`](packages/validator) | Compile-time type validation | [![npm](https://img.shields.io/npm/v/@ambrosia-unce/validator.svg)](https://www.npmjs.com/package/@ambrosia-unce/validator) |
+| [`@ambrosia-unce/config`](packages/config) | Type-safe environment config | [![npm](https://img.shields.io/npm/v/@ambrosia-unce/config.svg)](https://www.npmjs.com/package/@ambrosia-unce/config) |
+| [`@ambrosia-unce/events`](packages/events) | DI-integrated event bus | [![npm](https://img.shields.io/npm/v/@ambrosia-unce/events.svg)](https://www.npmjs.com/package/@ambrosia-unce/events) |
+| [`@ambrosia-unce/cli`](packages/cli) | Project scaffolding CLI | [![npm](https://img.shields.io/npm/v/@ambrosia-unce/cli.svg)](https://www.npmjs.com/package/@ambrosia-unce/cli) |
 
 ## Example
 
 ```typescript
 import "reflect-metadata";
-import { Injectable } from "@ambrosia/core";
-import { HttpApplication, Controller, Http, Param, type HttpPackDefinition } from "@ambrosia/http";
-import { ElysiaProvider } from "@ambrosia/http-elysia";
+import { Injectable } from "@ambrosia-unce/core";
+import { HttpApplication, Controller, Http, Param, type HttpPackDefinition } from "@ambrosia-unce/http";
+import { ElysiaProvider } from "@ambrosia-unce/http-elysia";
 
 @Injectable()
 class GreetService {
@@ -127,7 +127,7 @@ Packs are installable feature modules -- auth, logging, ORM integrations, and mo
 
 ```bash
 ambrosia search auth        # find packs
-ambrosia add @ambrosia/auth # install a pack
+ambrosia add @ambrosia-unce/auth # install a pack
 ambrosia list               # view installed packs
 ```
 

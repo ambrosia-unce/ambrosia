@@ -4,7 +4,7 @@
  * Middleware executes before guards in the request lifecycle
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import type { IHttpRequest, IHttpResponse } from "../types/common.ts";
 
 /**

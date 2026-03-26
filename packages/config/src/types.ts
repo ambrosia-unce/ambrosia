@@ -1,8 +1,8 @@
 /**
- * Type definitions for @ambrosia/config
+ * Type definitions for @ambrosia-unce/config
  */
 
-import type { AsyncPackOptions } from "@ambrosia/core";
+import type { AsyncPackOptions } from "@ambrosia-unce/core";
 
 /**
  * Supported parser types for environment variable values.

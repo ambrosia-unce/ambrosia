@@ -1,9 +1,9 @@
 /**
- * Preload script for @ambrosia/validator plugin
+ * Preload script for @ambrosia-unce/validator plugin
  *
  * Add this to your bunfig.toml:
  * ```toml
- * preload = ["@ambrosia/validator/preload"]
+ * preload = ["@ambrosia-unce/validator/preload"]
  * ```
  *
  * Or with custom options:
@@ -14,7 +14,7 @@
  * And in validator-config.ts:
  * ```typescript
  * import { plugin } from "bun";
- * import { createValidatorPlugin } from "@ambrosia/validator/plugin";
+ * import { createValidatorPlugin } from "@ambrosia-unce/validator/plugin";
  *
  * plugin(createValidatorPlugin({ debug: true }));
  * ```
@@ -27,5 +27,5 @@ import { validatorPlugin } from "./src/plugin";
 plugin(validatorPlugin);
 
 if (process.env.DEBUG || process.env.AMBROSIA_DEBUG) {
-  console.log("✓ @ambrosia/validator plugin loaded");
+  console.log("✓ @ambrosia-unce/validator plugin loaded");
 }

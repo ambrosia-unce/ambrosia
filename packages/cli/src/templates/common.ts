@@ -1,7 +1,7 @@
 export function authGuard(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { Guard, ExecutionContext } from "@ambrosia/http";
-import { UnauthorizedException } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Guard, ExecutionContext } from "@ambrosia-unce/http";
+import { UnauthorizedException } from "@ambrosia-unce/http";
 
 /**
  * Example authentication guard.
@@ -28,8 +28,8 @@ export class AuthGuard implements Guard {
 }
 
 export function loggingInterceptor(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { Interceptor, ExecutionContext, CallHandler } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Interceptor, ExecutionContext, CallHandler } from "@ambrosia-unce/http";
 
 /**
  * Logs request method, path, and execution time.
@@ -53,9 +53,9 @@ export class LoggingInterceptor implements Interceptor {
 }
 
 export function httpExceptionFilter(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { ExceptionFilter, ExceptionFilterArgs } from "@ambrosia/http";
-import { HttpException } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { ExceptionFilter, ExceptionFilterArgs } from "@ambrosia-unce/http";
+import { HttpException } from "@ambrosia-unce/http";
 
 /**
  * Catches HttpException and returns a structured JSON error response.
@@ -84,8 +84,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
 }
 
 export function corsMiddleware(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { Middleware, IHttpRequest, IHttpResponse } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Middleware, IHttpRequest, IHttpResponse } from "@ambrosia-unce/http";
 
 /**
  * Simple CORS middleware.

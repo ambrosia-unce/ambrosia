@@ -1,10 +1,10 @@
-import { Injectable } from "@ambrosia/core";
-import { BadRequestException, type Pipe, type PipeMetadata } from "@ambrosia/http";
+import { Injectable } from "@ambrosia-unce/core";
+import { BadRequestException, type Pipe, type PipeMetadata } from "@ambrosia-unce/http";
 
 /**
  * Simple validation pipe — ensures the body is not empty.
  *
- * In a real application, you would use @ambrosia/validator for
+ * In a real application, you would use @ambrosia-unce/validator for
  * compile-time type validation. This is a simplified demo.
  */
 @Injectable()

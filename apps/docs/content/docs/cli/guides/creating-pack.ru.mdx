@@ -59,7 +59,7 @@ ambrosia g pack my-pack
       "dependencies": {},
       "devDependencies": {},
       "registryDependencies": [],
-      "ambrosiaDependencies": ["@ambrosia/core"]
+      "ambrosiaDependencies": ["@ambrosia-unce/core"]
     }
   ]
 }
@@ -79,7 +79,7 @@ ambrosia g pack my-pack
 | `dependencies` | `object` | npm runtime зависимости с версиями |
 | `devDependencies` | `object` | npm dev зависимости |
 | `registryDependencies` | `string[]` | Зависимости на другие паки из registry |
-| `ambrosiaDependencies` | `string[]` | Требуемые пакеты `@ambrosia/*` |
+| `ambrosiaDependencies` | `string[]` | Требуемые пакеты `@ambrosia-unce/*` |
 
 ### Типы файлов
 
@@ -142,7 +142,7 @@ CLI рекурсивно загрузит и установит зависимы
 
 ```json
 {
-  "ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+  "ambrosiaDependencies": ["@ambrosia-unce/core", "@ambrosia-unce/http"]
 }
 ```
 

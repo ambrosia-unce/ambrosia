@@ -14,7 +14,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 Функция `defineConfig()` создаёт типобезопасную схему конфигурации:
 
 ```ts
-import { defineConfig } from '@ambrosia/config';
+import { defineConfig } from '@ambrosia-unce/config';
 
 const AppConfig = defineConfig({
   port: { env: 'PORT', type: 'int', default: 3000 },
@@ -76,8 +76,8 @@ const Config = defineConfig({
 После инициализации доступ к конфигурации через `ConfigService`:
 
 ```ts
-import { Injectable } from '@ambrosia/core';
-import { ConfigService } from '@ambrosia/config';
+import { Injectable } from '@ambrosia-unce/core';
+import { ConfigService } from '@ambrosia-unce/config';
 
 @Injectable()
 class MyService {

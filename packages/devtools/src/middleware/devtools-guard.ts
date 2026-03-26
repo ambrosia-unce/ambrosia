@@ -5,8 +5,8 @@
  * Optionally checks an auth token for remote access.
  */
 
-import { Inject, Injectable, Optional } from "@ambrosia/core";
-import type { ExecutionContext, Guard } from "@ambrosia/http";
+import { Inject, Injectable, Optional } from "@ambrosia-unce/core";
+import type { ExecutionContext, Guard } from "@ambrosia-unce/http";
 import { DEVTOOLS_OPTIONS } from "../tokens.ts";
 import type { DevToolsOptions } from "../types.ts";
 

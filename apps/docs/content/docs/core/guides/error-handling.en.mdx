@@ -84,7 +84,7 @@ Errors are colored with ANSI: code is cyan, error is red, hint is yellow, link i
 ### Throwing Errors with `createError`
 
 ```typescript
-import { createError, AMB001 } from '@ambrosia/core';
+import { createError, AMB001 } from '@ambrosia-unce/core';
 
 throw createError(AMB001, 'Token "UserService" not found in pack "AppPack"', {
   token: 'UserService',
@@ -95,7 +95,7 @@ throw createError(AMB001, 'Token "UserService" not found in pack "AppPack"', {
 ### Formatted Output
 
 ```typescript
-import { formatError, printError, AmbrosiaError } from '@ambrosia/core';
+import { formatError, printError, AmbrosiaError } from '@ambrosia-unce/core';
 
 const error = new AmbrosiaError(
   'AMB001',
@@ -114,7 +114,7 @@ printError(error);
 ### Creating Custom Errors
 
 ```typescript
-import { AmbrosiaError } from '@ambrosia/core';
+import { AmbrosiaError } from '@ambrosia-unce/core';
 
 class MyPluginError extends AmbrosiaError {
   constructor(detail: string) {
@@ -134,7 +134,7 @@ throw new MyPluginError('Redis connection refused');
 ### Catching and Handling
 
 ```typescript
-import { AmbrosiaError, formatError } from '@ambrosia/core';
+import { AmbrosiaError, formatError } from '@ambrosia-unce/core';
 
 try {
   const service = container.resolve(UserService);
@@ -160,7 +160,7 @@ try {
 A universal function: if the error is an `AmbrosiaError`, it outputs a formatted message; otherwise, just the `message`.
 
 ```typescript
-import { formatAnyError } from '@ambrosia/core';
+import { formatAnyError } from '@ambrosia-unce/core';
 
 try {
   riskyOperation();

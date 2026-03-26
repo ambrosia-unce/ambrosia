@@ -1,5 +1,5 @@
 {
-  "name": "@ambrosia/config",
+  "name": "@ambrosia-unce/config",
   "version": "0.1.0",
   "description": "Type-safe environment configuration for Ambrosia framework with schema validation and zero runtime overhead",
   "type": "module",
@@ -52,7 +52,7 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "@ambrosia/core": "workspace:*",
+    "@ambrosia-unce/core": "workspace:*",
     "typescript": "^5"
   },
   "publishConfig": {

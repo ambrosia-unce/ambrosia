@@ -1,5 +1,5 @@
 /**
- * @ambrosia/websocket
+ * @ambrosia-unce/websocket
  *
  * Provider-agnostic WebSocket layer for the Ambrosia framework.
  */

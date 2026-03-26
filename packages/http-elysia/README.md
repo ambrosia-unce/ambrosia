@@ -1,10 +1,10 @@
-# @ambrosia/http-elysia
+# @ambrosia-unce/http-elysia
 
 [Elysia.js](https://elysiajs.com/) HTTP adapter for the Ambrosia framework.
 
 ## Overview
 
-This package implements the `HttpProvider` interface from `@ambrosia/http` using Elysia.js as the underlying HTTP server. It provides two main components:
+This package implements the `HttpProvider` interface from `@ambrosia-unce/http` using Elysia.js as the underlying HTTP server. It provides two main components:
 
 - **`ElysiaProvider`** — implements the `HttpProvider` interface, bridging Ambrosia's HTTP layer with Elysia
 - **`ElysiaContextAdapter`** — converts Elysia's request context into Ambrosia's `HttpContext`
@@ -12,15 +12,15 @@ This package implements the `HttpProvider` interface from `@ambrosia/http` using
 ## Installation
 
 ```bash
-bun add @ambrosia/http-elysia elysia
+bun add @ambrosia-unce/http-elysia elysia
 ```
 
 ## Usage
 
 ```typescript
 import "reflect-metadata";
-import { HttpApplication } from "@ambrosia/http";
-import { ElysiaProvider } from "@ambrosia/http-elysia";
+import { HttpApplication } from "@ambrosia-unce/http";
+import { ElysiaProvider } from "@ambrosia-unce/http-elysia";
 
 const app = await HttpApplication.create({
   provider: new ElysiaProvider(),

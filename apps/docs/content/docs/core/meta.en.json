@@ -1,5 +1,5 @@
 {
-  "title": "@ambrosia/core",
+  "title": "@ambrosia-unce/core",
   "description": "DI Bun-based container",
   "pages": [
     "index",

@@ -2,7 +2,7 @@
  * ResponseWrapperInterceptor - wraps responses in a standard envelope
  */
 
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import type { CallHandler } from "../context/call-handler.ts";
 import type { ExecutionContext } from "../context/execution-context.ts";
 import type { Interceptor } from "./interceptor.interface.ts";

@@ -1,6 +1,6 @@
-import { LoggerService } from "@ambrosia/core";
-import { Injectable } from "@ambrosia/core";
-import type { CallHandler, ExecutionContext, Interceptor } from "@ambrosia/http";
+import { LoggerService } from "@ambrosia-unce/core";
+import { Injectable } from "@ambrosia-unce/core";
+import type { CallHandler, ExecutionContext, Interceptor } from "@ambrosia-unce/http";
 
 /**
  * Logging interceptor — logs request method, path, and timing.

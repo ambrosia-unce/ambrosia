@@ -8,7 +8,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Асинхронные операции
 
-@ambrosia/core поддерживает асинхронные операции для случаев, когда создание экземпляра требует асинхронной инициализации — подключение к БД, загрузка конфигурации, проверка внешних сервисов.
+@ambrosia-unce/core поддерживает асинхронные операции для случаев, когда создание экземпляра требует асинхронной инициализации — подключение к БД, загрузка конфигурации, проверка внешних сервисов.
 
 ## Обзор async-потока
 
@@ -42,7 +42,7 @@ sequenceDiagram
 Регистрируйте провайдеры с async-фабриками для случаев, когда инициализация требует `await`:
 
 ```typescript
-import { Container, Scope, InjectionToken } from "@ambrosia/core";
+import { Container, Scope, InjectionToken } from "@ambrosia-unce/core";
 
 const DB_CONNECTION = new InjectionToken<DatabaseConnection>("DbConnection");
 
@@ -83,7 +83,7 @@ const db = container.resolve(DB_CONNECTION);
 Фабрика получает контейнер и может разрешать зависимости:
 
 ```typescript
-import { Injectable, InjectionToken } from "@ambrosia/core";
+import { Injectable, InjectionToken } from "@ambrosia-unce/core";
 
 @Injectable()
 class ConfigService {
@@ -113,7 +113,7 @@ container.register({
 Классы, реализующие `OnInit`, могут иметь асинхронный `onInit()`:
 
 ```typescript
-import { Injectable, Inject, type OnInit, type OnDestroy } from "@ambrosia/core";
+import { Injectable, Inject, type OnInit, type OnDestroy } from "@ambrosia-unce/core";
 
 @Injectable()
 class DatabaseService implements OnInit, OnDestroy {
@@ -253,7 +253,7 @@ sequenceDiagram
 Специализированный менеджер для неблокирующей обработки событий плагинов:
 
 ```typescript
-import { Container, AsyncPluginManager, LoggingPlugin } from "@ambrosia/core";
+import { Container, AsyncPluginManager, LoggingPlugin } from "@ambrosia-unce/core";
 
 const asyncManager = new AsyncPluginManager({
   batchSize: 50,       // Макс. событий в одном батче (по умолчанию 50)
@@ -316,7 +316,7 @@ expect(telemetryPlugin.getStats().totalResolutions).toBe(5);
 Неблокирующий логгер, оптимизированный для Bun:
 
 ```typescript
-import { getAsyncLogger } from "@ambrosia/core";
+import { getAsyncLogger } from "@ambrosia-unce/core";
 
 const logger = getAsyncLogger({
   bufferSize: 100,      // Flush при достижении 100 записей
@@ -382,7 +382,7 @@ import {
   type OnDestroy,
   definePack,
   createAsyncProvider,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 
 // Токены
 const DB_CONFIG = new InjectionToken<DbConfig>("DbConfig");

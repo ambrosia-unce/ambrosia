@@ -14,7 +14,7 @@ A configuration schema is a declarative description of all environment variables
 The `defineConfig()` function creates a type-safe configuration schema:
 
 ```ts
-import { defineConfig } from '@ambrosia/config';
+import { defineConfig } from '@ambrosia-unce/config';
 
 const AppConfig = defineConfig({
   port: { env: 'PORT', type: 'int', default: 3000 },
@@ -76,8 +76,8 @@ When `validate: true` (default), all configuration errors are collected and thro
 After initialization, access configuration via `ConfigService`:
 
 ```ts
-import { Injectable } from '@ambrosia/core';
-import { ConfigService } from '@ambrosia/config';
+import { Injectable } from '@ambrosia-unce/core';
+import { ConfigService } from '@ambrosia-unce/config';
 
 @Injectable()
 class MyService {

@@ -10,7 +10,7 @@ export function userEntity(): string {
 }
 
 export function createUserDto(): string {
-  return `import type { Email } from "@ambrosia/validator/types";
+  return `import type { Email } from "@ambrosia-unce/validator/types";
 
 export interface CreateUserDto {
   name: string;
@@ -20,7 +20,7 @@ export interface CreateUserDto {
 }
 
 export function updateUserDto(): string {
-  return `import type { Email } from "@ambrosia/validator/types";
+  return `import type { Email } from "@ambrosia-unce/validator/types";
 
 export interface UpdateUserDto {
   name?: string;
@@ -30,7 +30,7 @@ export interface UpdateUserDto {
 }
 
 export function userService(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 import type { User } from "./entities/user.entity";
 import type { CreateUserDto } from "./dto/create-user.dto";
 import type { UpdateUserDto } from "./dto/update-user.dto";
@@ -82,9 +82,9 @@ export class UserService {
 }
 
 export function userController(): string {
-  return `import { Controller, Http, Body, Param, Status } from "@ambrosia/http";
-import { NotFoundException } from "@ambrosia/http";
-import { assert } from "@ambrosia/validator";
+  return `import { Controller, Http, Body, Param, Status } from "@ambrosia-unce/http";
+import { NotFoundException } from "@ambrosia-unce/http";
+import { assert } from "@ambrosia-unce/validator";
 import { UserService } from "./user.service";
 import type { CreateUserDto } from "./dto/create-user.dto";
 import type { UpdateUserDto } from "./dto/update-user.dto";

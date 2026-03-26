@@ -1,9 +1,9 @@
 /**
- * Type definitions for @ambrosia/devtools
+ * Type definitions for @ambrosia-unce/devtools
  */
 
-import type { Container } from "@ambrosia/core";
-import type { HttpContext } from "@ambrosia/http";
+import type { Container } from "@ambrosia-unce/core";
+import type { HttpContext } from "@ambrosia-unce/http";
 
 // ==================== DevTools Options ====================
 

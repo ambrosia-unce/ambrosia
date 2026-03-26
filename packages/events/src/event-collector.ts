@@ -6,7 +6,7 @@
  * after construction — no runtime registration, no dynamic changes.
  */
 
-import { type Constructor, type IContainer, Injectable } from "@ambrosia/core";
+import { type Constructor, type IContainer, Injectable } from "@ambrosia-unce/core";
 import { EVENTS_METADATA } from "./tokens.ts";
 import type { EventHandlerMetadata, HandlerEntry } from "./types.ts";
 

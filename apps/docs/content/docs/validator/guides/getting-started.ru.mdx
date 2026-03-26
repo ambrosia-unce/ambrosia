@@ -1,6 +1,6 @@
 ---
 title: "Начало работы"
-description: "Установка и базовое использование @ambrosia/validator"
+description: "Установка и базовое использование @ambrosia-unce/validator"
 ---
 
 # Начало работы
@@ -8,7 +8,7 @@ description: "Установка и базовое использование @a
 ## Установка
 
 ```bash
-bun add @ambrosia/validator
+bun add @ambrosia-unce/validator
 ```
 
 ## Настройка
@@ -16,7 +16,7 @@ bun add @ambrosia/validator
 Добавьте в ваш `bunfig.toml`:
 
 ```toml
-preload = ["@ambrosia/validator/preload"]
+preload = ["@ambrosia-unce/validator/preload"]
 ```
 
 Это активирует Bun plugin, который будет автоматически трансформировать ваш код.
@@ -26,7 +26,7 @@ preload = ["@ambrosia/validator/preload"]
 ### validate() - возвращает результат
 
 ```typescript
-import { validate } from '@ambrosia/validator';
+import { validate } from '@ambrosia-unce/validator';
 
 interface User {
   name: string;
@@ -47,7 +47,7 @@ if (result.success) {
 ### assert() - выбрасывает исключение
 
 ```typescript
-import { assert } from '@ambrosia/validator';
+import { assert } from '@ambrosia-unce/validator';
 
 try {
   const user = assert<User>(data);
@@ -62,7 +62,7 @@ try {
 ### is() - type guard
 
 ```typescript
-import { is } from '@ambrosia/validator';
+import { is } from '@ambrosia-unce/validator';
 
 if (is<User>(data)) {
   // data имеет тип User в этом блоке
@@ -128,7 +128,7 @@ class ValidationError extends Error {
 ```typescript
 // validator-config.ts
 import { plugin } from "bun";
-import { createValidatorPlugin } from "@ambrosia/validator/plugin";
+import { createValidatorPlugin } from "@ambrosia-unce/validator/plugin";
 
 plugin(createValidatorPlugin({
   debug: true, // Логирование трансформаций
@@ -145,4 +145,4 @@ preload = ["./validator-config.ts"]
 
 - [Branded Types](./branded-types) - специализированные типы с валидацией
 - [JSDoc Constraints](./jsdoc-constraints) - ограничения через JSDoc теги
-- [Интеграция с HTTP](./http-integration) - использование с @ambrosia/http
+- [Интеграция с HTTP](./http-integration) - использование с @ambrosia-unce/http

@@ -1,17 +1,17 @@
-# @ambrosia/events
+# @ambrosia-unce/events
 
 High-performance event bus for the Ambrosia DI framework with decorator-driven event handling.
 
 ## Installation
 
 ```bash
-bun add @ambrosia/events
+bun add @ambrosia-unce/events
 ```
 
 ## Usage
 
 ```typescript
-import { EventBus, OnEvent } from "@ambrosia/events";
+import { EventBus, OnEvent } from "@ambrosia-unce/events";
 
 class UserCreatedEvent {
   constructor(public readonly userId: string) {}

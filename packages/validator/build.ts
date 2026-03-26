@@ -1,5 +1,5 @@
 /**
- * Build script for @ambrosia/validator
+ * Build script for @ambrosia-unce/validator
  */
 
 import { readdir, readFile, writeFile } from "node:fs/promises";

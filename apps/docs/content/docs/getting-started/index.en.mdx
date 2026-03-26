@@ -33,13 +33,13 @@ Ambrosia is a good fit if you:
 ## Architecture at a Glance
 
 ```
-@ambrosia/core          -- Standalone DI container (no HTTP coupling)
-@ambrosia/http          -- Provider-agnostic HTTP layer (controllers, guards, pipes, interceptors)
-@ambrosia/http-elysia   -- Elysia.js adapter for @ambrosia/http
-@ambrosia/config        -- Type-safe environment configuration
-@ambrosia/events        -- High-performance event bus
-@ambrosia/validator     -- Compile-time type validation
-@ambrosia/cli           -- Project scaffolding and code generation
+@ambrosia-unce/core          -- Standalone DI container (no HTTP coupling)
+@ambrosia-unce/http          -- Provider-agnostic HTTP layer (controllers, guards, pipes, interceptors)
+@ambrosia-unce/http-elysia   -- Elysia.js adapter for @ambrosia-unce/http
+@ambrosia-unce/config        -- Type-safe environment configuration
+@ambrosia-unce/events        -- High-performance event bus
+@ambrosia-unce/validator     -- Compile-time type validation
+@ambrosia-unce/cli           -- Project scaffolding and code generation
 ```
 
 The core DI container has no HTTP dependencies -- you can use it in CLI tools, workers, or any TypeScript application. The HTTP layer is a separate package that plugs into the core via the pack system.
@@ -76,10 +76,10 @@ This guide walks you through building a REST API step by step:
 Here is a taste of what an Ambrosia API looks like:
 
 ```ts
-import { Injectable, definePack } from '@ambrosia/core';
-import { Controller, Http, Body, Param, Status } from '@ambrosia/http';
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { Injectable, definePack } from '@ambrosia-unce/core';
+import { Controller, Http, Body, Param, Status } from '@ambrosia-unce/http';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 
 @Injectable()
 class PostsService {

@@ -1,6 +1,6 @@
 /**
  * Dependency resolver — recursively resolves pack dependencies from the registry.
- * Mirrors the depth-first approach of @ambrosia/core's PackProcessor.
+ * Mirrors the depth-first approach of @ambrosia-unce/core's PackProcessor.
  */
 
 import type { RegistryClient } from "./client";

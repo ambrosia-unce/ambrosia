@@ -8,7 +8,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Scopes
 
-Scopes control the lifetime and caching behavior of service instances. @ambrosia/core supports three scope types: SINGLETON, TRANSIENT, and REQUEST.
+Scopes control the lifetime and caching behavior of service instances. @ambrosia-unce/core supports three scope types: SINGLETON, TRANSIENT, and REQUEST.
 
 ## Overview
 
@@ -25,7 +25,7 @@ Scopes control the lifetime and caching behavior of service instances. @ambrosia
 ### Basic Usage
 
 ```typescript
-import { Injectable, Scope } from '@ambrosia/core';
+import { Injectable, Scope } from '@ambrosia-unce/core';
 
 @Injectable({ scope: Scope.SINGLETON }) // Default
 class DatabaseService {
@@ -83,7 +83,7 @@ Singleton (cached): 1,005,257 ops/sec (0.995us)
 ### Basic Usage
 
 ```typescript
-import { Injectable, Scope } from '@ambrosia/core';
+import { Injectable, Scope } from '@ambrosia-unce/core';
 
 @Injectable({ scope: Scope.TRANSIENT })
 class RequestHandler {
@@ -169,7 +169,7 @@ console.log(repo1['db'] === repo2['db']); // true (same DatabaseService instance
 ### Basic Usage
 
 ```typescript
-import { Injectable, Scope } from '@ambrosia/core';
+import { Injectable, Scope } from '@ambrosia-unce/core';
 
 @Injectable({ scope: Scope.REQUEST })
 class RequestContext {
@@ -210,7 +210,7 @@ await container.createRequestScope(async () => {
 
 ```typescript
 import { Hono } from 'hono';
-import { Container, Injectable, Scope } from '@ambrosia/core';
+import { Container, Injectable, Scope } from '@ambrosia-unce/core';
 
 @Injectable({ scope: Scope.REQUEST })
 class RequestContext {
@@ -333,7 +333,7 @@ class RequestHandler {
 Remove all cached singleton instances:
 
 ```typescript
-import { Scope } from '@ambrosia/core';
+import { Scope } from '@ambrosia-unce/core';
 
 container.clearScope(Scope.SINGLETON);
 

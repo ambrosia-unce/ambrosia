@@ -3,7 +3,7 @@
  *
  * @example
  * ```typescript
- * import { createAsyncProvider } from "@ambrosia/core";
+ * import { createAsyncProvider } from "@ambrosia-unce/core";
  *
  * static forRootAsync(options: AsyncPackOptions<DbConfig>): PackDefinition {
  *   return {

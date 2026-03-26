@@ -42,7 +42,7 @@ sequenceDiagram
 ```
 
 ```typescript
-import type { PackDefinition } from "@ambrosia/core";
+import type { PackDefinition } from "@ambrosia-unce/core";
 
 export const LoggingPack: PackDefinition = {
   meta: { name: "logging", version: "1.0.0" },
@@ -68,7 +68,7 @@ export const LoggingPack: PackDefinition = {
 A static object - for organizing code within a project:
 
 ```typescript
-import type { PackDefinition } from "@ambrosia/core";
+import type { PackDefinition } from "@ambrosia-unce/core";
 
 export const CachePack: PackDefinition = {
   meta: { name: "cache" },
@@ -85,8 +85,8 @@ export const CachePack: PackDefinition = {
 A class with static methods - for reusable libraries:
 
 ```typescript
-import type { PackDefinition, AsyncPackOptions } from "@ambrosia/core";
-import { createAsyncProvider } from "@ambrosia/core";
+import type { PackDefinition, AsyncPackOptions } from "@ambrosia-unce/core";
+import { createAsyncProvider } from "@ambrosia-unce/core";
 
 export class DatabasePack {
   static forRoot(config: DatabaseConfig): PackDefinition {
@@ -147,7 +147,7 @@ packs: [
 A helper for creating an async provider from `AsyncPackOptions`. Automatically resolves dependencies from `inject`:
 
 ```typescript
-import { createAsyncProvider } from "@ambrosia/core";
+import { createAsyncProvider } from "@ambrosia-unce/core";
 
 const provider = createAsyncProvider(DB_CONFIG, {
   useFactory: async (env: EnvService, logger: Logger) => ({
@@ -262,7 +262,7 @@ Each pack can contain metadata for discovery and debugging:
 All loaded packs are automatically registered in `PackRegistry`:
 
 ```typescript
-import { packRegistry } from "@ambrosia/core";
+import { packRegistry } from "@ambrosia-unce/core";
 
 // All loaded packs
 const allPacks = packRegistry.getAll();

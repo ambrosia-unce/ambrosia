@@ -61,7 +61,7 @@ export interface RegistryItem {
   devDependencies: Record<string, string>;
   /** Other registry packs this depends on (fetched recursively) */
   registryDependencies: string[];
-  /** Required @ambrosia/* packages (installed as npm deps if missing) */
+  /** Required @ambrosia-unce/* packages (installed as npm deps if missing) */
   ambrosiaDependencies: string[];
 }
 

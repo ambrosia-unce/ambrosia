@@ -13,7 +13,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 ## Creating a Container
 
 ```typescript
-import { Container } from "@ambrosia/core";
+import { Container } from "@ambrosia-unce/core";
 
 // With default settings
 const container = new Container();
@@ -54,7 +54,7 @@ interface ContainerOptions {
 The package exports a ready-made singleton container:
 
 ```typescript
-import { container } from "@ambrosia/core";
+import { container } from "@ambrosia-unce/core";
 
 const service = container.resolve(MyService);
 ```
@@ -72,7 +72,7 @@ register<T>(provider: Provider<T>): void
 ```
 
 ```typescript
-import { Scope } from "@ambrosia/core";
+import { Scope } from "@ambrosia-unce/core";
 
 // ClassProvider
 container.register({ token: UserService, useClass: UserService, scope: Scope.SINGLETON });
@@ -339,7 +339,7 @@ getDiagnostics(): {
 import {
   Container, Injectable, Inject, InjectionToken, Scope,
   type OnInit, type OnDestroy, LoggingPlugin,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 
 const DB_URL = new InjectionToken<string>("DB_URL");
 

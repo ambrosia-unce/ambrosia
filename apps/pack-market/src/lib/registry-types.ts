@@ -1,5 +1,5 @@
 /**
- * Registry types — duplicated from @ambrosia/cli registry/schema.ts
+ * Registry types — duplicated from @ambrosia-unce/cli registry/schema.ts
  * to avoid cross-package imports. Keep in sync with the CLI types.
  */
 

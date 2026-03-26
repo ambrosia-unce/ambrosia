@@ -8,7 +8,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Plugin Development
 
-Step-by-step guide to creating plugins for @ambrosia/core.
+Step-by-step guide to creating plugins for @ambrosia-unce/core.
 
 ## Plugin Lifecycle
 
@@ -42,8 +42,8 @@ sequenceDiagram
 ## Step 1: Minimal Plugin
 
 ```typescript
-import type { Plugin, Token, ResolutionContext } from "@ambrosia/core";
-import { tokenToString } from "@ambrosia/core";
+import type { Plugin, Token, ResolutionContext } from "@ambrosia-unce/core";
+import { tokenToString } from "@ambrosia-unce/core";
 
 const myPlugin: Plugin = {
   name: "my-first-plugin",
@@ -60,8 +60,8 @@ container.use(myPlugin);
 ## Step 2: Stateful Class
 
 ```typescript
-import type { Plugin, Token, ResolutionContext, Provider } from "@ambrosia/core";
-import { tokenToString } from "@ambrosia/core";
+import type { Plugin, Token, ResolutionContext, Provider } from "@ambrosia-unce/core";
+import { tokenToString } from "@ambrosia-unce/core";
 
 interface MetricsPluginOptions {
   slowThresholdMs?: number;
@@ -117,8 +117,8 @@ console.table(metrics.getStats());
 `onRegisterProvider` is the only hook that can modify data:
 
 ```typescript
-import type { Plugin, Provider } from "@ambrosia/core";
-import { tokenToString, Scope } from "@ambrosia/core";
+import type { Plugin, Provider } from "@ambrosia-unce/core";
+import { tokenToString, Scope } from "@ambrosia-unce/core";
 
 class ScopeGuardPlugin implements Plugin {
   name = "scope-guard";
@@ -147,8 +147,8 @@ Always return a `Provider` object from `onRegisterProvider`. Forgetting `return`
 For I/O-heavy operations (sending metrics, writing logs), use batching:
 
 ```typescript
-import type { Plugin, Token, ResolutionContext } from "@ambrosia/core";
-import { tokenToString } from "@ambrosia/core";
+import type { Plugin, Token, ResolutionContext } from "@ambrosia-unce/core";
+import { tokenToString } from "@ambrosia-unce/core";
 
 class RemoteTelemetryPlugin implements Plugin {
   name = "remote-telemetry";
@@ -194,7 +194,7 @@ class RemoteTelemetryPlugin implements Plugin {
 
 ```typescript
 import { describe, it, expect } from "bun:test";
-import { Container, Injectable } from "@ambrosia/core";
+import { Container, Injectable } from "@ambrosia-unce/core";
 
 describe("MetricsPlugin", () => {
   it("should track resolution count", () => {
@@ -237,7 +237,7 @@ ambrosia-plugin-metrics/
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "peerDependencies": {
-    "@ambrosia/core": ">=1.0.0"
+    "@ambrosia-unce/core": ">=1.0.0"
   }
 }
 ```

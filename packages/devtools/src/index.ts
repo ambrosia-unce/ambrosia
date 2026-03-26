@@ -1,14 +1,14 @@
 /**
- * @ambrosia/devtools — DevTools backend for the Ambrosia framework
+ * @ambrosia-unce/devtools — DevTools backend for the Ambrosia framework
  *
  * Provides introspection, live event streaming, and a plugin system
  * for building custom DevTools panels.
  *
  * @example
  * ```typescript
- * import { DevToolsPack } from '@ambrosia/devtools';
- * import { HttpApplication } from '@ambrosia/http';
- * import { ElysiaProvider } from '@ambrosia/http-elysia';
+ * import { DevToolsPack } from '@ambrosia-unce/devtools';
+ * import { HttpApplication } from '@ambrosia-unce/http';
+ * import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
  *
  * const app = await HttpApplication.create({
  *   provider: ElysiaProvider,
@@ -21,7 +21,7 @@
  * // DevTools available at http://localhost:3000/_devtools
  * ```
  *
- * @module @ambrosia/devtools
+ * @module @ambrosia-unce/devtools
  */
 
 import "reflect-metadata";

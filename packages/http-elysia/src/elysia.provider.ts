@@ -1,4 +1,4 @@
-import type { HttpProvider, RouteConfig } from "@ambrosia/http";
+import type { HttpProvider, RouteConfig } from "@ambrosia-unce/http";
 import { Elysia } from "elysia";
 import { ElysiaContextAdapter } from "./elysia-context-adapter.ts";
 

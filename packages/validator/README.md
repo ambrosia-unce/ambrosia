@@ -1,4 +1,4 @@
-# @ambrosia/validator
+# @ambrosia-unce/validator
 
 Type-safe compile-time validation for Ambrosia framework using Bun plugin system and TypeScript Compiler API.
 
@@ -15,7 +15,7 @@ Type-safe compile-time validation for Ambrosia framework using Bun plugin system
 ## Installation
 
 ```bash
-bun add @ambrosia/validator
+bun add @ambrosia-unce/validator
 ```
 
 ## Setup
@@ -23,7 +23,7 @@ bun add @ambrosia/validator
 Add to your `bunfig.toml`:
 
 ```toml
-preload = ["@ambrosia/validator/preload"]
+preload = ["@ambrosia-unce/validator/preload"]
 ```
 
 That's it! The plugin is now active.
@@ -33,7 +33,7 @@ That's it! The plugin is now active.
 ### Basic validation
 
 ```typescript
-import { validate, assert, is } from '@ambrosia/validator';
+import { validate, assert, is } from '@ambrosia-unce/validator';
 
 interface User {
   name: string;
@@ -67,7 +67,7 @@ if (is<User>(data)) {
 ### Branded types
 
 ```typescript
-import type { Email, UUID, PositiveInt } from '@ambrosia/validator/types';
+import type { Email, UUID, PositiveInt } from '@ambrosia-unce/validator/types';
 
 interface User {
   id: UUID;
@@ -126,8 +126,8 @@ const dto = assert<UpdateUserDto>(data);
 ### With Ambrosia HTTP
 
 ```typescript
-import { Controller, Post, Body } from '@ambrosia/http';
-import { assert } from '@ambrosia/validator';
+import { Controller, Post, Body } from '@ambrosia-unce/http';
+import { assert } from '@ambrosia-unce/validator';
 
 interface CreateUserDto {
   name: string;
@@ -185,7 +185,7 @@ Custom plugin options:
 ```typescript
 // validator-config.ts
 import { plugin } from "bun";
-import { createValidatorPlugin } from "@ambrosia/validator/plugin";
+import { createValidatorPlugin } from "@ambrosia-unce/validator/plugin";
 
 plugin(createValidatorPlugin({
   debug: true, // Enable debug logging

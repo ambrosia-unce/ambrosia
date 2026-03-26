@@ -12,8 +12,8 @@ Middleware executes first in the request processing chain, before guards, interc
 A Middleware is a class with a `use()` method that receives the request, response, and a `next` function:
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
-import { Middleware, IHttpRequest, IHttpResponse } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { Middleware, IHttpRequest, IHttpResponse } from '@ambrosia-unce/http';
 
 @Injectable()
 export class LoggerMiddleware implements Middleware {
@@ -37,7 +37,7 @@ export class LoggerMiddleware implements Middleware {
 ### At the Controller Level
 
 ```typescript
-import { Controller, UseMiddleware } from '@ambrosia/http';
+import { Controller, UseMiddleware } from '@ambrosia-unce/http';
 
 @Controller('/users')
 @UseMiddleware(LoggerMiddleware, AuthMiddleware)
@@ -85,7 +85,7 @@ const app = await HttpApplication.create({
 In addition to classes, you can use simple functions as middleware:
 
 ```typescript
-import { IHttpRequest, IHttpResponse } from '@ambrosia/http';
+import { IHttpRequest, IHttpResponse } from '@ambrosia-unce/http';
 
 // Function instead of class
 const corsMiddleware = async (

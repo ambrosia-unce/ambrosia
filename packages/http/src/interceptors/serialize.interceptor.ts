@@ -2,7 +2,7 @@
  * SerializeInterceptor - transforms responses based on DTO class metadata
  */
 
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import type { CallHandler } from "../context/call-handler.ts";
 import type { ExecutionContext } from "../context/execution-context.ts";
 import { HttpMetadataManager } from "../metadata/http-metadata-manager.ts";

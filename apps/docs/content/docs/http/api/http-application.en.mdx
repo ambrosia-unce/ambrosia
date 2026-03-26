@@ -50,8 +50,8 @@ interface HttpApplicationOptions<TProvider extends HttpProvider = any> {
 **Example:**
 
 ```typescript
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 
 const app = await HttpApplication.create({
   provider: ElysiaProvider,
@@ -141,8 +141,8 @@ console.log(provider.name); // "elysia"
 ## Full Example
 
 ```typescript
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import {
   ValidationPipe,
   LoggingInterceptor,
@@ -325,7 +325,7 @@ The `DefaultExceptionFilter` is used by default if no globalFilters are specifie
 You can pass an existing DI Container:
 
 ```typescript
-import { Container } from '@ambrosia/core';
+import { Container } from '@ambrosia-unce/core';
 
 const container = new Container();
 
@@ -398,7 +398,7 @@ bootstrap();
 `HttpApplication` is fully typed with Generics:
 
 ```typescript
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import type { Elysia } from 'elysia';
 
 const app = await HttpApplication.create({

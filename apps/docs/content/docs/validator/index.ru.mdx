@@ -1,9 +1,9 @@
 ---
-title: "@ambrosia/validator"
+title: "@ambrosia-unce/validator"
 description: "Type-safe compile-time validation для TypeScript"
 ---
 
-# @ambrosia/validator
+# @ambrosia-unce/validator
 
 Type-safe compile-time validation для Ambrosia framework, использующий Bun plugin system и TypeScript Compiler API.
 
@@ -20,8 +20,8 @@ Type-safe compile-time validation для Ambrosia framework, использую�
 ## Быстрый пример
 
 ```typescript
-import { assert } from '@ambrosia/validator';
-import type { Email } from '@ambrosia/validator/types';
+import { assert } from '@ambrosia-unce/validator';
+import type { Email } from '@ambrosia-unce/validator/types';
 
 interface CreateUserDto {
   name: string;
@@ -73,13 +73,13 @@ const user = ((data) => {
 ## Установка
 
 ```bash
-bun add @ambrosia/validator
+bun add @ambrosia-unce/validator
 ```
 
 Добавьте в `bunfig.toml`:
 
 ```toml
-preload = ["@ambrosia/validator/preload"]
+preload = ["@ambrosia-unce/validator/preload"]
 ```
 
 ## Документация

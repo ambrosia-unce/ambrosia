@@ -1,5 +1,5 @@
-import type { CookieOptions, HttpMethod, IHttpRequest, IHttpResponse } from "@ambrosia/http";
-import { HttpContext } from "@ambrosia/http";
+import type { CookieOptions, HttpMethod, IHttpRequest, IHttpResponse } from "@ambrosia-unce/http";
+import { HttpContext } from "@ambrosia-unce/http";
 
 /**
  * Adapts native Elysia context into Ambrosia HttpContext.

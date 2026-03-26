@@ -1,7 +1,7 @@
 /**
  * @Validate() decorator - Marks parameter for automatic validation
  *
- * This decorator is a marker for the @ambrosia/validator plugin.
+ * This decorator is a marker for the @ambrosia-unce/validator plugin.
  * When the plugin is active, it will automatically generate validation
  * code for parameters marked with @Validate().
  *
@@ -9,14 +9,14 @@
  */
 
 /**
- * Marks a parameter for automatic validation via @ambrosia/validator plugin.
+ * Marks a parameter for automatic validation via @ambrosia-unce/validator plugin.
  *
- * **Requires:** @ambrosia/validator plugin to be active.
- * Add `preload = ["@ambrosia/validator/preload"]` to bunfig.toml.
+ * **Requires:** @ambrosia-unce/validator plugin to be active.
+ * Add `preload = ["@ambrosia-unce/validator/preload"]` to bunfig.toml.
  *
  * @example
  * ```typescript
- * import { Controller, Post, Body, Validate } from '@ambrosia/http';
+ * import { Controller, Post, Body, Validate } from '@ambrosia-unce/http';
  *
  * interface CreateUserDto {
  *   name: string;
@@ -40,7 +40,7 @@
  *
  * @example With branded types
  * ```typescript
- * import type { Email, UUID } from '@ambrosia/validator/types';
+ * import type { Email, UUID } from '@ambrosia-unce/validator/types';
  *
  * interface UpdateUserDto {
  *   id: UUID;
@@ -83,7 +83,7 @@
  */
 export function Validate(): ParameterDecorator {
   // This is just a marker decorator.
-  // The @ambrosia/validator plugin will detect it and generate validation code.
+  // The @ambrosia-unce/validator plugin will detect it and generate validation code.
   // If the plugin is not active, this decorator does nothing.
 
   return (target: Object, propertyKey: string | symbol | undefined, parameterIndex: number) => {

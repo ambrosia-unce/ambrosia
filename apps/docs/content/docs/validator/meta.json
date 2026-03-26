@@ -1,5 +1,5 @@
 {
-  "title": "@ambrosia/validator",
+  "title": "@ambrosia-unce/validator",
   "description": "Type-safe compile-time validation для TypeScript",
   "pages": [
     "index",

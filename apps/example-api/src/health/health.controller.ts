@@ -1,4 +1,4 @@
-import { Controller, Http } from "@ambrosia/http";
+import { Controller, Http } from "@ambrosia-unce/http";
 
 @Controller("/health")
 export class HealthController {

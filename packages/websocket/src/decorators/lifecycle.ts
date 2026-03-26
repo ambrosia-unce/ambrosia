@@ -4,7 +4,7 @@
  * @OnConnection and @OnDisconnection handle client connect/disconnect events.
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import { WsMetadataManager } from "../metadata/ws-metadata-manager.ts";
 
 /**

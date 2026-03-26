@@ -1,4 +1,4 @@
-import { definePack } from "@ambrosia/core";
+import { definePack } from "@ambrosia-unce/core";
 import { AnalyticsService } from "./analytics.service.ts";
 import { CachePack } from "../cache/cache.pack.ts";
 

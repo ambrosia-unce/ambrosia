@@ -4,7 +4,7 @@
  * Собирает роуты из контроллеров используя метаданные декораторов
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import { HttpMetadataManager } from "../metadata/http-metadata-manager.ts";
 import { normalize } from "./path-matcher.ts";
 import { RouteMetadata } from "./route-metadata.ts";

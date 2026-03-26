@@ -1,8 +1,8 @@
 /**
- * Type definitions for @ambrosia/events
+ * Type definitions for @ambrosia-unce/events
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 
 /**
  * Event handler entry — pre-bound function with priority.

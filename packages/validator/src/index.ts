@@ -1,5 +1,5 @@
 /**
- * @ambrosia/validator - Type-safe compile-time validation
+ * @ambrosia-unce/validator - Type-safe compile-time validation
  *
  * Main package exports
  */

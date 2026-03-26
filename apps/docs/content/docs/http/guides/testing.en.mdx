@@ -10,7 +10,7 @@ description: Testing HTTP applications with TestingHttpFactory in Ambrosia
 ## Quick Start
 
 ```typescript
-import { TestingHttpFactory } from '@ambrosia/http';
+import { TestingHttpFactory } from '@ambrosia-unce/http';
 import { expect, test, afterAll } from 'bun:test';
 
 const module = await TestingHttpFactory
@@ -130,7 +130,7 @@ await module.close();
 ### CRUD Controller
 
 ```typescript
-import { TestingHttpFactory } from '@ambrosia/http';
+import { TestingHttpFactory } from '@ambrosia-unce/http';
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 
 describe('UserController', () => {
@@ -254,7 +254,7 @@ test('parses params', async () => {
 For unit testing individual components (guards, interceptors, pipes), use helpers to create mock contexts:
 
 ```typescript
-import { createMockHttpContext, createMockExecutionContext } from '@ambrosia/http';
+import { createMockHttpContext, createMockExecutionContext } from '@ambrosia-unce/http';
 
 test('AuthGuard denies without token', async () => {
   const guard = new AuthGuard(mockTokenService);

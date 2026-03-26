@@ -29,7 +29,7 @@ const HELP = `
     publish                 Build and publish a pack to the registry
     doctor                  Check project health and diagnose issues
     info                    Show project and environment information
-    upgrade                 Upgrade @ambrosia/* packages to latest versions
+    upgrade                 Upgrade @ambrosia-unce/* packages to latest versions
     generate|g <type> <n>   Generate a resource
 
   Generators:
@@ -173,7 +173,7 @@ async function main() {
     case "--version":
     case "-v": {
       const pkg = await import("../package.json");
-      console.log(`@ambrosia/cli v${pkg.version}`);
+      console.log(`@ambrosia-unce/cli v${pkg.version}`);
       return;
     }
 

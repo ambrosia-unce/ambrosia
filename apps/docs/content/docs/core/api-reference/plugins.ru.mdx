@@ -311,7 +311,7 @@ interface ScopeHandler {
 Логирование операций контейнера.
 
 ```typescript
-import { LoggingPlugin } from "@ambrosia/core";
+import { LoggingPlugin } from "@ambrosia-unce/core";
 
 container.use(new LoggingPlugin({
   logger: customLogger,              // default: ConsoleLogger
@@ -344,7 +344,7 @@ interface Logger {
 #### Встроенные логгеры
 
 ```typescript
-import { ConsoleLogger, SilentLogger, setGlobalLogger } from "@ambrosia/core";
+import { ConsoleLogger, SilentLogger, setGlobalLogger } from "@ambrosia-unce/core";
 
 // ConsoleLogger — выводит в console с префиксами
 const logger = new ConsoleLogger();
@@ -361,8 +361,8 @@ setGlobalLogger(new SilentLogger());
 ## Полный пример плагина
 
 ```typescript
-import type { Plugin, ResolutionContext, Token, Provider } from "@ambrosia/core";
-import { tokenToString } from "@ambrosia/core";
+import type { Plugin, ResolutionContext, Token, Provider } from "@ambrosia-unce/core";
+import { tokenToString } from "@ambrosia-unce/core";
 
 class TelemetryPlugin implements Plugin {
   name = "telemetry";

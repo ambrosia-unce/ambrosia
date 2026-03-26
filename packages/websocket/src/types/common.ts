@@ -2,7 +2,7 @@
  * Common WebSocket types
  */
 
-import type { Constructor, PackDefinition } from "@ambrosia/core";
+import type { Constructor, PackDefinition } from "@ambrosia-unce/core";
 
 /**
  * WebSocket message payload

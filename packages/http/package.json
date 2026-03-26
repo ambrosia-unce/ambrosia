@@ -1,5 +1,5 @@
 {
-  "name": "@ambrosia/http",
+  "name": "@ambrosia-unce/http",
   "version": "0.1.0",
   "description": "Provider-agnostic HTTP layer with decorators, guards, interceptors, pipes and middleware for the Ambrosia framework",
   "type": "module",
@@ -64,7 +64,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ambrosia/core": "workspace:*",
+    "@ambrosia-unce/core": "workspace:*",
     "@sinclair/typebox": "^0.34.48",
     "reflect-metadata": "^0.2.1"
   }

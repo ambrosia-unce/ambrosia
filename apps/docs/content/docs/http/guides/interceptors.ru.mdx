@@ -12,8 +12,8 @@ Interceptors позволяют перехватывать выполнение 
 Interceptor - это класс с методом `intercept()`, который получает `ExecutionContext` и `CallHandler`:
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
-import { Interceptor, ExecutionContext, CallHandler } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { Interceptor, ExecutionContext, CallHandler } from '@ambrosia-unce/http';
 
 @Injectable()
 export class LoggingInterceptor implements Interceptor {
@@ -55,7 +55,7 @@ Request → Interceptor1 → Interceptor2 → Handler → Interceptor2 → Inter
 ### На уровне метода
 
 ```typescript
-import { Controller, Http, UseInterceptor } from '@ambrosia/http';
+import { Controller, Http, UseInterceptor } from '@ambrosia-unce/http';
 
 @Controller('/users')
 export class UserController {

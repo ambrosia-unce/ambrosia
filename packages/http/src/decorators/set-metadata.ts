@@ -2,7 +2,7 @@
  * SetMetadata and @Public decorators for custom metadata
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import { HttpMetadataManager } from "../metadata/http-metadata-manager.ts";
 
 /**

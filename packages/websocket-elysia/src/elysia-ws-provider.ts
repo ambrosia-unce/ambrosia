@@ -6,7 +6,7 @@
  */
 
 import type { Elysia } from "elysia";
-import type { WsProvider, WsGatewayConfig, WsClient, WsMessage } from "@ambrosia/websocket";
+import type { WsProvider, WsGatewayConfig, WsClient, WsMessage } from "@ambrosia-unce/websocket";
 
 let clientIdCounter = 0;
 
@@ -46,12 +46,12 @@ function createWsClient(ws: any): WsClient {
 /**
  * ElysiaWsProvider
  *
- * Bridges @ambrosia/websocket to Elysia's WebSocket support.
+ * Bridges @ambrosia-unce/websocket to Elysia's WebSocket support.
  *
  * @example
  * ```typescript
  * import { Elysia } from "elysia";
- * import { ElysiaWsProvider } from "@ambrosia/websocket-elysia";
+ * import { ElysiaWsProvider } from "@ambrosia-unce/websocket-elysia";
  *
  * const elysia = new Elysia();
  * const wsProvider = new ElysiaWsProvider(elysia);

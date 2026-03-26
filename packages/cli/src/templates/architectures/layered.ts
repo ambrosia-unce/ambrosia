@@ -38,8 +38,8 @@ export function buildLayeredFiles(name: string): FileEntry[] {
 
 function mainTs(): string {
   return `import "reflect-metadata";
-import { HttpApplication } from "@ambrosia/http";
-import { ElysiaProvider } from "@ambrosia/http-elysia";
+import { HttpApplication } from "@ambrosia-unce/http";
+import { ElysiaProvider } from "@ambrosia-unce/http-elysia";
 import { AppPack } from "./packs/app.pack";
 
 async function bootstrap() {
@@ -63,7 +63,7 @@ bootstrap().catch((err) => {
 }
 
 function appPack(): string {
-  return `import type { HttpPackDefinition } from "@ambrosia/http";
+  return `import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import { HealthController } from "../controllers/health.controller";
 import { UserController } from "../controllers/user.controller";
 import { HealthService } from "../services/health.service";
@@ -78,7 +78,7 @@ export const AppPack: HttpPackDefinition = {
 }
 
 function appConfig(): string {
-  return `import { InjectionToken } from "@ambrosia/core";
+  return `import { InjectionToken } from "@ambrosia-unce/core";
 
 export interface AppConfig {
   port: number;
@@ -90,7 +90,7 @@ export const APP_CONFIG = new InjectionToken<AppConfig>("AppConfig");
 }
 
 function healthControllerTs(): string {
-  return `import { Controller, Http } from "@ambrosia/http";
+  return `import { Controller, Http } from "@ambrosia-unce/http";
 import { HealthService } from "../services/health.service";
 
 @Controller("/health")
@@ -111,9 +111,9 @@ export class HealthController {
 }
 
 function userControllerTs(): string {
-  return `import { Controller, Http, Body, Param, Status } from "@ambrosia/http";
-import { NotFoundException } from "@ambrosia/http";
-import { assert } from "@ambrosia/validator";
+  return `import { Controller, Http, Body, Param, Status } from "@ambrosia-unce/http";
+import { NotFoundException } from "@ambrosia-unce/http";
+import { assert } from "@ambrosia-unce/validator";
 import { UserService } from "../services/user.service";
 
 @Controller("/users")
@@ -160,7 +160,7 @@ export class UserController {
 }
 
 function healthServiceTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 
 @Injectable()
 export class HealthService {
@@ -190,7 +190,7 @@ export class HealthService {
 }
 
 function userServiceTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 import { UserRepository } from "../repositories/user.repository";
 import type { User } from "../models/user.model";
 
@@ -222,7 +222,7 @@ export class UserService {
 }
 
 function userRepositoryTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 import type { User } from "../models/user.model";
 
 @Injectable()
@@ -280,9 +280,9 @@ function userModelTs(): string {
 }
 
 function authGuardTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { Guard, ExecutionContext } from "@ambrosia/http";
-import { UnauthorizedException } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Guard, ExecutionContext } from "@ambrosia-unce/http";
+import { UnauthorizedException } from "@ambrosia-unce/http";
 
 @Injectable()
 export class AuthGuard implements Guard {
@@ -302,8 +302,8 @@ export class AuthGuard implements Guard {
 }
 
 function loggingInterceptorTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { Interceptor, ExecutionContext, CallHandler } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Interceptor, ExecutionContext, CallHandler } from "@ambrosia-unce/http";
 
 @Injectable()
 export class LoggingInterceptor implements Interceptor {
@@ -324,9 +324,9 @@ export class LoggingInterceptor implements Interceptor {
 }
 
 function httpExceptionFilterTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { ExceptionFilter, ExceptionFilterArgs } from "@ambrosia/http";
-import { HttpException } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { ExceptionFilter, ExceptionFilterArgs } from "@ambrosia-unce/http";
+import { HttpException } from "@ambrosia-unce/http";
 
 @Injectable()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -352,8 +352,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
 }
 
 function corsMiddlewareTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { Middleware, IHttpRequest, IHttpResponse } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Middleware, IHttpRequest, IHttpResponse } from "@ambrosia-unce/http";
 
 @Injectable()
 export class CorsMiddleware implements Middleware {

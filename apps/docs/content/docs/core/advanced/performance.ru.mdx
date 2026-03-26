@@ -139,7 +139,7 @@ metadataCache.set(target, params);
 ### Silent Logger в Production
 
 ```typescript
-import { setGlobalLogger, SilentLogger } from "@ambrosia/core";
+import { setGlobalLogger, SilentLogger } from "@ambrosia-unce/core";
 
 // Production: нулевой overhead от логирования
 setGlobalLogger(new SilentLogger());
@@ -231,7 +231,7 @@ class MathService {
 ### Встроенный ProfilingPlugin
 
 ```typescript
-import { Container } from "@ambrosia/core";
+import { Container } from "@ambrosia-unce/core";
 
 // Используйте кастомный плагин для профилирования
 const profiler = {

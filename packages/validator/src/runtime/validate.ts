@@ -13,8 +13,8 @@ import type { ValidationResult } from "./types.ts";
 /**
  * Validates data against type T and returns a result object.
  *
- * **Plugin Required:** This function requires the @ambrosia/validator plugin
- * to be active. Add `preload = ["@ambrosia/validator/preload"]` to bunfig.toml.
+ * **Plugin Required:** This function requires the @ambrosia-unce/validator plugin
+ * to be active. Add `preload = ["@ambrosia-unce/validator/preload"]` to bunfig.toml.
  *
  * @example
  * ```typescript
@@ -43,8 +43,8 @@ export function validate<T>(data: unknown): ValidationResult<T> {
   // Silently passing data through in production is dangerous and masks
   // configuration errors. Better to fail loud than to accept invalid data.
   throw new Error(
-    "@ambrosia/validator: Plugin not active. Cannot perform validation. " +
-      "Add 'preload = [\"@ambrosia/validator/preload\"]' to bunfig.toml to enable " +
+    "@ambrosia-unce/validator: Plugin not active. Cannot perform validation. " +
+      "Add 'preload = [\"@ambrosia-unce/validator/preload\"]' to bunfig.toml to enable " +
       "compile-time validation.",
   );
 }

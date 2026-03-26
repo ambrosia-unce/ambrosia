@@ -47,7 +47,7 @@ sequenceDiagram
 Плагин — объект, реализующий интерфейс `Plugin` с lifecycle hooks:
 
 ```typescript
-import type { Plugin, Token, ResolutionContext, Provider } from "@ambrosia/core";
+import type { Plugin, Token, ResolutionContext, Provider } from "@ambrosia-unce/core";
 
 interface Plugin {
   name: string;
@@ -106,7 +106,7 @@ sequenceDiagram
 ## Регистрация плагинов
 
 ```typescript
-import { Container, LoggingPlugin, PluginPriority } from "@ambrosia/core";
+import { Container, LoggingPlugin, PluginPriority } from "@ambrosia-unce/core";
 
 const container = new Container();
 
@@ -127,7 +127,7 @@ container
 Больше значение = раньше выполнение:
 
 ```typescript
-import { PluginPriority } from "@ambrosia/core";
+import { PluginPriority } from "@ambrosia-unce/core";
 
 enum PluginPriority {
   HIGHEST = 100,   // Выполняется первым
@@ -152,7 +152,7 @@ container
 Отладка и мониторинг разрешения зависимостей:
 
 ```typescript
-import { Container, LoggingPlugin } from "@ambrosia/core";
+import { Container, LoggingPlugin } from "@ambrosia-unce/core";
 
 const container = new Container();
 
@@ -173,7 +173,7 @@ container.resolve(UserService);
 Батчинг и отложенная обработка событий плагинов для лучшей производительности:
 
 ```typescript
-import { AsyncPluginManager } from "@ambrosia/core";
+import { AsyncPluginManager } from "@ambrosia-unce/core";
 
 const asyncManager = new AsyncPluginManager({
   batchSize: 50,       // Макс. событий в батче
@@ -201,8 +201,8 @@ await asyncManager.flush();
 ### Минимальный плагин
 
 ```typescript
-import type { Plugin, Token, ResolutionContext } from "@ambrosia/core";
-import { tokenToString } from "@ambrosia/core";
+import type { Plugin, Token, ResolutionContext } from "@ambrosia-unce/core";
+import { tokenToString } from "@ambrosia-unce/core";
 
 const countPlugin: Plugin = {
   name: "resolution-counter",
@@ -218,8 +218,8 @@ container.use(countPlugin);
 ### Плагин профилирования
 
 ```typescript
-import type { Plugin, Token, ResolutionContext } from "@ambrosia/core";
-import { tokenToString } from "@ambrosia/core";
+import type { Plugin, Token, ResolutionContext } from "@ambrosia-unce/core";
+import { tokenToString } from "@ambrosia-unce/core";
 
 class ProfilingPlugin implements Plugin {
   name = "profiling";
@@ -263,8 +263,8 @@ console.table(profiler.getReport());
 ### Плагин валидации
 
 ```typescript
-import type { Plugin, Token, Provider } from "@ambrosia/core";
-import { tokenToString, Scope } from "@ambrosia/core";
+import type { Plugin, Token, Provider } from "@ambrosia-unce/core";
+import { tokenToString, Scope } from "@ambrosia-unce/core";
 
 class ValidationPlugin implements Plugin {
   name = "validation";
@@ -292,8 +292,8 @@ class ValidationPlugin implements Plugin {
 ### Плагин телеметрии
 
 ```typescript
-import type { Plugin, Token, ResolutionContext, Provider } from "@ambrosia/core";
-import { tokenToString } from "@ambrosia/core";
+import type { Plugin, Token, ResolutionContext, Provider } from "@ambrosia-unce/core";
+import { tokenToString } from "@ambrosia-unce/core";
 
 class TelemetryPlugin implements Plugin {
   name = "telemetry";

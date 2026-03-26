@@ -43,7 +43,7 @@ sequenceDiagram
 ## Быстрый старт
 
 ```typescript
-import { TestingPackFactory } from "@ambrosia/core";
+import { TestingPackFactory } from "@ambrosia-unce/core";
 
 const testPack = await TestingPackFactory
   .create(AuthPack.forRoot({ secret: "test-secret" }))
@@ -162,7 +162,7 @@ interface TestingPack {
 
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { TestingPackFactory, type TestingPack } from "@ambrosia/core";
+import { TestingPackFactory, type TestingPack } from "@ambrosia-unce/core";
 
 describe("UserService", () => {
   let testPack: TestingPack;

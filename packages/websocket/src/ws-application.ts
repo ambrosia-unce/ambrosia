@@ -5,7 +5,7 @@
  * collects message handlers, and wires them to the WebSocket provider.
  */
 
-import { Container, type Constructor, PackProcessor, Scope } from "@ambrosia/core";
+import { Container, type Constructor, PackProcessor, Scope } from "@ambrosia-unce/core";
 import { WsMetadataManager, GatewayRegistry } from "./metadata/ws-metadata-manager.ts";
 import type { WsProvider, WsGatewayConfig } from "./interfaces/ws-provider.ts";
 import type { WsClient, WsMessage, WsPackDefinition } from "./types/common.ts";

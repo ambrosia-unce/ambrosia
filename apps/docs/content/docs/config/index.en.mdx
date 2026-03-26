@@ -5,9 +5,9 @@ description: "Type-safe environment configuration for Ambrosia with zero runtime
 
 import {Card, Cards} from 'fumadocs-ui/components/card';
 
-# @ambrosia/config
+# @ambrosia-unce/config
 
-**@ambrosia/config** is a type-safe configuration module for the Ambrosia Framework. All environment variables are parsed **once** at application startup into a frozen object. After initialization -- zero runtime overhead, O(1) access via Map.
+**@ambrosia-unce/config** is a type-safe configuration module for the Ambrosia Framework. All environment variables are parsed **once** at application startup into a frozen object. After initialization -- zero runtime overhead, O(1) access via Map.
 
 ## Key Features
 
@@ -33,8 +33,8 @@ import {Card, Cards} from 'fumadocs-ui/components/card';
 ## Quick Start
 
 ```ts
-import { defineConfig, ConfigModule, ConfigService } from '@ambrosia/config';
-import { definePack, Injectable, Inject } from '@ambrosia/core';
+import { defineConfig, ConfigModule, ConfigService } from '@ambrosia-unce/config';
+import { definePack, Injectable, Inject } from '@ambrosia-unce/core';
 
 // 1. Define the schema
 const AppConfig = defineConfig({

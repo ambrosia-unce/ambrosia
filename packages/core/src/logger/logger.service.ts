@@ -32,7 +32,7 @@ export const LOGGER_CONFIG = new InjectionToken<LoggerConfig>("LOGGER_CONFIG");
 
 /**
  * InjectionToken for an optional EventBus-like emitter.
- * This avoids a hard dependency on @ambrosia/events.
+ * This avoids a hard dependency on @ambrosia-unce/events.
  * The EventBus is expected to have an `emit(event: object)` method.
  */
 export const LOGGER_EVENT_BUS = new InjectionToken<{ emit(event: object): void | Promise<void> }>(

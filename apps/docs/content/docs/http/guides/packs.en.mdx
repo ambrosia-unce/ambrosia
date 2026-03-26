@@ -8,12 +8,12 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Packs in HTTP
 
-`HttpPackDefinition` extends the base `PackDefinition` from `@ambrosia/core` by adding controller support -- an HTTP-specific concept that doesn't belong in the DI core.
+`HttpPackDefinition` extends the base `PackDefinition` from `@ambrosia-unce/core` by adding controller support -- an HTTP-specific concept that doesn't belong in the DI core.
 
 ## HttpPackDefinition
 
 ```typescript
-import type { HttpPackDefinition } from "@ambrosia/http";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 
 export const UserPack: HttpPackDefinition = {
   meta: { name: "user" },
@@ -35,7 +35,7 @@ export const UserPack: HttpPackDefinition = {
 | `controllers` | - | + |
 
 <Callout type="info">
-Controllers are an HTTP layer concept. The base `PackDefinition` in `@ambrosia/core` works only with DI providers. If your pack doesn't contain controllers (e.g., a database pack), use a regular `PackDefinition`.
+Controllers are an HTTP layer concept. The base `PackDefinition` in `@ambrosia-unce/core` works only with DI providers. If your pack doesn't contain controllers (e.g., a database pack), use a regular `PackDefinition`.
 </Callout>
 
 ## HTTP Application Structure
@@ -65,7 +65,7 @@ src/
 
 ```typescript
 // src/modules/user/user.pack.ts
-import type { HttpPackDefinition } from "@ambrosia/http";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import { UserController } from "./user.controller.ts";
 import { UserService } from "./user.service.ts";
 import { UserRepository } from "./user.repository.ts";
@@ -82,8 +82,8 @@ export const UserPack: HttpPackDefinition = {
 
 ```typescript
 // src/main.ts
-import { HttpApplication } from "@ambrosia/http";
-import { ElysiaProvider } from "@ambrosia/http-elysia";
+import { HttpApplication } from "@ambrosia-unce/http";
+import { ElysiaProvider } from "@ambrosia-unce/http-elysia";
 import { HealthPack } from "./modules/health/health.pack.ts";
 import { UserPack } from "./modules/user/user.pack.ts";
 import { AuthPack } from "./modules/auth/auth.pack.ts";
@@ -140,8 +140,8 @@ const app = await HttpApplication.create({
 The `forRoot` / `forRootAsync` pattern works the same as in core, but with controllers added:
 
 ```typescript
-import type { HttpPackDefinition, AsyncPackOptions } from "@ambrosia/http";
-import { createAsyncProvider } from "@ambrosia/core";
+import type { HttpPackDefinition, AsyncPackOptions } from "@ambrosia-unce/http";
+import { createAsyncProvider } from "@ambrosia-unce/core";
 
 export class AuthPack {
   static forRoot(config: AuthConfig): HttpPackDefinition {
@@ -248,7 +248,7 @@ process.on("SIGTERM", async () => {
 A database pack doesn't contain controllers -- a regular `PackDefinition` is appropriate:
 
 ```typescript
-import type { PackDefinition } from "@ambrosia/core";
+import type { PackDefinition } from "@ambrosia-unce/core";
 
 // Core pack -- no controllers
 export const DatabasePack: PackDefinition = {
@@ -259,7 +259,7 @@ export const DatabasePack: PackDefinition = {
 ```
 
 ```typescript
-import type { HttpPackDefinition } from "@ambrosia/http";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 
 // HTTP pack -- with controllers
 export const UserPack: HttpPackDefinition = {

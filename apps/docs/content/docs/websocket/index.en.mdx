@@ -1,9 +1,9 @@
 ---
-title: "@ambrosia/websocket"
+title: "@ambrosia-unce/websocket"
 description: "Provider-agnostic WebSocket layer for Ambrosia Framework"
 ---
 
-# @ambrosia/websocket
+# @ambrosia-unce/websocket
 
 A provider-agnostic WebSocket layer with decorators for implementing real-time functionality in Ambrosia applications.
 
@@ -18,14 +18,14 @@ A provider-agnostic WebSocket layer with decorators for implementing real-time f
 ## Quick Start
 
 ```typescript title="chat.gateway.ts"
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import {
   WebSocketGateway,
   SubscribeMessage,
   OnConnection,
   OnDisconnection,
-} from "@ambrosia/websocket";
-import type { WsClient } from "@ambrosia/websocket";
+} from "@ambrosia-unce/websocket";
+import type { WsClient } from "@ambrosia-unce/websocket";
 
 @WebSocketGateway("/chat")
 class ChatGateway {

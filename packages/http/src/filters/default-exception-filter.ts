@@ -4,7 +4,7 @@
  * Catches all unhandled exceptions and formats them as JSON
  */
 
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import { HttpException } from "../exceptions/http-exception.ts";
 import { HttpStatus } from "../types/common.ts";
 import type { ExceptionFilter, ExceptionFilterArgs } from "./exception-filter.interface.ts";

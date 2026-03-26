@@ -1,5 +1,5 @@
 /**
- * Injection tokens for @ambrosia/events
+ * Injection tokens for @ambrosia-unce/events
  */
 
 /**

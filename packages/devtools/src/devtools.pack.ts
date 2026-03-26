@@ -4,7 +4,7 @@
  *
  * @example
  * ```typescript
- * import { DevToolsPack } from '@ambrosia/devtools';
+ * import { DevToolsPack } from '@ambrosia-unce/devtools';
  *
  * const app = await HttpApplication.create({
  *   provider: ElysiaProvider,
@@ -16,8 +16,8 @@
  * ```
  */
 
-import { Container, LOGGER_EVENT_BUS, LogEntryEvent } from "@ambrosia/core";
-import type { HttpPackDefinition } from "@ambrosia/http";
+import { Container, LOGGER_EVENT_BUS, LogEntryEvent } from "@ambrosia-unce/core";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import { PackCollector } from "./collectors/pack-collector.ts";
 import { DevToolsRouteCollector } from "./collectors/route-collector.ts";
 import { DevToolsEventCollector } from "./collectors/event-collector.ts";

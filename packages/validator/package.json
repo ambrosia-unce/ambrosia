@@ -1,5 +1,5 @@
 {
-  "name": "@ambrosia/validator",
+  "name": "@ambrosia-unce/validator",
   "version": "0.1.0",
   "description": "Type-safe compile-time validation for Ambrosia framework",
   "type": "module",

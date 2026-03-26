@@ -1,5 +1,5 @@
 {
-  "title": "@ambrosia/cli",
+  "title": "@ambrosia-unce/cli",
   "description": "CLI и Pack Registry для Ambrosia",
   "pages": [
     "index",

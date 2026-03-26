@@ -1,5 +1,5 @@
 {
-  "title": "@ambrosia/config",
+  "title": "@ambrosia-unce/config",
   "description": "Типобезопасная конфигурация окружения для Ambrosia",
   "pages": [
     "index",

@@ -47,7 +47,7 @@ If you do not have Bun installed, install it:
 ### Install the Ambrosia CLI
 
 ```bash
-bun add -g @ambrosia/cli
+bun add -g @ambrosia-unce/cli
 ```
 
 Verify the installation:
@@ -101,8 +101,8 @@ This is where the application boots up:
 
 ```ts
 import 'reflect-metadata';
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import { AppPack } from './app.pack.ts';
 
 const app = await HttpApplication.create({
@@ -125,7 +125,7 @@ Key points:
 The root pack ties everything together:
 
 ```ts
-import { definePack } from '@ambrosia/core';
+import { definePack } from '@ambrosia-unce/core';
 
 export const AppPack = definePack({
   providers: [],
@@ -159,10 +159,10 @@ Without `experimentalDecorators` and `emitDecoratorMetadata`, the DI system will
 
 ### `bunfig.toml` -- Bun Configuration
 
-If you plan to use `@ambrosia/validator` for compile-time validation, add the preload:
+If you plan to use `@ambrosia-unce/validator` for compile-time validation, add the preload:
 
 ```toml
-preload = ["@ambrosia/validator/preload"]
+preload = ["@ambrosia-unce/validator/preload"]
 ```
 
 This activates the TypeScript transformer that replaces `assert<T>()` / `validate<T>()` calls with inlined validation code at build time.

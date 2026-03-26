@@ -5,9 +5,9 @@ description: "Высокопроизводительная шина событи
 
 import {Card, Cards} from 'fumadocs-ui/components/card';
 
-# @ambrosia/events
+# @ambrosia-unce/events
 
-**@ambrosia/events** — высокопроизводительная шина событий (Event Bus) для фреймворка Ambrosia. Позволяет организовать слабосвязанное взаимодействие между сервисами через декларативные обработчики событий.
+**@ambrosia-unce/events** — высокопроизводительная шина событий (Event Bus) для фреймворка Ambrosia. Позволяет организовать слабосвязанное взаимодействие между сервисами через декларативные обработчики событий.
 
 ## Ключевые возможности
 
@@ -33,8 +33,8 @@ import {Card, Cards} from 'fumadocs-ui/components/card';
 ## Быстрый старт
 
 ```ts
-import { Injectable, definePack } from '@ambrosia/core';
-import { EventBus, EventBusModule, OnEvent } from '@ambrosia/events';
+import { Injectable, definePack } from '@ambrosia-unce/core';
+import { EventBus, EventBusModule, OnEvent } from '@ambrosia-unce/events';
 
 // 1. Определите событие как класс
 class UserRegisteredEvent {

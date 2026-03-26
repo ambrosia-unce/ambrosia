@@ -22,8 +22,8 @@ Without packs, every service is globally visible and any file can depend on any 
 A pack is a plain object that satisfies the `PackDefinition` (or `HttpPackDefinition`) interface:
 
 ```ts
-import { definePack } from '@ambrosia/core';
-import type { HttpPackDefinition } from '@ambrosia/http';
+import { definePack } from '@ambrosia-unce/core';
+import type { HttpPackDefinition } from '@ambrosia-unce/http';
 
 export const UsersPack: HttpPackDefinition = {
   ...definePack({
@@ -109,8 +109,8 @@ Packs form a tree. The root pack imports feature packs, which may import shared 
 
 ```ts
 // src/app.pack.ts
-import { definePack } from '@ambrosia/core';
-import { ConfigModule } from '@ambrosia/config';
+import { definePack } from '@ambrosia-unce/core';
+import { ConfigModule } from '@ambrosia-unce/config';
 import { AppConfig } from './config/app.config.ts';
 import { UsersPack } from './users/users.pack.ts';
 import { PostsPack } from './posts/posts.pack.ts';
@@ -244,7 +244,7 @@ Each feature is a self-contained pack. Shared infrastructure (database, cache) l
 Ambrosia provides `TestingPackFactory` for unit-testing packs in isolation:
 
 ```ts
-import { TestingPackFactory } from '@ambrosia/core';
+import { TestingPackFactory } from '@ambrosia-unce/core';
 import { PostsPack } from './posts.pack.ts';
 
 const testingPack = await TestingPackFactory.create(PostsPack);

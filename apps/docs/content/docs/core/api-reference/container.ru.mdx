@@ -45,7 +45,7 @@ sequenceDiagram
 ## Создание контейнера
 
 ```typescript
-import { Container } from "@ambrosia/core";
+import { Container } from "@ambrosia-unce/core";
 
 // С настройками по умолчанию
 const container = new Container();
@@ -86,7 +86,7 @@ interface ContainerOptions {
 Пакет экспортирует готовый singleton-контейнер:
 
 ```typescript
-import { container } from "@ambrosia/core";
+import { container } from "@ambrosia-unce/core";
 
 const service = container.resolve(MyService);
 ```
@@ -104,7 +104,7 @@ register<T>(provider: Provider<T>): void
 ```
 
 ```typescript
-import { Scope } from "@ambrosia/core";
+import { Scope } from "@ambrosia-unce/core";
 
 // ClassProvider
 container.register({
@@ -425,7 +425,7 @@ use(plugin: Plugin, priority?: PluginPriority): this
 ```
 
 ```typescript
-import { LoggingPlugin, PluginPriority } from "@ambrosia/core";
+import { LoggingPlugin, PluginPriority } from "@ambrosia-unce/core";
 
 container
   .use(new LoggingPlugin({ logResolutionTiming: true }))
@@ -513,7 +513,7 @@ import {
   type OnInit,
   type OnDestroy,
   LoggingPlugin,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 
 // Токены
 const DB_URL = new InjectionToken<string>("DB_URL");

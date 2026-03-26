@@ -74,7 +74,7 @@ packages/
 ### DatabaseService
 
 ```typescript title="packages/shared/src/database/database.service.ts"
-import { Injectable, Inject, type OnInit, type OnDestroy, InjectionToken } from "@ambrosia/core";
+import { Injectable, Inject, type OnInit, type OnDestroy, InjectionToken } from "@ambrosia-unce/core";
 
 export interface DbConfig {
   host: string;
@@ -111,7 +111,7 @@ export class DatabaseService implements OnInit, OnDestroy {
 ### EventBus (межсервисная коммуникация)
 
 ```typescript title="packages/shared/src/messaging/event-bus.ts"
-import { Injectable, type OnDestroy } from "@ambrosia/core";
+import { Injectable, type OnDestroy } from "@ambrosia-unce/core";
 
 type EventHandler = (data: unknown) => void | Promise<void>;
 
@@ -148,7 +148,7 @@ export class EventBus implements OnDestroy {
 ### Shared паки
 
 ```typescript title="packages/shared/src/packs/database.pack.ts"
-import { type PackDefinition, createAsyncProvider } from "@ambrosia/core";
+import { type PackDefinition, createAsyncProvider } from "@ambrosia-unce/core";
 import { DatabaseService, DB_CONFIG, type DbConfig } from "../database/database.service";
 
 export class DatabasePack {
@@ -166,7 +166,7 @@ export class DatabasePack {
 ```
 
 ```typescript title="packages/shared/src/packs/messaging.pack.ts"
-import type { PackDefinition } from "@ambrosia/core";
+import type { PackDefinition } from "@ambrosia-unce/core";
 import { EventBus } from "../messaging/event-bus";
 
 export const MessagingPack: PackDefinition = {
@@ -181,7 +181,7 @@ export const MessagingPack: PackDefinition = {
 ### Auth Service
 
 ```typescript title="packages/auth-service/src/auth.service.ts"
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import { DatabaseService } from "@shared/database/database.service";
 
 interface TokenPayload {
@@ -214,11 +214,11 @@ export class AuthService {
 ```
 
 ```typescript title="packages/auth-service/src/index.ts"
-import { Container } from "@ambrosia/core";
-import { PackProcessor } from "@ambrosia/core";
+import { Container } from "@ambrosia-unce/core";
+import { PackProcessor } from "@ambrosia-unce/core";
 import { DatabasePack } from "@shared/packs/database.pack";
 import { AuthService } from "./auth.service";
-import type { PackDefinition } from "@ambrosia/core";
+import type { PackDefinition } from "@ambrosia-unce/core";
 
 const AuthPack: PackDefinition = {
   meta: { name: "auth-service" },
@@ -253,7 +253,7 @@ process.on("SIGTERM", async () => {
 ### User Service
 
 ```typescript title="packages/user-service/src/user.service.ts"
-import { Injectable, type OnInit } from "@ambrosia/core";
+import { Injectable, type OnInit } from "@ambrosia-unce/core";
 import { DatabaseService } from "@shared/database/database.service";
 import { EventBus } from "@shared/messaging/event-bus";
 
@@ -301,7 +301,7 @@ export class UserService implements OnInit {
 ### Order Service
 
 ```typescript title="packages/order-service/src/order.service.ts"
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import { DatabaseService } from "@shared/database/database.service";
 import { EventBus } from "@shared/messaging/event-bus";
 

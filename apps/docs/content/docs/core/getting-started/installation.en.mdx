@@ -1,6 +1,6 @@
 ---
 title: "Installation"
-description: "Install and configure @ambrosia/core in your project"
+description: "Install and configure @ambrosia-unce/core in your project"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -8,12 +8,12 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Installation
 
-Get started with @ambrosia/core in less than a minute.
+Get started with @ambrosia-unce/core in less than a minute.
 
 ## Requirements
 
 <Callout type="info">
-  **@ambrosia/core** is optimized for **Bun runtime**. While it can work with Node.js, some features like AsyncLogger use Bun-specific APIs.
+  **@ambrosia-unce/core** is optimized for **Bun runtime**. While it can work with Node.js, some features like AsyncLogger use Bun-specific APIs.
 </Callout>
 
 **Requirements:**
@@ -43,27 +43,27 @@ Verify the installation:
 bun --version
 ```
 
-## Installing @ambrosia/core
+## Installing @ambrosia-unce/core
 
 <Tabs items={['bun', 'npm', 'pnpm', 'yarn']}>
   <Tab value="bun">
     ```bash
-    bun add @ambrosia/core
+    bun add @ambrosia-unce/core
     ```
   </Tab>
   <Tab value="npm">
     ```bash
-    npm install @ambrosia/core
+    npm install @ambrosia-unce/core
     ```
   </Tab>
   <Tab value="pnpm">
     ```bash
-    pnpm add @ambrosia/core
+    pnpm add @ambrosia-unce/core
     ```
   </Tab>
   <Tab value="yarn">
     ```bash
-    yarn add @ambrosia/core
+    yarn add @ambrosia-unce/core
     ```
   </Tab>
 </Tabs>
@@ -96,7 +96,7 @@ Configure TypeScript to support decorators:
 Create a test file to verify everything works:
 
 ```typescript title="test.ts"
-import { Injectable, Container } from '@ambrosia/core';
+import { Injectable, Container } from '@ambrosia-unce/core';
 
 @Injectable()
 class HelloService {
@@ -123,12 +123,12 @@ Hello, World!
 ```
 
 <Callout type="success">
-  **Success!** You're ready to use @ambrosia/core.
+  **Success!** You're ready to use @ambrosia-unce/core.
 </Callout>
 
 ## Project Structure
 
-Recommended project structure for a TypeScript project with @ambrosia/core:
+Recommended project structure for a TypeScript project with @ambrosia-unce/core:
 
 ```
 my-app/
@@ -163,11 +163,11 @@ my-app/
 
 ### Module Not Found
 
-**Error:** `Cannot find module '@ambrosia/core'`
+**Error:** `Cannot find module '@ambrosia-unce/core'`
 
 **Solution:**
 1. Check the installation: `bun pm ls | grep ambrosia`
-2. Reinstall: `bun add @ambrosia/core`
+2. Reinstall: `bun add @ambrosia-unce/core`
 3. Clear cache: `rm -rf node_modules && bun install`
 
 ### Runtime Errors with Bun Functions
@@ -197,7 +197,7 @@ bun add -d @typescript-eslint/eslint-plugin
 
 ## Next Steps
 
-Now that you have @ambrosia/core installed:
+Now that you have @ambrosia-unce/core installed:
 
 1. Follow the [Quick Start Guide](/docs/core/getting-started/quick-start) to create your first container
 2. Learn about [Core Concepts](/docs/core/getting-started/concepts)

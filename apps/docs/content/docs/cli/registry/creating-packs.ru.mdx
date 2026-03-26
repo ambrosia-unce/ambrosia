@@ -55,7 +55,7 @@ src/packs/my-cache/
 Определите интерфейс конфигурации и `InjectionToken`:
 
 ```typescript title="src/packs/my-cache/types.ts"
-import { InjectionToken } from '@ambrosia/core';
+import { InjectionToken } from '@ambrosia-unce/core';
 
 export interface MyCacheConfig {
   /** Адрес Redis */
@@ -76,7 +76,7 @@ export const MY_CACHE_CONFIG = new InjectionToken<MyCacheConfig>('MyCacheConfig'
 ### Сервисы — Бизнес-логика
 
 ```typescript title="src/packs/my-cache/my-cache.service.ts"
-import { Injectable, Inject } from '@ambrosia/core';
+import { Injectable, Inject } from '@ambrosia-unce/core';
 import type { MyCacheConfig } from './types';
 import { MY_CACHE_CONFIG } from './types';
 
@@ -112,8 +112,8 @@ export class MyCacheService {
 Pack — это класс со статическими методами `forRoot` и опционально `forRootAsync`:
 
 ```typescript title="src/packs/my-cache/my-cache.pack.ts"
-import type { PackDefinition, AsyncPackOptions } from '@ambrosia/core';
-import { createAsyncProvider } from '@ambrosia/core';
+import type { PackDefinition, AsyncPackOptions } from '@ambrosia-unce/core';
+import { createAsyncProvider } from '@ambrosia-unce/core';
 import { MyCacheService } from './my-cache.service';
 import type { MyCacheConfig } from './types';
 import { MY_CACHE_CONFIG } from './types';
@@ -163,8 +163,8 @@ export { MY_CACHE_CONFIG } from './types';
 ### Interceptor
 
 ```typescript title="src/packs/my-cache/cache.interceptor.ts"
-import { Injectable } from '@ambrosia/core';
-import type { Interceptor, ExecutionContext, CallHandler } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import type { Interceptor, ExecutionContext, CallHandler } from '@ambrosia-unce/http';
 import { MyCacheService } from './my-cache.service';
 
 @Injectable()
@@ -190,7 +190,7 @@ export class CacheInterceptor implements Interceptor {
 Pack может использовать lifecycle hooks для инициализации и очистки:
 
 ```typescript title="src/packs/my-cache/my-cache.pack.ts"
-import type { PackDefinition } from '@ambrosia/core';
+import type { PackDefinition } from '@ambrosia-unce/core';
 import { MyCacheService } from './my-cache.service';
 import type { MyCacheConfig } from './types';
 import { MY_CACHE_CONFIG } from './types';
@@ -222,7 +222,7 @@ export class MyCachePack {
 Если pack содержит контроллеры, используйте `HttpPackDefinition`:
 
 ```typescript title="src/packs/health/health.pack.ts"
-import type { HttpPackDefinition } from '@ambrosia/http';
+import type { HttpPackDefinition } from '@ambrosia-unce/http';
 import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
 
@@ -246,7 +246,7 @@ export class HealthPack {
 {
   "name": "rbac-pack",
   "registryDependencies": ["jwt-auth"],
-  "ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+  "ambrosiaDependencies": ["@ambrosia-unce/core", "@ambrosia-unce/http"]
 }
 ```
 
@@ -272,10 +272,10 @@ export class HealthPack {
 
 ## Тестирование
 
-Используйте `TestingPackFactory` из `@ambrosia/core` для тестирования:
+Используйте `TestingPackFactory` из `@ambrosia-unce/core` для тестирования:
 
 ```typescript title="src/packs/my-cache/__tests__/my-cache.test.ts"
-import { TestingPackFactory } from '@ambrosia/core';
+import { TestingPackFactory } from '@ambrosia-unce/core';
 import { MyCachePack } from '../my-cache.pack';
 import { MyCacheService } from '../my-cache.service';
 

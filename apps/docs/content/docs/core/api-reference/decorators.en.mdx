@@ -1,6 +1,6 @@
 ---
 title: "Decorators"
-description: "Complete reference for DI system decorators in @ambrosia/core"
+description: "Complete reference for DI system decorators in @ambrosia-unce/core"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -29,7 +29,7 @@ interface InjectableOptions {
 ### Usage
 
 ```typescript
-import { Injectable, Scope } from "@ambrosia/core";
+import { Injectable, Scope } from "@ambrosia-unce/core";
 
 // Singleton (default)
 @Injectable()
@@ -71,7 +71,7 @@ TypeScript `emitDecoratorMetadata` generates metadata only for concrete classes.
 <Tabs items={['InjectionToken', 'Abstract Class', 'Interface via Token']}>
 <Tab value="InjectionToken">
 ```typescript
-import { Injectable, Inject, InjectionToken } from "@ambrosia/core";
+import { Injectable, Inject, InjectionToken } from "@ambrosia-unce/core";
 
 const API_URL = new InjectionToken<string>("API_URL");
 const MAX_RETRIES = new InjectionToken<number>("MAX_RETRIES");
@@ -87,7 +87,7 @@ class ApiClient {
 </Tab>
 <Tab value="Abstract Class">
 ```typescript
-import { Injectable, Inject } from "@ambrosia/core";
+import { Injectable, Inject } from "@ambrosia-unce/core";
 
 abstract class Logger {
   abstract log(msg: string): void;
@@ -101,7 +101,7 @@ class UserService {
 </Tab>
 <Tab value="Interface via Token">
 ```typescript
-import { Injectable, Inject, InjectionToken } from "@ambrosia/core";
+import { Injectable, Inject, InjectionToken } from "@ambrosia-unce/core";
 
 interface CacheConfig {
   ttl: number;
@@ -146,7 +146,7 @@ Makes a dependency optional. If the provider is not found, `undefined` is return
 ### With Constructor Parameters
 
 ```typescript
-import { Injectable, Inject, Optional, InjectionToken } from "@ambrosia/core";
+import { Injectable, Inject, Optional, InjectionToken } from "@ambrosia-unce/core";
 
 const METRICS = new InjectionToken<MetricsClient>("Metrics");
 
@@ -189,7 +189,7 @@ Injects a dependency into a class property (property injection). Executed **afte
 ### Basic Usage
 
 ```typescript
-import { Injectable, Autowired } from "@ambrosia/core";
+import { Injectable, Autowired } from "@ambrosia-unce/core";
 
 @Injectable()
 class OrderService {
@@ -258,7 +258,7 @@ Links a concrete class to an abstract one. Allows resolving abstract classes as 
 ### Usage
 
 ```typescript
-import { Injectable, Implements, Inject } from "@ambrosia/core";
+import { Injectable, Implements, Inject } from "@ambrosia-unce/core";
 
 // Abstract class as "interface"
 abstract class Logger {

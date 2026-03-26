@@ -2,7 +2,7 @@
  * @Sse() decorator - marks a route handler as SSE endpoint
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import { HttpMetadataManager } from "../metadata/http-metadata-manager.ts";
 
 /**

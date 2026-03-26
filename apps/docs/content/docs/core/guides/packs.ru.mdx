@@ -42,7 +42,7 @@ sequenceDiagram
 ```
 
 ```typescript
-import type { PackDefinition } from "@ambrosia/core";
+import type { PackDefinition } from "@ambrosia-unce/core";
 
 export const LoggingPack: PackDefinition = {
   meta: { name: "logging", version: "1.0.0" },
@@ -68,7 +68,7 @@ export const LoggingPack: PackDefinition = {
 Статический объект — для организации кода внутри проекта:
 
 ```typescript
-import type { PackDefinition } from "@ambrosia/core";
+import type { PackDefinition } from "@ambrosia-unce/core";
 
 export const CachePack: PackDefinition = {
   meta: { name: "cache" },
@@ -85,8 +85,8 @@ export const CachePack: PackDefinition = {
 Класс со статическими методами — для переиспользуемых библиотек:
 
 ```typescript
-import type { PackDefinition, AsyncPackOptions } from "@ambrosia/core";
-import { createAsyncProvider } from "@ambrosia/core";
+import type { PackDefinition, AsyncPackOptions } from "@ambrosia-unce/core";
+import { createAsyncProvider } from "@ambrosia-unce/core";
 
 export class DatabasePack {
   static forRoot(config: DatabaseConfig): PackDefinition {
@@ -147,7 +147,7 @@ packs: [
 Хелпер для создания асинхронного провайдера из `AsyncPackOptions`. Автоматически резолвит зависимости из `inject`:
 
 ```typescript
-import { createAsyncProvider } from "@ambrosia/core";
+import { createAsyncProvider } from "@ambrosia-unce/core";
 
 const provider = createAsyncProvider(DB_CONFIG, {
   useFactory: async (env: EnvService, logger: Logger) => ({
@@ -262,7 +262,7 @@ const InternalPack: PackDefinition = {
 Все загруженные паки автоматически регистрируются в `PackRegistry`:
 
 ```typescript
-import { packRegistry } from "@ambrosia/core";
+import { packRegistry } from "@ambrosia-unce/core";
 
 // Все загруженные паки
 const allPacks = packRegistry.getAll();

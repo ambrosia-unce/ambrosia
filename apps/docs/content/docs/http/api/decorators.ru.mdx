@@ -5,7 +5,7 @@ description: Полный справочник по декораторам Ambro
 
 # Декораторы
 
-Полный справочник по всем доступным декораторам в @ambrosia/http.
+Полный справочник по всем доступным декораторам в @ambrosia-unce/http.
 
 ## Декораторы контроллеров
 
@@ -604,7 +604,7 @@ export class UserController {
 Вы можете создавать собственные декораторы на основе встроенных:
 
 ```typescript
-import { SetMetadata } from '@ambrosia/core';
+import { SetMetadata } from '@ambrosia-unce/core';
 
 // Декоратор для ролей
 export const Roles = (...roles: string[]) => SetMetadata('roles', roles);

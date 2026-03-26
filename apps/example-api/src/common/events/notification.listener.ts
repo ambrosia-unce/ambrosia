@@ -1,5 +1,5 @@
-import { Injectable, LoggerService } from "@ambrosia/core";
-import { OnEvent } from "@ambrosia/events";
+import { Injectable, LoggerService } from "@ambrosia-unce/core";
+import { OnEvent } from "@ambrosia-unce/events";
 import { TaskCompletedEvent } from "./task-completed.event.ts";
 import { UserCreatedEvent } from "./user-created.event.ts";
 

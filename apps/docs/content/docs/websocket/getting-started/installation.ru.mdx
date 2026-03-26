@@ -1,6 +1,6 @@
 ---
 title: "Установка"
-description: "Установка и настройка @ambrosia/websocket"
+description: "Установка и настройка @ambrosia-unce/websocket"
 ---
 
 # Установка
@@ -8,20 +8,20 @@ description: "Установка и настройка @ambrosia/websocket"
 ## Зависимости
 
 ```bash
-bun add @ambrosia/websocket @ambrosia/websocket-elysia
+bun add @ambrosia-unce/websocket @ambrosia-unce/websocket-elysia
 ```
 
-`@ambrosia/websocket` — ядро (декораторы, интерфейсы, тестирование). `@ambrosia/websocket-elysia` — адаптер для Elysia.
+`@ambrosia-unce/websocket` — ядро (декораторы, интерфейсы, тестирование). `@ambrosia-unce/websocket-elysia` — адаптер для Elysia.
 
 ## Настройка с Elysia
 
 ```typescript title="main.ts"
 import "reflect-metadata";
 import { Elysia } from "elysia";
-import { HttpApplication } from "@ambrosia/http";
-import { ElysiaProvider } from "@ambrosia/http-elysia";
-import { WsApplication } from "@ambrosia/websocket";
-import { ElysiaWsProvider } from "@ambrosia/websocket-elysia";
+import { HttpApplication } from "@ambrosia-unce/http";
+import { ElysiaProvider } from "@ambrosia-unce/http-elysia";
+import { WsApplication } from "@ambrosia-unce/websocket";
+import { ElysiaWsProvider } from "@ambrosia-unce/websocket-elysia";
 import { ChatGateway } from "./chat.gateway";
 
 // 1. Создаём HTTP приложение

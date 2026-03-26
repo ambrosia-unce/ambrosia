@@ -25,7 +25,7 @@ ambrosia g controller posts
 Будет создан файл `src/posts/posts.controller.ts`. Откройте его и замените содержимое:
 
 ```ts
-import { Controller, Http } from '@ambrosia/http';
+import { Controller, Http } from '@ambrosia-unce/http';
 
 @Controller('/posts')
 export class PostsController {
@@ -48,8 +48,8 @@ export class PostsController {
 
 ```ts
 import 'reflect-metadata';
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import { AppPack } from './app.pack.ts';
 import { PostsController } from './posts/posts.controller.ts';
 
@@ -90,7 +90,7 @@ ambrosia g service posts
 Будет создан `src/posts/posts.service.ts`. Замените содержимое:
 
 ```ts
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 
 export interface Post {
   id: string;
@@ -146,7 +146,7 @@ export class PostsService {
 Обновите `posts.controller.ts`, чтобы инжектить сервис:
 
 ```ts
-import { Controller, Http, Body, Param, Status } from '@ambrosia/http';
+import { Controller, Http, Body, Param, Status } from '@ambrosia-unce/http';
 import { PostsService } from './posts.service.ts';
 
 @Controller('/posts')
@@ -197,7 +197,7 @@ export class PostsController {
 Добавьте `PostsService` в providers в `app.pack.ts`:
 
 ```ts
-import { definePack } from '@ambrosia/core';
+import { definePack } from '@ambrosia-unce/core';
 import { PostsService } from './posts/posts.service.ts';
 
 export const AppPack = definePack({
@@ -252,8 +252,8 @@ curl http://localhost:3000/posts
 Создайте `src/posts/posts.pack.ts`:
 
 ```ts
-import { definePack } from '@ambrosia/core';
-import type { HttpPackDefinition } from '@ambrosia/http';
+import { definePack } from '@ambrosia-unce/core';
+import type { HttpPackDefinition } from '@ambrosia-unce/http';
 import { PostsController } from './posts.controller.ts';
 import { PostsService } from './posts.service.ts';
 
@@ -269,7 +269,7 @@ export const PostsPack: HttpPackDefinition = {
 Упростите `app.pack.ts`:
 
 ```ts
-import { definePack } from '@ambrosia/core';
+import { definePack } from '@ambrosia-unce/core';
 import { PostsPack } from './posts/posts.pack.ts';
 
 export const AppPack = definePack({
@@ -281,8 +281,8 @@ export const AppPack = definePack({
 
 ```ts
 import 'reflect-metadata';
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import { AppPack } from './app.pack.ts';
 
 const app = await HttpApplication.create({
@@ -300,18 +300,18 @@ await app.listen();
 
 ## Шаг 4: Добавление валидации
 
-Типы `body` не дают гарантий в рантайме. Добавим compile-time валидацию через `@ambrosia/validator`.
+Типы `body` не дают гарантий в рантайме. Добавим compile-time валидацию через `@ambrosia-unce/validator`.
 
 Установите валидатор:
 
 ```bash
-bun add @ambrosia/validator
+bun add @ambrosia-unce/validator
 ```
 
 Убедитесь, что в `bunfig.toml` есть preload:
 
 ```toml
-preload = ["@ambrosia/validator/preload"]
+preload = ["@ambrosia-unce/validator/preload"]
 ```
 
 Создайте DTO (Data Transfer Object) в `src/posts/dto/create-post.dto.ts`:
@@ -330,7 +330,7 @@ export interface CreatePostDto {
 Обновите контроллер для использования валидации:
 
 ```ts
-import { Controller, Http, Body, Param, Status, Validate } from '@ambrosia/http';
+import { Controller, Http, Body, Param, Status, Validate } from '@ambrosia-unce/http';
 import { PostsService } from './posts.service.ts';
 import type { CreatePostDto } from './dto/create-post.dto.ts';
 
@@ -370,7 +370,7 @@ export class PostsController {
 }
 ```
 
-Декоратор `@Validate()` -- это маркер. TypeScript-трансформер `@ambrosia/validator` обнаруживает его на этапе компиляции и генерирует встроенный валидационный код. Никаких runtime-библиотек для схем не требуется.
+Декоратор `@Validate()` -- это маркер. TypeScript-трансформер `@ambrosia-unce/validator` обнаруживает его на этапе компиляции и генерирует встроенный валидационный код. Никаких runtime-библиотек для схем не требуется.
 
 ### Тестирование валидации
 
@@ -383,21 +383,21 @@ curl -X POST http://localhost:3000/posts \
 Вернется `400 Bad Request`, потому что заголовок нарушает ограничение `@minLength 1`.
 
 <Callout type="warn">
-Декоратор `@Validate()` требует активации `@ambrosia/validator/preload` в `bunfig.toml`. Без этого декоратор ничего не делает.
+Декоратор `@Validate()` требует активации `@ambrosia-unce/validator/preload` в `bunfig.toml`. Без этого декоратор ничего не делает.
 </Callout>
 
 ## Шаг 5: Добавление конфигурации
 
-Хардкодить порт и другие значения -- плохая практика. Используем `@ambrosia/config` для типобезопасной конфигурации из окружения.
+Хардкодить порт и другие значения -- плохая практика. Используем `@ambrosia-unce/config` для типобезопасной конфигурации из окружения.
 
 ```bash
-bun add @ambrosia/config
+bun add @ambrosia-unce/config
 ```
 
 Создайте схему конфига в `src/config/app.config.ts`:
 
 ```ts
-import { defineConfig } from '@ambrosia/config';
+import { defineConfig } from '@ambrosia-unce/config';
 
 export const AppConfig = defineConfig({
   port: { env: 'PORT', type: 'int', default: 3000 },
@@ -417,8 +417,8 @@ LOG_LEVEL=info
 Обновите `app.pack.ts`, чтобы импортировать модуль конфигурации:
 
 ```ts
-import { definePack } from '@ambrosia/core';
-import { ConfigModule } from '@ambrosia/config';
+import { definePack } from '@ambrosia-unce/core';
+import { ConfigModule } from '@ambrosia-unce/config';
 import { AppConfig } from './config/app.config.ts';
 import { PostsPack } from './posts/posts.pack.ts';
 
@@ -438,10 +438,10 @@ export const AppPack = definePack({
 
 ```ts
 import 'reflect-metadata';
-import { Container } from '@ambrosia/core';
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
-import { ConfigService } from '@ambrosia/config';
+import { Container } from '@ambrosia-unce/core';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
+import { ConfigService } from '@ambrosia-unce/config';
 import { AppPack } from './app.pack.ts';
 
 const app = await HttpApplication.create({
@@ -465,7 +465,7 @@ await app.listen(port);
 Сделаем так, чтобы при создании поста отправлялось событие -- другие части системы смогут реагировать без жесткой связанности.
 
 ```bash
-bun add @ambrosia/events
+bun add @ambrosia-unce/events
 ```
 
 Создайте класс события в `src/posts/events/post-created.event.ts`:
@@ -482,8 +482,8 @@ export class PostCreatedEvent {
 Создайте слушатель в `src/posts/listeners/post-created.listener.ts`:
 
 ```ts
-import { Injectable } from '@ambrosia/core';
-import { OnEvent } from '@ambrosia/events';
+import { Injectable } from '@ambrosia-unce/core';
+import { OnEvent } from '@ambrosia-unce/events';
 import { PostCreatedEvent } from '../events/post-created.event.ts';
 
 @Injectable()
@@ -498,8 +498,8 @@ export class PostCreatedListener {
 Обновите сервис для отправки события:
 
 ```ts
-import { Injectable } from '@ambrosia/core';
-import { EventBus } from '@ambrosia/events';
+import { Injectable } from '@ambrosia-unce/core';
+import { EventBus } from '@ambrosia-unce/events';
 import { PostCreatedEvent } from './events/post-created.event.ts';
 
 export interface Post {
@@ -558,9 +558,9 @@ export class PostsService {
 Обновите пак постов, чтобы включить модуль событий и слушатель:
 
 ```ts
-import { definePack } from '@ambrosia/core';
-import type { HttpPackDefinition } from '@ambrosia/http';
-import { EventBusModule } from '@ambrosia/events';
+import { definePack } from '@ambrosia-unce/core';
+import type { HttpPackDefinition } from '@ambrosia-unce/http';
+import { EventBusModule } from '@ambrosia-unce/events';
 import { PostsController } from './posts.controller.ts';
 import { PostsService } from './posts.service.ts';
 import { PostCreatedListener } from './listeners/post-created.listener.ts';

@@ -2,7 +2,7 @@
  * Common HTTP types and interfaces
  */
 
-import type { Constructor, PackDefinition } from "@ambrosia/core";
+import type { Constructor, PackDefinition } from "@ambrosia-unce/core";
 
 /**
  * HttpPackDefinition extends the core PackDefinition with HTTP-specific fields.

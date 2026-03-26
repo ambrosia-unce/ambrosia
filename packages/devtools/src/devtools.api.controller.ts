@@ -5,13 +5,13 @@
  * All endpoints are under /_devtools/api/.
  */
 
-import { Container, Inject } from "@ambrosia/core";
+import { Container, Inject } from "@ambrosia-unce/core";
 import {
   Body,
   Controller,
   Http,
   UseGuard,
-} from "@ambrosia/http";
+} from "@ambrosia-unce/http";
 import { PackCollector } from "./collectors/pack-collector.ts";
 import { DevToolsRouteCollector } from "./collectors/route-collector.ts";
 import { DevToolsEventCollector } from "./collectors/event-collector.ts";
@@ -269,7 +269,7 @@ export class DevToolsApiController {
       const configService = this.container.resolveOptional<any>(
         (() => {
           try {
-            return require("@ambrosia/config").ConfigService;
+            return require("@ambrosia-unce/config").ConfigService;
           } catch {
             return class Placeholder {};
           }

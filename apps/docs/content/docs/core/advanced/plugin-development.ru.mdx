@@ -8,7 +8,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Разработка плагинов
 
-Пошаговое руководство по созданию плагинов для @ambrosia/core.
+Пошаговое руководство по созданию плагинов для @ambrosia-unce/core.
 
 ## Жизненный цикл плагина
 
@@ -42,8 +42,8 @@ sequenceDiagram
 ## Шаг 1: Минимальный плагин
 
 ```typescript
-import type { Plugin, Token, ResolutionContext } from "@ambrosia/core";
-import { tokenToString } from "@ambrosia/core";
+import type { Plugin, Token, ResolutionContext } from "@ambrosia-unce/core";
+import { tokenToString } from "@ambrosia-unce/core";
 
 const myPlugin: Plugin = {
   name: "my-first-plugin",
@@ -61,8 +61,8 @@ container.use(myPlugin);
 ## Шаг 2: Класс с состоянием
 
 ```typescript
-import type { Plugin, Token, ResolutionContext, Provider } from "@ambrosia/core";
-import { tokenToString } from "@ambrosia/core";
+import type { Plugin, Token, ResolutionContext, Provider } from "@ambrosia-unce/core";
+import { tokenToString } from "@ambrosia-unce/core";
 
 interface MetricsPluginOptions {
   slowThresholdMs?: number;
@@ -155,8 +155,8 @@ console.table(metrics.getStats());
 `onRegisterProvider` — единственный hook, который может изменять данные:
 
 ```typescript
-import type { Plugin, Provider } from "@ambrosia/core";
-import { tokenToString, Scope } from "@ambrosia/core";
+import type { Plugin, Provider } from "@ambrosia-unce/core";
+import { tokenToString, Scope } from "@ambrosia-unce/core";
 
 class ScopeGuardPlugin implements Plugin {
   name = "scope-guard";
@@ -201,8 +201,8 @@ container.use(new ScopeGuardPlugin({
 Для I/O-heavy операций (отправка метрик, запись логов) используйте батчинг:
 
 ```typescript
-import type { Plugin, Token, ResolutionContext } from "@ambrosia/core";
-import { tokenToString } from "@ambrosia/core";
+import type { Plugin, Token, ResolutionContext } from "@ambrosia-unce/core";
+import { tokenToString } from "@ambrosia-unce/core";
 
 class RemoteTelemetryPlugin implements Plugin {
   name = "remote-telemetry";
@@ -265,7 +265,7 @@ class RemoteTelemetryPlugin implements Plugin {
 
 ```typescript
 import { describe, it, expect } from "bun:test";
-import { Container, Injectable } from "@ambrosia/core";
+import { Container, Injectable } from "@ambrosia-unce/core";
 
 describe("MetricsPlugin", () => {
   it("should track resolution count", () => {
@@ -341,7 +341,7 @@ ambrosia-plugin-metrics/
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "peerDependencies": {
-    "@ambrosia/core": ">=1.0.0"
+    "@ambrosia-unce/core": ">=1.0.0"
   }
 }
 ```

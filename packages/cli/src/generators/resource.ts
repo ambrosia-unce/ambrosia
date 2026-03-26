@@ -70,8 +70,8 @@ export function controllerTemplate(name: string): string {
   const pascal = toPascalCase(name);
   const route = toRoutePath(name);
 
-  return `import { Injectable } from "@ambrosia/core";
-import { Controller, Http } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import { Controller, Http } from "@ambrosia-unce/http";
 
 @Controller("${route}")
 class ${pascal}Controller {
@@ -89,7 +89,7 @@ export { ${pascal}Controller };
 export function serviceTemplate(name: string): string {
   const pascal = toPascalCase(name);
 
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 
 @Injectable()
 class ${pascal}Service {
@@ -104,8 +104,8 @@ export { ${pascal}Service };
 export function guardTemplate(name: string): string {
   const pascal = toPascalCase(name);
 
-  return `import { Injectable } from "@ambrosia/core";
-import type { Guard, ExecutionContext } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Guard, ExecutionContext } from "@ambrosia-unce/http";
 
 @Injectable()
 class ${pascal}Guard implements Guard {
@@ -123,8 +123,8 @@ export { ${pascal}Guard };
 export function interceptorTemplate(name: string): string {
   const pascal = toPascalCase(name);
 
-  return `import { Injectable } from "@ambrosia/core";
-import type { Interceptor, ExecutionContext, CallHandler } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Interceptor, ExecutionContext, CallHandler } from "@ambrosia-unce/http";
 
 @Injectable()
 class ${pascal}Interceptor implements Interceptor {
@@ -144,8 +144,8 @@ export { ${pascal}Interceptor };
 export function pipeTemplate(name: string): string {
   const pascal = toPascalCase(name);
 
-  return `import { Injectable } from "@ambrosia/core";
-import type { Pipe, PipeTransform } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Pipe, PipeTransform } from "@ambrosia-unce/http";
 
 @Injectable()
 class ${pascal}Pipe implements PipeTransform {
@@ -163,9 +163,9 @@ export { ${pascal}Pipe };
 export function filterTemplate(name: string): string {
   const pascal = toPascalCase(name);
 
-  return `import { Injectable } from "@ambrosia/core";
-import type { ExceptionFilter, ExceptionFilterArgs } from "@ambrosia/http";
-import { HttpException } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { ExceptionFilter, ExceptionFilterArgs } from "@ambrosia-unce/http";
+import { HttpException } from "@ambrosia-unce/http";
 
 @Injectable()
 class ${pascal}Filter implements ExceptionFilter {
@@ -196,8 +196,8 @@ export { ${pascal}Filter };
 export function middlewareTemplate(name: string): string {
   const pascal = toPascalCase(name);
 
-  return `import { Injectable } from "@ambrosia/core";
-import type { Middleware, IHttpRequest, IHttpResponse } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Middleware, IHttpRequest, IHttpResponse } from "@ambrosia-unce/http";
 
 @Injectable()
 class ${pascal}Middleware implements Middleware {

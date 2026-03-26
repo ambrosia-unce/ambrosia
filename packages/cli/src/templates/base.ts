@@ -12,10 +12,10 @@ export function packageJson(name: string): string {
     "test": "bun test"
   },
   "dependencies": {
-    "@ambrosia/core": "^0.1.0",
-    "@ambrosia/http": "^0.1.0",
-    "@ambrosia/http-elysia": "^0.1.0",
-    "@ambrosia/validator": "^0.1.0",
+    "@ambrosia-unce/core": "^0.1.0",
+    "@ambrosia-unce/http": "^0.1.0",
+    "@ambrosia-unce/http-elysia": "^0.1.0",
+    "@ambrosia-unce/validator": "^0.1.0",
     "elysia": "^1.4.22",
     "reflect-metadata": "^0.2.2"
   },
@@ -109,6 +109,6 @@ export function buildTs(): string {
 
 export function bunfigToml(): string {
   return `# Bun configuration
-preload = ["@ambrosia/validator/preload"]
+preload = ["@ambrosia-unce/validator/preload"]
 `;
 }

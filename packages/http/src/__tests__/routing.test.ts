@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import { Controller } from "../decorators/controller.ts";
 import { Http } from "../decorators/methods.ts";
 import { Body, Param, Query, Header, Headers } from "../decorators/parameters.ts";

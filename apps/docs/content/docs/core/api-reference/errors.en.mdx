@@ -1,6 +1,6 @@
 ---
 title: "Error Types"
-description: "Reference for all DI container errors in @ambrosia/core"
+description: "Reference for all DI container errors in @ambrosia-unce/core"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -39,7 +39,7 @@ class DIError extends Error {
 Use `instanceof DIError` to catch all DI errors:
 
 ```typescript
-import { DIError } from "@ambrosia/core";
+import { DIError } from "@ambrosia-unce/core";
 
 try {
   container.resolve(SomeService);
@@ -209,7 +209,7 @@ class NotInjectableError extends DIError {
 import {
   DIError, CircularDependencyError, ProviderNotFoundError,
   ResolutionError, NoRequestScopeError,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 
 try {
   const service = container.resolve(MyService);

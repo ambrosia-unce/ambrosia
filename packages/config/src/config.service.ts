@@ -5,7 +5,7 @@
  * All lookups are O(1) via Map.get with zero runtime overhead.
  */
 
-import { Inject, Injectable } from "@ambrosia/core";
+import { Inject, Injectable } from "@ambrosia-unce/core";
 import { CONFIG_VALUES } from "./tokens.ts";
 
 @Injectable()

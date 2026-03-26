@@ -1,5 +1,5 @@
 /**
- * `ambrosia upgrade` — upgrade @ambrosia/* packages to their latest versions.
+ * `ambrosia upgrade` — upgrade @ambrosia-unce/* packages to their latest versions.
  */
 
 import * as p from "@clack/prompts";
@@ -34,11 +34,11 @@ export async function upgradeCommand() {
 
   const allDeps = { ...pkgJson.dependencies, ...pkgJson.devDependencies };
   const ambrosiaPkgs = Object.entries(allDeps)
-    .filter(([name]) => name.startsWith("@ambrosia/"))
+    .filter(([name]) => name.startsWith("@ambrosia-unce/"))
     .sort(([a], [b]) => a.localeCompare(b));
 
   if (ambrosiaPkgs.length === 0) {
-    p.log.info("No @ambrosia/* packages found in dependencies.");
+    p.log.info("No @ambrosia-unce/* packages found in dependencies.");
     p.outro("");
     return;
   }
@@ -78,7 +78,7 @@ export async function upgradeCommand() {
   }
 
   if (updates.length === 0) {
-    p.log.success("All @ambrosia/* packages are up to date.");
+    p.log.success("All @ambrosia-unce/* packages are up to date.");
     p.outro("");
     return;
   }

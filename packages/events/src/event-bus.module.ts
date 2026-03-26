@@ -3,7 +3,7 @@
  *
  * Usage:
  * ```typescript
- * import { EventBusModule } from '@ambrosia/events';
+ * import { EventBusModule } from '@ambrosia-unce/events';
  *
  * const AppPack = definePack({
  *   imports: [EventBusModule.forRoot()],
@@ -18,7 +18,7 @@
  * 4. Exports EventBus for injection into other services
  */
 
-import { type Constructor, type PackDefinition, definePack } from "@ambrosia/core";
+import { type Constructor, type PackDefinition, definePack } from "@ambrosia-unce/core";
 import { EventBus } from "./event-bus.service.ts";
 import { EventCollector } from "./event-collector.ts";
 import { EVENTS_METADATA } from "./tokens.ts";
@@ -36,7 +36,7 @@ export class EventBusModule {
 
     return definePack({
       meta: {
-        name: "@ambrosia/events",
+        name: "@ambrosia-unce/events",
         version: "0.1.0",
         description: "High-performance event bus",
       },

@@ -9,8 +9,8 @@ import {
   Injectable,
   type LoadedPackInfo,
   tokenToString,
-} from "@ambrosia/core";
-import type { HttpPackDefinition } from "@ambrosia/http";
+} from "@ambrosia-unce/core";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import type { PackInfo, PackTreeData, ProviderInfo } from "../types.ts";
 
 @Injectable()

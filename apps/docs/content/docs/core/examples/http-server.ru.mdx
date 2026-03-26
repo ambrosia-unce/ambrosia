@@ -61,7 +61,7 @@ src/
 ### Токены и конфигурация
 
 ```typescript title="src/config/tokens.ts"
-import { InjectionToken } from "@ambrosia/core";
+import { InjectionToken } from "@ambrosia-unce/core";
 
 export interface DbConfig {
   host: string;
@@ -75,7 +75,7 @@ export const DB_CONFIG = new InjectionToken<DbConfig>("DbConfig");
 ### DatabaseService
 
 ```typescript title="src/database/database.service.ts"
-import { Injectable, Inject, type OnInit, type OnDestroy } from "@ambrosia/core";
+import { Injectable, Inject, type OnInit, type OnDestroy } from "@ambrosia-unce/core";
 import { DB_CONFIG, type DbConfig } from "../config/tokens";
 
 @Injectable()
@@ -109,7 +109,7 @@ export class DatabaseService implements OnInit, OnDestroy {
 ### UserRepository
 
 ```typescript title="src/repositories/user.repository.ts"
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import { DatabaseService } from "../database/database.service";
 
 export interface User {
@@ -148,7 +148,7 @@ export class UserRepository {
 ### UserService
 
 ```typescript title="src/services/user.service.ts"
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import { UserRepository, type User } from "../repositories/user.repository";
 
 @Injectable()
@@ -177,7 +177,7 @@ export class UserService {
 ### RequestContext (REQUEST scope)
 
 ```typescript title="src/context/request-context.ts"
-import { Injectable, Scope } from "@ambrosia/core";
+import { Injectable, Scope } from "@ambrosia-unce/core";
 
 @Injectable({ scope: Scope.REQUEST })
 export class RequestContext {
@@ -197,7 +197,7 @@ export class RequestContext {
 <Tab value="Elysia (Bun)">
 ```typescript title="src/index.ts"
 import { Elysia } from "elysia";
-import { Container, Scope } from "@ambrosia/core";
+import { Container, Scope } from "@ambrosia-unce/core";
 import { DB_CONFIG } from "./config/tokens";
 import { UserService } from "./services/user.service";
 import { RequestContext } from "./context/request-context";
@@ -247,7 +247,7 @@ process.on("SIGTERM", async () => {
 <Tab value="Hono">
 ```typescript title="src/index.ts"
 import { Hono } from "hono";
-import { Container } from "@ambrosia/core";
+import { Container } from "@ambrosia-unce/core";
 import { DB_CONFIG } from "./config/tokens";
 import { UserService } from "./services/user.service";
 import { RequestContext } from "./context/request-context";
@@ -319,7 +319,7 @@ sequenceDiagram
 
 ```typescript title="tests/user.service.test.ts"
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { TestingPackFactory, definePack, type TestingPack } from "@ambrosia/core";
+import { TestingPackFactory, definePack, type TestingPack } from "@ambrosia-unce/core";
 import { DB_CONFIG } from "../src/config/tokens";
 import { UserService } from "../src/services/user.service";
 import { UserRepository } from "../src/repositories/user.repository";

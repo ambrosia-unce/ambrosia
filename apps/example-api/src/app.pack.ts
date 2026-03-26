@@ -1,8 +1,8 @@
-import { ConfigModule } from "@ambrosia/config";
-import { LoggerModule } from "@ambrosia/core";
-import { DevToolsPack } from "@ambrosia/devtools";
-import { EventBusModule } from "@ambrosia/events";
-import type { HttpPackDefinition } from "@ambrosia/http";
+import { ConfigModule } from "@ambrosia-unce/config";
+import { LoggerModule } from "@ambrosia-unce/core";
+import { DevToolsPack } from "@ambrosia-unce/devtools";
+import { EventBusModule } from "@ambrosia-unce/events";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import { AuthPack } from "./auth/auth.pack.ts";
 import { NotificationListener } from "./common/events/notification.listener.ts";
 import { AppConfig } from "./config/app.config.ts";
@@ -19,8 +19,8 @@ import { HealthPack } from "./health/health.pack.ts";
  *
  * Dependency graph:
  *   app
- *   ├── @ambrosia/config
- *   ├── @ambrosia/events
+ *   ├── @ambrosia-unce/config
+ *   ├── @ambrosia-unce/events
  *   ├── devtools
  *   ├── auth
  *   ├── users

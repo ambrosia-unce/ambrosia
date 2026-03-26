@@ -1,5 +1,5 @@
 /**
- * Bun Plugin for @ambrosia/validator
+ * Bun Plugin for @ambrosia-unce/validator
  *
  * This plugin intercepts TypeScript files during load and transforms
  * validate<T>(), assert<T>(), and is<T>() calls into optimized inline
@@ -42,7 +42,7 @@ export function createValidatorPlugin(options: ValidatorPluginOptions = {}): Bun
   const { debug = false, include = /\.ts$/, exclude = /node_modules/, tsconfig = {} } = options;
 
   return {
-    name: "@ambrosia/validator",
+    name: "@ambrosia-unce/validator",
     setup(build) {
       if (debug) {
         console.log("[Validator] Plugin initialized");

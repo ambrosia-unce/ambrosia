@@ -1,4 +1,4 @@
-import { definePack } from "@ambrosia/core";
+import { definePack } from "@ambrosia-unce/core";
 import { NotificationService } from "./notification.service.ts";
 
 export const NotificationPack = definePack({

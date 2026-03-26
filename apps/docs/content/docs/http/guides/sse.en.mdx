@@ -12,8 +12,8 @@ SSE allows the server to send a stream of events to the client through a one-way
 To create an SSE endpoint, use the `@Sse()` decorator and return an `SseStream` instance:
 
 ```typescript
-import { Controller, Http } from '@ambrosia/http';
-import { Sse, SseStream } from '@ambrosia/http';
+import { Controller, Http } from '@ambrosia-unce/http';
+import { Sse, SseStream } from '@ambrosia-unce/http';
 
 @Controller('/events')
 export class EventController {

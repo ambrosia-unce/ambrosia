@@ -4,7 +4,7 @@
 
 import { beforeEach, describe, expect, test } from "bun:test";
 import "reflect-metadata";
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import {
   WebSocketGateway,
   SubscribeMessage,

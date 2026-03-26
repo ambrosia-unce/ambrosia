@@ -12,8 +12,8 @@ SSE позволяет серверу отправлять поток событ
 Для создания SSE-endpoint используйте декоратор `@Sse()` и возвращайте экземпляр `SseStream`:
 
 ```typescript
-import { Controller, Http } from '@ambrosia/http';
-import { Sse, SseStream } from '@ambrosia/http';
+import { Controller, Http } from '@ambrosia-unce/http';
+import { Sse, SseStream } from '@ambrosia-unce/http';
 
 @Controller('/events')
 export class EventController {

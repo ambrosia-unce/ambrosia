@@ -2,7 +2,7 @@
  * ValidationPipe using TypeBox schemas
  */
 
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import type { TSchema } from "@sinclair/typebox";
 import { TypeBoxValidator } from "../validation/typebox-validator.ts";
 import type { Pipe, PipeMetadata } from "./pipe.interface.ts";

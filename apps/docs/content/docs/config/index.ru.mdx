@@ -5,9 +5,9 @@ description: "Типобезопасная конфигурация окруже
 
 import {Card, Cards} from 'fumadocs-ui/components/card';
 
-# @ambrosia/config
+# @ambrosia-unce/config
 
-**@ambrosia/config** — модуль типобезопасной конфигурации для Ambrosia Framework. Все переменные окружения парсятся **один раз** при старте приложения в замороженный объект. После инициализации — нулевые накладные расходы, O(1) доступ через Map.
+**@ambrosia-unce/config** — модуль типобезопасной конфигурации для Ambrosia Framework. Все переменные окружения парсятся **один раз** при старте приложения в замороженный объект. После инициализации — нулевые накладные расходы, O(1) доступ через Map.
 
 ## Ключевые возможности
 
@@ -33,8 +33,8 @@ import {Card, Cards} from 'fumadocs-ui/components/card';
 ## Быстрый старт
 
 ```ts
-import { defineConfig, ConfigModule, ConfigService } from '@ambrosia/config';
-import { definePack, Injectable, Inject } from '@ambrosia/core';
+import { defineConfig, ConfigModule, ConfigService } from '@ambrosia-unce/config';
+import { definePack, Injectable, Inject } from '@ambrosia-unce/core';
 
 // 1. Определяем схему
 const AppConfig = defineConfig({

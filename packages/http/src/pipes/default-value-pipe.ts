@@ -2,7 +2,7 @@
  * DefaultValuePipe - returns default value if input is null/undefined
  */
 
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import type { Pipe, PipeMetadata } from "./pipe.interface.ts";
 
 /**

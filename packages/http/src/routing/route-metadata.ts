@@ -4,7 +4,7 @@
  * Класс содержащий полную информацию о роуте
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import type { HttpMethod } from "../types/common.ts";
 import type { ParameterMetadata } from "../types/metadata.ts";
 import { extractParams, matches } from "./path-matcher.ts";

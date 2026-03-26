@@ -6,10 +6,10 @@ await Bun.build({
   target: "node",
   format: "esm",
   external: [
-    "@ambrosia/core",
-    "@ambrosia/http",
-    "@ambrosia/events",
-    "@ambrosia/config",
+    "@ambrosia-unce/core",
+    "@ambrosia-unce/http",
+    "@ambrosia-unce/events",
+    "@ambrosia-unce/config",
     "reflect-metadata",
   ],
 });

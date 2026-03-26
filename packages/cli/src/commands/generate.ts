@@ -364,7 +364,7 @@ async function generateStandalonePack(name: string, pascalName: string, cwd: str
         type: "module",
         main: "./src/index.ts",
         peerDependencies: {
-          "@ambrosia/core": ">=0.1.0",
+          "@ambrosia-unce/core": ">=0.1.0",
         },
       },
       null,
@@ -391,7 +391,7 @@ async function generateStandalonePack(name: string, pascalName: string, cwd: str
         ],
         dependencies: {},
         devDependencies: {},
-        ambrosiaDependencies: ["@ambrosia/core"],
+        ambrosiaDependencies: ["@ambrosia-unce/core"],
       },
       null,
       2,

@@ -1,5 +1,5 @@
 /**
- * @ambrosia/config
+ * @ambrosia-unce/config
  *
  * Type-safe environment configuration for Ambrosia framework.
  * Parse ALL env vars ONCE at bootstrap into a frozen plain object.
@@ -7,7 +7,7 @@
  *
  * @example
  * ```typescript
- * import { defineConfig, ConfigModule, ConfigService } from '@ambrosia/config';
+ * import { defineConfig, ConfigModule, ConfigService } from '@ambrosia-unce/config';
  *
  * const AppConfig = defineConfig({
  *   port: { env: 'PORT', type: 'int', default: 3000 },
@@ -19,7 +19,7 @@
  * });
  * ```
  *
- * @module @ambrosia/config
+ * @module @ambrosia-unce/config
  */
 
 export { ConfigModule, defineConfig } from "./config.module.ts";

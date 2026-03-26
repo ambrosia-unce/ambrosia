@@ -1,5 +1,5 @@
 {
-  "name": "@ambrosia/core",
+  "name": "@ambrosia-unce/core",
   "version": "0.1.0",
   "description": "Lightweight decorator-based Dependency Injection container for TypeScript and Bun",
   "type": "module",

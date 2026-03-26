@@ -12,8 +12,8 @@ Pipes преобразуют и валидируют входные данные
 Pipe - это класс с методом `transform()`, который получает значение и метаданные:
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
-import { Pipe, BadRequestException } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { Pipe, BadRequestException } from '@ambrosia-unce/http';
 
 @Injectable()
 export class ParseIntPipe implements Pipe {
@@ -39,7 +39,7 @@ Ambrosia HTTP предоставляет несколько встроенных
 
 ```typescript
 import { Type, Static } from '@sinclair/typebox';
-import { Body, Http, Controller } from '@ambrosia/http';
+import { Body, Http, Controller } from '@ambrosia-unce/http';
 
 class CreateUserDto {
   static schema = Type.Object({
@@ -70,7 +70,7 @@ ValidationPipe автоматически применяется к `@Body()` п
 Преобразует строку в число:
 
 ```typescript
-import { Http, Param, ParseIntPipe } from '@ambrosia/http';
+import { Http, Param, ParseIntPipe } from '@ambrosia-unce/http';
 
 @Controller('/users')
 export class UserController {
@@ -87,7 +87,7 @@ export class UserController {
 Преобразует строку в boolean:
 
 ```typescript
-import { Http, Query, ParseBoolPipe } from '@ambrosia/http';
+import { Http, Query, ParseBoolPipe } from '@ambrosia-unce/http';
 
 @Controller('/posts')
 export class PostController {
@@ -104,7 +104,7 @@ export class PostController {
 Преобразует строку в число с плавающей точкой:
 
 ```typescript
-import { Http, Query, ParseFloatPipe } from '@ambrosia/http';
+import { Http, Query, ParseFloatPipe } from '@ambrosia-unce/http';
 
 @Controller('/products')
 export class ProductController {
@@ -121,7 +121,7 @@ export class ProductController {
 Валидирует UUID v4 формат:
 
 ```typescript
-import { Http, Param, ParseUUIDPipe } from '@ambrosia/http';
+import { Http, Param, ParseUUIDPipe } from '@ambrosia-unce/http';
 
 @Controller('/orders')
 export class OrderController {
@@ -140,7 +140,7 @@ export class OrderController {
 Фабричная функция, которая возвращает pipe для установки значения по умолчанию:
 
 ```typescript
-import { Http, Query, DefaultValuePipe, ParseIntPipe } from '@ambrosia/http';
+import { Http, Query, DefaultValuePipe, ParseIntPipe } from '@ambrosia-unce/http';
 
 @Controller('/posts')
 export class PostController {
@@ -162,7 +162,7 @@ export class PostController {
 Фабричная функция, которая валидирует значение по enum:
 
 ```typescript
-import { Http, Query, ParseEnumPipe } from '@ambrosia/http';
+import { Http, Query, ParseEnumPipe } from '@ambrosia-unce/http';
 
 enum SortOrder {
   ASC = 'asc',
@@ -200,7 +200,7 @@ async getOne(
 ### На уровне метода
 
 ```typescript
-import { UsePipe } from '@ambrosia/http';
+import { UsePipe } from '@ambrosia-unce/http';
 
 @Http.Post('/')
 @UsePipe(ValidationPipe, SanitizePipe)

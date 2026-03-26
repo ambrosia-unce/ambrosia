@@ -52,7 +52,7 @@ import {
   Injectable,
   InjectionToken,
   type TestingPack,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 
 const DB = new InjectionToken<Database>("Database");
 
@@ -173,7 +173,7 @@ expect(service.destroyed).toBe(true);
 ## REQUEST Scope in Tests
 
 ```typescript title="tests/request-scope.test.ts"
-import { Container, Injectable, Scope } from "@ambrosia/core";
+import { Container, Injectable, Scope } from "@ambrosia-unce/core";
 
 @Injectable({ scope: Scope.REQUEST })
 class RequestContext {
@@ -208,7 +208,7 @@ describe("REQUEST scope", () => {
 ## Pattern: Test Helper
 
 ```typescript title="tests/helpers/create-test-app.ts"
-import { TestingPackFactory, type Packable, type TestingPack } from "@ambrosia/core";
+import { TestingPackFactory, type Packable, type TestingPack } from "@ambrosia-unce/core";
 
 export async function createTestApp(...extraPacks: Packable[]): Promise<TestingPack> {
   return TestingPackFactory

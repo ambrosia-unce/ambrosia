@@ -1,20 +1,20 @@
 ---
 title: "HTTP Integration"
-description: "Using @ambrosia/validator with @ambrosia/http"
+description: "Using @ambrosia-unce/validator with @ambrosia-unce/http"
 ---
 
 # HTTP Integration
 
-@ambrosia/validator integrates seamlessly with @ambrosia/http for validating incoming requests.
+@ambrosia-unce/validator integrates seamlessly with @ambrosia-unce/http for validating incoming requests.
 
 ## Basic Usage
 
 ### With assert()
 
 ```typescript
-import { Controller, Http, Body, Param } from '@ambrosia/http';
-import { assert } from '@ambrosia/validator';
-import type { Email } from '@ambrosia/validator/types';
+import { Controller, Http, Body, Param } from '@ambrosia-unce/http';
+import { assert } from '@ambrosia-unce/validator';
+import type { Email } from '@ambrosia-unce/validator/types';
 
 interface CreateUserDto {
   name: string;
@@ -40,7 +40,7 @@ export class UserController {
 ### With validate()
 
 ```typescript
-import { validate, ValidationError } from '@ambrosia/validator';
+import { validate, ValidationError } from '@ambrosia-unce/validator';
 
 @Controller('/users')
 export class UserController {
@@ -78,7 +78,7 @@ export class UserController {
 ## Route Parameter Validation
 
 ```typescript
-import type { UUID } from '@ambrosia/validator/types';
+import type { UUID } from '@ambrosia-unce/validator/types';
 
 interface GetUserParams {
   id: UUID;
@@ -99,7 +99,7 @@ export class UserController {
 ## Query Parameter Validation
 
 ```typescript
-import type { PositiveInt } from '@ambrosia/validator/types';
+import type { PositiveInt } from '@ambrosia-unce/validator/types';
 
 interface PaginationQuery {
   /**
@@ -166,8 +166,8 @@ try {
 For full control, create your own exception filter:
 
 ```typescript
-import { ExceptionFilter, Catch, ExecutionContext } from '@ambrosia/http';
-import { ValidationError } from '@ambrosia/validator';
+import { ExceptionFilter, Catch, ExecutionContext } from '@ambrosia-unce/http';
+import { ValidationError } from '@ambrosia-unce/validator';
 
 @Catch(ValidationError)
 export class ValidationExceptionFilter implements ExceptionFilter {
@@ -191,7 +191,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
 Register in the controller:
 
 ```typescript
-import { UseFilters } from '@ambrosia/http';
+import { UseFilters } from '@ambrosia-unce/http';
 
 @Controller('/users')
 @UseFilters(ValidationExceptionFilter)
@@ -203,7 +203,7 @@ export class UserController {
 ## Nested Object Validation
 
 ```typescript
-import type { Email, PhoneNumber } from '@ambrosia/validator/types';
+import type { Email, PhoneNumber } from '@ambrosia-unce/validator/types';
 
 interface AddressDto {
   /**
@@ -246,7 +246,7 @@ export class CompanyController {
 ## Array Validation
 
 ```typescript
-import type { UUID } from '@ambrosia/validator/types';
+import type { UUID } from '@ambrosia-unce/validator/types';
 
 interface BatchDeleteDto {
   /**
@@ -272,7 +272,7 @@ export class UserController {
 ## PATCH Requests (Partial Updates)
 
 ```typescript
-import type { Email } from '@ambrosia/validator/types';
+import type { Email } from '@ambrosia-unce/validator/types';
 
 interface UpdateUserDto {
   /**
@@ -311,7 +311,7 @@ export class UserController {
 ## Using with Guards
 
 ```typescript
-import { UseGuards } from '@ambrosia/http';
+import { UseGuards } from '@ambrosia-unce/http';
 import { AuthGuard } from '../guards/auth.guard';
 
 @Controller('/admin/users')
@@ -331,7 +331,7 @@ export class AdminUserController {
 ## Using with Interceptors
 
 ```typescript
-import { UseInterceptors } from '@ambrosia/http';
+import { UseInterceptors } from '@ambrosia-unce/http';
 import { LoggingInterceptor } from '../interceptors/logging.interceptor';
 
 @Controller('/users')
@@ -391,9 +391,9 @@ import {
   UseGuards,
   UseFilters,
   Status
-} from '@ambrosia/http';
-import { assert } from '@ambrosia/validator';
-import type { Email, UUID, PositiveInt } from '@ambrosia/validator/types';
+} from '@ambrosia-unce/http';
+import { assert } from '@ambrosia-unce/validator';
+import type { Email, UUID, PositiveInt } from '@ambrosia-unce/validator/types';
 import { AuthGuard } from '../guards/auth.guard';
 import { ValidationExceptionFilter } from '../filters/validation.filter';
 
@@ -475,7 +475,7 @@ export class UserController {
 
 ```typescript
 import { describe, test, expect } from 'bun:test';
-import { ValidationError } from '@ambrosia/validator';
+import { ValidationError } from '@ambrosia-unce/validator';
 
 describe('UserController', () => {
   test('create user - validates email', async () => {

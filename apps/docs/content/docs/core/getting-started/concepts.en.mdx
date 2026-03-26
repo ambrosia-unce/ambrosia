@@ -1,13 +1,13 @@
 ---
 title: "Core Concepts"
-description: "Understand the fundamental principles of dependency injection and @ambrosia/core"
+description: "Understand the fundamental principles of dependency injection and @ambrosia-unce/core"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 
 # Core Concepts
 
-Learn the fundamental concepts of dependency injection and how @ambrosia/core implements them.
+Learn the fundamental concepts of dependency injection and how @ambrosia-unce/core implements them.
 
 ## What is Dependency Injection?
 
@@ -50,7 +50,7 @@ class UserService {
 
 ## DI Container
 
-The **Container** is the heart of @ambrosia/core. It manages:
+The **Container** is the heart of @ambrosia-unce/core. It manages:
 
 1. **Registration** - which classes are available
 2. **Resolution** - creating instances with dependencies
@@ -76,7 +76,7 @@ sequenceDiagram
 ```
 
 ```typescript
-import { Container } from '@ambrosia/core';
+import { Container } from '@ambrosia-unce/core';
 
 const container = new Container({
   mode: 'production',
@@ -93,7 +93,7 @@ Decorators are used to mark classes and provide metadata for the DI container.
 Marks a class as available for dependency injection:
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 
 @Injectable()
 class MyService {
@@ -112,7 +112,7 @@ class MyService {
 Explicitly specifies which dependency to inject (useful for interfaces or abstract classes):
 
 ```typescript
-import { Injectable, Inject } from '@ambrosia/core';
+import { Injectable, Inject } from '@ambrosia-unce/core';
 
 abstract class Logger {
   abstract log(message: string): void;
@@ -143,7 +143,7 @@ container.register({
 Property injection (alternative to constructor injection):
 
 ```typescript
-import { Injectable, Autowired } from '@ambrosia/core';
+import { Injectable, Autowired } from '@ambrosia-unce/core';
 
 @Injectable()
 class UserService {
@@ -165,7 +165,7 @@ class UserService {
 Marks a dependency as optional:
 
 ```typescript
-import { Injectable, Optional, Inject } from '@ambrosia/core';
+import { Injectable, Optional, Inject } from '@ambrosia-unce/core';
 
 @Injectable()
 class UserService {
@@ -226,7 +226,7 @@ sequenceDiagram
 One instance for the entire application:
 
 ```typescript
-import { Injectable, Scope } from '@ambrosia/core';
+import { Injectable, Scope } from '@ambrosia-unce/core';
 
 @Injectable({ scope: Scope.SINGLETON }) // Default
 class DatabaseService {
@@ -291,7 +291,7 @@ container.createRequestScope(async () => {
 
 ## Providers
 
-Providers define how the container creates instances. @ambrosia/core has **4 types** of providers:
+Providers define how the container creates instances. @ambrosia-unce/core has **4 types** of providers:
 
 ```mermaid
 sequenceDiagram
@@ -383,7 +383,7 @@ container.register({
 
 ## Tokens
 
-Tokens uniquely identify dependencies. @ambrosia/core supports **4 types** of tokens:
+Tokens uniquely identify dependencies. @ambrosia-unce/core supports **4 types** of tokens:
 
 ### Class Tokens (Recommended)
 
@@ -430,7 +430,7 @@ const db = container.resolve(DB_TOKEN);
 Typed token with a description - the best choice for libraries:
 
 ```typescript
-import { InjectionToken } from '@ambrosia/core';
+import { InjectionToken } from '@ambrosia-unce/core';
 
 const CACHE_CONFIG = new InjectionToken<CacheConfig>('CacheConfig');
 

@@ -42,7 +42,7 @@ The compiled binary includes the Bun runtime, so it works on machines without Bu
 
 ## Environment Configuration
 
-Use `@ambrosia/config` to manage environment-specific settings. Never commit secrets to version control.
+Use `@ambrosia-unce/config` to manage environment-specific settings. Never commit secrets to version control.
 
 ### `.env` files
 
@@ -66,7 +66,7 @@ ConfigModule.forRoot({
 
 ### Environment variables
 
-In production, prefer real environment variables over `.env` files. `@ambrosia/config` reads from `process.env` by default -- the `.env` file is an overlay.
+In production, prefer real environment variables over `.env` files. `@ambrosia-unce/config` reads from `process.env` by default -- the `.env` file is an overlay.
 
 ```bash
 PORT=8080 NODE_ENV=production bun run src/main.ts
@@ -119,7 +119,7 @@ docker compose up -d
 Add a health check endpoint to your application for load balancers and orchestrators:
 
 ```ts
-import { Controller, Http } from '@ambrosia/http';
+import { Controller, Http } from '@ambrosia-unce/http';
 
 @Controller('/health')
 export class HealthController {
@@ -160,8 +160,8 @@ Handle process signals to clean up resources (database connections, event listen
 
 ```ts
 import 'reflect-metadata';
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import { AppPack } from './app.pack.ts';
 
 const app = await HttpApplication.create({
@@ -247,5 +247,5 @@ Before deploying, verify:
 - [ ] Error handling is in place (global exception filters)
 
 <Callout type="info">
-Congratulations -- you have completed the Getting Started guide! Explore the individual package docs for deeper dives: [@ambrosia/core](/docs/core), [@ambrosia/http](/docs/http), [@ambrosia/config](/docs/config), [@ambrosia/events](/docs/events).
+Congratulations -- you have completed the Getting Started guide! Explore the individual package docs for deeper dives: [@ambrosia-unce/core](/docs/core), [@ambrosia-unce/http](/docs/http), [@ambrosia-unce/config](/docs/config), [@ambrosia-unce/events](/docs/events).
 </Callout>

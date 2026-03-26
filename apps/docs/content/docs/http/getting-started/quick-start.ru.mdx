@@ -10,7 +10,7 @@ description: "Создайте ваш первый HTTP сервер за 5 ми
 ## Шаг 1: Установка
 
 ```bash
-bun add @ambrosia/http @ambrosia/http-elysia @ambrosia/core @sinclair/typebox
+bun add @ambrosia-unce/http @ambrosia-unce/http-elysia @ambrosia-unce/core @sinclair/typebox
 ```
 
 ## Шаг 2: Создайте DTO
@@ -39,7 +39,7 @@ export class CreateUserDto {
 Создайте файл `src/services/user.service.ts`:
 
 ```typescript title="src/services/user.service.ts"
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 import type { CreateUserDto } from '../dto/create-user.dto.ts';
 
 @Injectable()
@@ -86,7 +86,7 @@ import {
   Param, 
   Status,
   NotFoundException 
-} from '@ambrosia/http';
+} from '@ambrosia-unce/http';
 import { UserService } from '../services/user.service.ts';
 import { CreateUserDto } from '../dto/create-user.dto.ts';
 
@@ -131,8 +131,8 @@ export class UserController {
 Создайте файл `src/main.ts`:
 
 ```typescript title="src/main.ts"
-import { HttpApplication, ValidationPipe } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication, ValidationPipe } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 
 const app = await HttpApplication.create({
   provider: ElysiaProvider,
@@ -264,12 +264,12 @@ curl -X DELETE http://localhost:3000/api/users/1
 Защитим наши маршруты с помощью guard:
 
 ```typescript title="src/guards/auth.guard.ts"
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 import { 
   Guard, 
   ExecutionContext, 
   UnauthorizedException 
-} from '@ambrosia/http';
+} from '@ambrosia-unce/http';
 
 @Injectable()
 export class AuthGuard implements Guard {
@@ -294,7 +294,7 @@ export class AuthGuard implements Guard {
 Примените к контроллеру:
 
 ```typescript {1,3}
-import { UseGuard } from '@ambrosia/http';
+import { UseGuard } from '@ambrosia-unce/http';
 
 @UseGuard(AuthGuard)
 @Controller('/users')

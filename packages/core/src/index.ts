@@ -6,7 +6,7 @@
  * @example
  * Basic usage:
  * ```typescript
- * import { Injectable, container } from '@ambrosia/core';
+ * import { Injectable, container } from '@ambrosia-unce/core';
  *
  * @Injectable()
  * class Database {
@@ -21,7 +21,7 @@
  * const userService = container.resolve(UserService);
  * ```
  *
- * @module @ambrosia/core
+ * @module @ambrosia-unce/core
  */
 
 import "reflect-metadata";

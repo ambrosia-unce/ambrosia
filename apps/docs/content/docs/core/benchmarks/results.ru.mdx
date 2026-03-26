@@ -1,6 +1,6 @@
 ---
 title: "Результаты производительности"
-description: "Бенчмарки и метрики производительности @ambrosia/core"
+description: "Бенчмарки и метрики производительности @ambrosia-unce/core"
 ---
 
 # Результаты производительности
@@ -130,13 +130,13 @@ sequenceDiagram
 **Bun 1.3 optimizations:**
 - Next.js: -28% memory usage
 - Elysia: -11% memory usage
-- @ambrosia/core: ~-10-30% (зависит от нагрузки)
+- @ambrosia-unce/core: ~-10-30% (зависит от нагрузки)
 
 ## Сравнение с конкурентами
 
 | DI Library | Ops/sec (simple) | Bundle size | Runtime |
 |------------|------------------|-------------|---------|
-| @ambrosia/core | 867,814 | 36.79 KB | Bun |
+| @ambrosia-unce/core | 867,814 | 36.79 KB | Bun |
 | InversifyJS | ~600,000 | ~45 KB | Node |
 | TSyringe | ~850,000 | ~25 KB | Node |
 | NestJS | ~300,000 | ~200 KB | Node |
@@ -206,7 +206,7 @@ bun run bench:compare baseline.json current.json
 
 ## Заключение
 
-@ambrosia/core обеспечивает высокую производительность благодаря:
+@ambrosia-unce/core обеспечивает высокую производительность благодаря:
 
 1. Bun-specific оптимизациям
 2. Агрессивному кэшированию

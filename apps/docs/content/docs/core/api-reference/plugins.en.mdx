@@ -115,7 +115,7 @@ interface ScopeHandler {
 ### LoggingPlugin
 
 ```typescript
-import { LoggingPlugin } from "@ambrosia/core";
+import { LoggingPlugin } from "@ambrosia-unce/core";
 
 container.use(new LoggingPlugin({
   logger: customLogger,              // default: ConsoleLogger
@@ -127,7 +127,7 @@ container.use(new LoggingPlugin({
 ### Built-in Loggers
 
 ```typescript
-import { ConsoleLogger, SilentLogger, setGlobalLogger } from "@ambrosia/core";
+import { ConsoleLogger, SilentLogger, setGlobalLogger } from "@ambrosia-unce/core";
 
 const logger = new ConsoleLogger();
 const silent = new SilentLogger();

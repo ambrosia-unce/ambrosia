@@ -1,6 +1,6 @@
 ---
 title: "Installation"
-description: "Installing and configuring @ambrosia/config"
+description: "Installing and configuring @ambrosia-unce/config"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -11,17 +11,17 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 ## Requirements
 
 <Callout type="info">
-  **@ambrosia/config** requires **@ambrosia/core** as a peer dependency. Make sure core is already installed in your project.
+  **@ambrosia-unce/config** requires **@ambrosia-unce/core** as a peer dependency. Make sure core is already installed in your project.
 </Callout>
 
 - Bun 1.3.6 or higher
 - TypeScript 5.0 or higher
-- @ambrosia/core 0.1.0 or higher
+- @ambrosia-unce/core 0.1.0 or higher
 
 ## Installing the Package
 
 ```bash
-bun add @ambrosia/config
+bun add @ambrosia-unce/config
 ```
 
 ## tsconfig Setup
@@ -42,7 +42,7 @@ Make sure decorators are enabled in your `tsconfig.json`:
 ### 1. Create a Configuration Schema
 
 ```ts title="src/config/app.config.ts"
-import { defineConfig } from '@ambrosia/config';
+import { defineConfig } from '@ambrosia-unce/config';
 
 export const AppConfig = defineConfig({
   port: { env: 'PORT', type: 'int', default: 3000 },
@@ -55,8 +55,8 @@ export const AppConfig = defineConfig({
 ### 2. Register the Module in a Pack
 
 ```ts title="src/app.pack.ts"
-import { definePack } from '@ambrosia/core';
-import { ConfigModule } from '@ambrosia/config';
+import { definePack } from '@ambrosia-unce/core';
+import { ConfigModule } from '@ambrosia-unce/config';
 import { AppConfig } from './config/app.config.ts';
 
 export const AppPack = definePack({
@@ -73,8 +73,8 @@ export const AppPack = definePack({
 ### 3. Use ConfigService
 
 ```ts title="src/services/app.service.ts"
-import { Injectable } from '@ambrosia/core';
-import { ConfigService } from '@ambrosia/config';
+import { Injectable } from '@ambrosia-unce/core';
+import { ConfigService } from '@ambrosia-unce/config';
 
 @Injectable()
 export class AppService {
@@ -100,7 +100,7 @@ JWT_SECRET=my-super-secret-key
 ```
 
 <Callout type="warn">
-  If `envPath` is not specified, `@ambrosia/config` reads variables directly from `process.env` / `Bun.env`. The `.env` file is only used if the path is explicitly provided via `envPath`.
+  If `envPath` is not specified, `@ambrosia-unce/config` reads variables directly from `process.env` / `Bun.env`. The `.env` file is only used if the path is explicitly provided via `envPath`.
 </Callout>
 
 ## Async Configuration
@@ -108,8 +108,8 @@ JWT_SECRET=my-super-secret-key
 For cases where configuration depends on other services (secret managers, remote configs):
 
 ```ts
-import { ConfigModule } from '@ambrosia/config';
-import { definePack } from '@ambrosia/core';
+import { ConfigModule } from '@ambrosia-unce/config';
+import { definePack } from '@ambrosia-unce/core';
 
 const AppPack = definePack({
   imports: [

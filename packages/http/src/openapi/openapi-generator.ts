@@ -3,7 +3,7 @@
  */
 
 import "reflect-metadata";
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import { HTTP_METADATA_KEYS } from "../metadata/constants.ts";
 import { HttpMetadataManager } from "../metadata/http-metadata-manager.ts";
 import type { ApiPropertyOptions, ApiResponseOptions } from "./decorators.ts";

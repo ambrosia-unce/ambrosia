@@ -1,4 +1,4 @@
-import { definePack } from "@ambrosia/core";
+import { definePack } from "@ambrosia-unce/core";
 import { CacheService } from "./cache.service.ts";
 
 export const CachePack = definePack({

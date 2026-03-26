@@ -60,7 +60,7 @@ AuthService -> UserService -> NotificationService -> AuthService
 Ambrosia automatically detects circular dependencies and throws a `CircularDependencyError` with the full cycle path.
 
 ```typescript
-import { CircularDependencyError } from "@ambrosia/core";
+import { CircularDependencyError } from "@ambrosia-unce/core";
 
 try {
   container.resolve(ServiceA);

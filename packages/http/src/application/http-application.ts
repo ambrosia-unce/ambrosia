@@ -10,7 +10,7 @@ import {
   type PackLifecycleManager,
   PackProcessor,
   Scope,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 import { ExecutionContextImpl } from "../context/execution-context.ts";
 import { HttpContext } from "../context/http-context.ts";
 import { ForbiddenException, RequestTimeoutException } from "../exceptions/built-in-exceptions.ts";

@@ -1,6 +1,6 @@
 ---
 title: "Установка"
-description: "Установка и настройка @ambrosia/events"
+description: "Установка и настройка @ambrosia-unce/events"
 ---
 
 # Установка
@@ -8,10 +8,10 @@ description: "Установка и настройка @ambrosia/events"
 ## Установка пакета
 
 ```bash
-bun add @ambrosia/events
+bun add @ambrosia-unce/events
 ```
 
-`@ambrosia/events` зависит от `@ambrosia/core`, который должен быть уже установлен в проекте.
+`@ambrosia-unce/events` зависит от `@ambrosia-unce/core`, который должен быть уже установлен в проекте.
 
 ## Настройка
 
@@ -20,8 +20,8 @@ bun add @ambrosia/events
 Импортируйте `EventBusModule.forRoot()` в корневой пак вашего приложения:
 
 ```ts
-import { definePack } from '@ambrosia/core';
-import { EventBusModule } from '@ambrosia/events';
+import { definePack } from '@ambrosia-unce/core';
+import { EventBusModule } from '@ambrosia-unce/events';
 
 export const AppPack = definePack({
   imports: [
@@ -66,8 +66,8 @@ class OrderPlacedEvent {
 Используйте декоратор `@OnEvent()` на методах `@Injectable()` класса:
 
 ```ts
-import { Injectable } from '@ambrosia/core';
-import { OnEvent } from '@ambrosia/events';
+import { Injectable } from '@ambrosia-unce/core';
+import { OnEvent } from '@ambrosia-unce/events';
 
 @Injectable()
 class NotificationService {
@@ -83,8 +83,8 @@ class NotificationService {
 Инжектируйте `EventBus` и вызывайте `emit()`:
 
 ```ts
-import { Injectable } from '@ambrosia/core';
-import { EventBus } from '@ambrosia/events';
+import { Injectable } from '@ambrosia-unce/core';
+import { EventBus } from '@ambrosia-unce/events';
 
 @Injectable()
 class OrderService {

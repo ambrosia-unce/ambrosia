@@ -84,7 +84,7 @@ export async function doctorCommand() {
     });
   }
 
-  // 4. Check @ambrosia/* packages
+  // 4. Check @ambrosia-unce/* packages
   const pkgJsonPath = pathJoin(cwd, "package.json");
   if (await fileExists(pkgJsonPath)) {
     try {
@@ -94,20 +94,20 @@ export async function doctorCommand() {
       }>(pkgJsonPath);
 
       const allDeps = { ...pkgJson.dependencies, ...pkgJson.devDependencies };
-      const ambrosiaPkgs = Object.entries(allDeps).filter(([name]) => name.startsWith("@ambrosia/"));
+      const ambrosiaPkgs = Object.entries(allDeps).filter(([name]) => name.startsWith("@ambrosia-unce/"));
 
       if (ambrosiaPkgs.length > 0) {
         const versions = ambrosiaPkgs.map(([name, version]) => `${name}@${version}`).join(", ");
         results.push({
-          label: "@ambrosia/* packages",
+          label: "@ambrosia-unce/* packages",
           ok: true,
           message: versions,
         });
       } else {
         results.push({
-          label: "@ambrosia/* packages",
+          label: "@ambrosia-unce/* packages",
           ok: false,
-          message: "No @ambrosia/* packages found in dependencies",
+          message: "No @ambrosia-unce/* packages found in dependencies",
         });
       }
 

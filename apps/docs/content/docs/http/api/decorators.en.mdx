@@ -5,7 +5,7 @@ description: Complete reference for Ambrosia HTTP decorators
 
 # Decorators
 
-Complete reference for all available decorators in @ambrosia/http.
+Complete reference for all available decorators in @ambrosia-unce/http.
 
 ## Controller Decorators
 
@@ -604,7 +604,7 @@ export class UserController {
 You can create your own decorators based on built-in ones:
 
 ```typescript
-import { SetMetadata } from '@ambrosia/core';
+import { SetMetadata } from '@ambrosia-unce/core';
 
 // Roles decorator
 export const Roles = (...roles: string[]) => SetMetadata('roles', roles);

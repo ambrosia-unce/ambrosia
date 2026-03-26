@@ -1,5 +1,5 @@
 export function healthController(): string {
-  return `import { Controller, Http } from "@ambrosia/http";
+  return `import { Controller, Http } from "@ambrosia-unce/http";
 import { HealthService } from "./health.service";
 
 @Controller("/health")
@@ -20,7 +20,7 @@ export class HealthController {
 }
 
 export function healthService(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 
 @Injectable()
 export class HealthService {

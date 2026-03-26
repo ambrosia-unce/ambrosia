@@ -41,7 +41,7 @@ interface RegistryItem {
 | `dependencies` | `Record<string, string>` | Да | npm runtime зависимости |
 | `devDependencies` | `Record<string, string>` | Да | npm dev зависимости |
 | `registryDependencies` | `string[]` | Да | Зависимости на другие паки |
-| `ambrosiaDependencies` | `string[]` | Да | Требуемые `@ambrosia/*` пакеты |
+| `ambrosiaDependencies` | `string[]` | Да | Требуемые `@ambrosia-unce/*` пакеты |
 
 ### `name`
 
@@ -119,10 +119,10 @@ npm-пакеты, нужные только в разработке. CLI вып�
 
 ### `ambrosiaDependencies`
 
-Пакеты фреймворка `@ambrosia/*`, необходимые для работы пака. Если они отсутствуют в проекте, CLI установит их через `bun add`:
+Пакеты фреймворка `@ambrosia-unce/*`, необходимые для работы пака. Если они отсутствуют в проекте, CLI установит их через `bun add`:
 
 ```json
-"ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+"ambrosiaDependencies": ["@ambrosia-unce/core", "@ambrosia-unce/http"]
 ```
 
 ---
@@ -245,22 +245,22 @@ interface RegistryIndexEntry {
     {
       "path": "types.ts",
       "type": "types",
-      "content": "import { InjectionToken } from '@ambrosia/core';\n\nexport interface JwtAuthConfig {\n  secret: string;\n  expiresIn: string;\n  refreshExpiresIn?: string;\n}\n\nexport const JWT_AUTH_CONFIG = new InjectionToken<JwtAuthConfig>('JwtAuthConfig');\n"
+      "content": "import { InjectionToken } from '@ambrosia-unce/core';\n\nexport interface JwtAuthConfig {\n  secret: string;\n  expiresIn: string;\n  refreshExpiresIn?: string;\n}\n\nexport const JWT_AUTH_CONFIG = new InjectionToken<JwtAuthConfig>('JwtAuthConfig');\n"
     },
     {
       "path": "jwt-auth.pack.ts",
       "type": "pack",
-      "content": "import type { PackDefinition } from '@ambrosia/core';\nimport { JwtAuthService } from './jwt-auth.service';\nimport { JwtAuthGuard } from './jwt-auth.guard';\nimport type { JwtAuthConfig } from './types';\nimport { JWT_AUTH_CONFIG } from './types';\n\nexport class JwtAuthPack {\n  static forRoot(config: JwtAuthConfig): PackDefinition {\n    return {\n      meta: { name: 'jwt-auth', version: '0.2.1' },\n      providers: [\n        { token: JWT_AUTH_CONFIG, useValue: config },\n        JwtAuthService,\n        JwtAuthGuard,\n      ],\n      exports: [JwtAuthService, JwtAuthGuard],\n    };\n  }\n}\n"
+      "content": "import type { PackDefinition } from '@ambrosia-unce/core';\nimport { JwtAuthService } from './jwt-auth.service';\nimport { JwtAuthGuard } from './jwt-auth.guard';\nimport type { JwtAuthConfig } from './types';\nimport { JWT_AUTH_CONFIG } from './types';\n\nexport class JwtAuthPack {\n  static forRoot(config: JwtAuthConfig): PackDefinition {\n    return {\n      meta: { name: 'jwt-auth', version: '0.2.1' },\n      providers: [\n        { token: JWT_AUTH_CONFIG, useValue: config },\n        JwtAuthService,\n        JwtAuthGuard,\n      ],\n      exports: [JwtAuthService, JwtAuthGuard],\n    };\n  }\n}\n"
     },
     {
       "path": "jwt-auth.service.ts",
       "type": "service",
-      "content": "import { Injectable, Inject } from '@ambrosia/core';\nimport type { JwtAuthConfig } from './types';\nimport { JWT_AUTH_CONFIG } from './types';\nimport * as jose from 'jose';\n\n@Injectable()\nexport class JwtAuthService {\n  constructor(@Inject(JWT_AUTH_CONFIG) private config: JwtAuthConfig) {}\n\n  async sign(payload: Record<string, unknown>): Promise<string> {\n    const secret = new TextEncoder().encode(this.config.secret);\n    return new jose.SignJWT(payload)\n      .setProtectedHeader({ alg: 'HS256' })\n      .setExpirationTime(this.config.expiresIn)\n      .sign(secret);\n  }\n\n  async verify(token: string): Promise<jose.JWTPayload> {\n    const secret = new TextEncoder().encode(this.config.secret);\n    const { payload } = await jose.jwtVerify(token, secret);\n    return payload;\n  }\n}\n"
+      "content": "import { Injectable, Inject } from '@ambrosia-unce/core';\nimport type { JwtAuthConfig } from './types';\nimport { JWT_AUTH_CONFIG } from './types';\nimport * as jose from 'jose';\n\n@Injectable()\nexport class JwtAuthService {\n  constructor(@Inject(JWT_AUTH_CONFIG) private config: JwtAuthConfig) {}\n\n  async sign(payload: Record<string, unknown>): Promise<string> {\n    const secret = new TextEncoder().encode(this.config.secret);\n    return new jose.SignJWT(payload)\n      .setProtectedHeader({ alg: 'HS256' })\n      .setExpirationTime(this.config.expiresIn)\n      .sign(secret);\n  }\n\n  async verify(token: string): Promise<jose.JWTPayload> {\n    const secret = new TextEncoder().encode(this.config.secret);\n    const { payload } = await jose.jwtVerify(token, secret);\n    return payload;\n  }\n}\n"
     },
     {
       "path": "jwt-auth.guard.ts",
       "type": "guard",
-      "content": "import { Injectable } from '@ambrosia/core';\nimport type { CanActivate, ExecutionContext } from '@ambrosia/http';\nimport { JwtAuthService } from './jwt-auth.service';\n\n@Injectable()\nexport class JwtAuthGuard implements CanActivate {\n  constructor(private jwtService: JwtAuthService) {}\n\n  async canActivate(context: ExecutionContext): Promise<boolean> {\n    const ctx = context.switchToHttp();\n    const authHeader = ctx.getRequest().headers.get('authorization');\n    if (!authHeader?.startsWith('Bearer ')) return false;\n    try {\n      const token = authHeader.slice(7);\n      const payload = await this.jwtService.verify(token);\n      ctx.getRequest().user = payload;\n      return true;\n    } catch {\n      return false;\n    }\n  }\n}\n"
+      "content": "import { Injectable } from '@ambrosia-unce/core';\nimport type { CanActivate, ExecutionContext } from '@ambrosia-unce/http';\nimport { JwtAuthService } from './jwt-auth.service';\n\n@Injectable()\nexport class JwtAuthGuard implements CanActivate {\n  constructor(private jwtService: JwtAuthService) {}\n\n  async canActivate(context: ExecutionContext): Promise<boolean> {\n    const ctx = context.switchToHttp();\n    const authHeader = ctx.getRequest().headers.get('authorization');\n    if (!authHeader?.startsWith('Bearer ')) return false;\n    try {\n      const token = authHeader.slice(7);\n      const payload = await this.jwtService.verify(token);\n      ctx.getRequest().user = payload;\n      return true;\n    } catch {\n      return false;\n    }\n  }\n}\n"
     }
   ],
   "dependencies": {
@@ -268,13 +268,13 @@ interface RegistryIndexEntry {
   },
   "devDependencies": {},
   "registryDependencies": [],
-  "ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+  "ambrosiaDependencies": ["@ambrosia-unce/core", "@ambrosia-unce/http"]
 }
 ```
 
-## Соответствие с @ambrosia/core
+## Соответствие с @ambrosia-unce/core
 
-`RegistryItem` спроектирован для совместимости с `PackDefinition` из `@ambrosia/core`:
+`RegistryItem` спроектирован для совместимости с `PackDefinition` из `@ambrosia-unce/core`:
 
 | RegistryItem | PackDefinition | Связь |
 |---|---|---|

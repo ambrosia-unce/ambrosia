@@ -52,7 +52,7 @@ import {
   Injectable,
   InjectionToken,
   type TestingPack,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 
 // --- Продакшен-код ---
 const DB = new InjectionToken<Database>("Database");
@@ -146,7 +146,7 @@ describe("UserService", () => {
 
 ```typescript title="tests/notification.test.ts"
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { TestingPackFactory, Injectable, definePack, type TestingPack } from "@ambrosia/core";
+import { TestingPackFactory, Injectable, definePack, type TestingPack } from "@ambrosia-unce/core";
 
 @Injectable()
 class EmailService {
@@ -217,7 +217,7 @@ describe("NotificationService", () => {
 
 ```typescript title="tests/integration/auth-flow.test.ts"
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { TestingPackFactory, type TestingPack } from "@ambrosia/core";
+import { TestingPackFactory, type TestingPack } from "@ambrosia-unce/core";
 import { DatabasePack, DB_CONFIG } from "../src/packs/database.pack";
 import { AuthPack } from "../src/packs/auth.pack";
 import { UserPack } from "../src/packs/user.pack";
@@ -280,7 +280,7 @@ import {
   definePack,
   type OnInit,
   type OnDestroy,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 
 @Injectable()
 class TrackedService implements OnInit, OnDestroy {
@@ -326,7 +326,7 @@ describe("Lifecycle Hooks", () => {
 
 ```typescript title="tests/request-scope.test.ts"
 import { describe, it, expect } from "bun:test";
-import { Container, Injectable, Scope } from "@ambrosia/core";
+import { Container, Injectable, Scope } from "@ambrosia-unce/core";
 
 @Injectable({ scope: Scope.REQUEST })
 class RequestContext {
@@ -374,7 +374,7 @@ describe("REQUEST scope", () => {
 Создайте helper-функцию для повторяющихся тестовых конфигураций:
 
 ```typescript title="tests/helpers/create-test-app.ts"
-import { TestingPackFactory, type Packable, type TestingPack } from "@ambrosia/core";
+import { TestingPackFactory, type Packable, type TestingPack } from "@ambrosia-unce/core";
 import { CorePack } from "../../src/packs/core.pack";
 import { DB_CONFIG } from "../../src/config/tokens";
 

@@ -1,4 +1,4 @@
-import { Injectable, LoggerService } from "@ambrosia/core";
+import { Injectable, LoggerService } from "@ambrosia-unce/core";
 
 @Injectable()
 export class NotificationService {

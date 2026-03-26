@@ -77,7 +77,7 @@ Create a `registry.json` manifest in the project root:
       "dependencies": {},
       "devDependencies": {},
       "registryDependencies": [],
-      "ambrosiaDependencies": ["@ambrosia/core"]
+      "ambrosiaDependencies": ["@ambrosia-unce/core"]
     }
   ]
 }
@@ -252,7 +252,7 @@ Before publishing, make sure:
 - [ ] `ambrosia build` completes without errors
 - [ ] `index.ts` exports everything needed
 - [ ] `dependencies` contains all npm dependencies with versions
-- [ ] `ambrosiaDependencies` lists the required `@ambrosia/*` packages
+- [ ] `ambrosiaDependencies` lists the required `@ambrosia-unce/*` packages
 - [ ] `registryDependencies` lists dependencies on other packs
 - [ ] `version` follows semver
 - [ ] Tests pass: `bun test`

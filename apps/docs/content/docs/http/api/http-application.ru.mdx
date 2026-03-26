@@ -50,8 +50,8 @@ interface HttpApplicationOptions<TProvider extends HttpProvider = any> {
 **Пример:**
 
 ```typescript
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 
 const app = await HttpApplication.create({
   provider: ElysiaProvider,
@@ -141,8 +141,8 @@ console.log(provider.name); // "elysia"
 ## Полный пример
 
 ```typescript
-import { HttpApplication } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import { 
   ValidationPipe, 
   LoggingInterceptor,
@@ -325,7 +325,7 @@ const app = await HttpApplication.create({
 Можно передать существующий DI Container:
 
 ```typescript
-import { Container } from '@ambrosia/core';
+import { Container } from '@ambrosia-unce/core';
 
 const container = new Container();
 
@@ -398,7 +398,7 @@ bootstrap();
 `HttpApplication` полностью типизирован с Generics:
 
 ```typescript
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import type { Elysia } from 'elysia';
 
 const app = await HttpApplication.create({

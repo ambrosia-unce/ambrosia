@@ -1,6 +1,6 @@
-import { Injectable } from "@ambrosia/core";
-import { EventBus } from "@ambrosia/events";
-import { NotFoundException } from "@ambrosia/http";
+import { Injectable } from "@ambrosia-unce/core";
+import { EventBus } from "@ambrosia-unce/events";
+import { NotFoundException } from "@ambrosia-unce/http";
 import { TaskCompletedEvent } from "../common/events/task-completed.event.ts";
 import type { CreateTaskDto } from "./dto/create-task.dto.ts";
 import type { UpdateTaskDto } from "./dto/update-task.dto.ts";

@@ -5,7 +5,7 @@ description: "Тестирование WebSocket гейтвеев с TestingWsFa
 
 # Тестирование WebSocket
 
-`@ambrosia/websocket` предоставляет утилиты для тестирования гейтвеев без запуска реального сервера.
+`@ambrosia-unce/websocket` предоставляет утилиты для тестирования гейтвеев без запуска реального сервера.
 
 ## TestingWsFactory
 
@@ -14,7 +14,7 @@ description: "Тестирование WebSocket гейтвеев с TestingWsFa
 ```typescript title="chat.gateway.test.ts"
 import { describe, test, expect } from "bun:test";
 import "reflect-metadata";
-import { TestingWsFactory, MockWsClient } from "@ambrosia/websocket";
+import { TestingWsFactory, MockWsClient } from "@ambrosia-unce/websocket";
 import { ChatGateway } from "./chat.gateway";
 
 describe("ChatGateway", () => {

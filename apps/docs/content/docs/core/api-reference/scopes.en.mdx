@@ -13,7 +13,7 @@ Scopes define the lifecycle of instances - how long they live and when they are 
 ## Enum Scope
 
 ```typescript
-import { Scope } from "@ambrosia/core";
+import { Scope } from "@ambrosia-unce/core";
 
 enum Scope {
   SINGLETON  = "singleton",
@@ -108,7 +108,7 @@ Resolving a REQUEST-scoped provider outside a `requestStorage.run()` context thr
 ## DEFAULT_SCOPE
 
 ```typescript
-import { DEFAULT_SCOPE } from "@ambrosia/core";
+import { DEFAULT_SCOPE } from "@ambrosia-unce/core";
 
 console.log(DEFAULT_SCOPE); // "singleton"
 ```
@@ -180,7 +180,7 @@ size(): number
 ## Example: HTTP Server with Request Scope
 
 ```typescript
-import { Injectable, Inject, InjectionToken, Scope, Container } from "@ambrosia/core";
+import { Injectable, Inject, InjectionToken, Scope, Container } from "@ambrosia-unce/core";
 
 const USER_ID = new InjectionToken<string>("UserId");
 

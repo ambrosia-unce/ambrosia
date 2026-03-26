@@ -1,4 +1,4 @@
-import { defineConfig } from "@ambrosia/config";
+import { defineConfig } from "@ambrosia-unce/config";
 
 /**
  * Application configuration schema.

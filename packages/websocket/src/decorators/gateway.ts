@@ -4,7 +4,7 @@
  * Marks a class as a WebSocket gateway and registers it with DI.
  */
 
-import { type Constructor, Injectable } from "@ambrosia/core";
+import { type Constructor, Injectable } from "@ambrosia-unce/core";
 import { GatewayRegistry, WsMetadataManager } from "../metadata/ws-metadata-manager.ts";
 
 /**

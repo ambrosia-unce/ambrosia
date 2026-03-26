@@ -5,7 +5,7 @@
  * @Body, @Query, @Param, @Headers, @Header, @Ctx
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import { HttpMetadataManager } from "../metadata";
 import { type ParameterMetadata, ParameterType } from "../types";
 

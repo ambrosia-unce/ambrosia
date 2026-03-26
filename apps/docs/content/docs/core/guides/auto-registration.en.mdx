@@ -40,7 +40,7 @@ sequenceDiagram
 3. If a provider is found, it's used as if it were registered manually
 
 ```typescript
-import { Injectable, Container } from "@ambrosia/core";
+import { Injectable, Container } from "@ambrosia-unce/core";
 
 @Injectable()
 class UserService {
@@ -94,7 +94,7 @@ const service = container.resolve(OrderService); // OK
 `Registry` is a singleton store of providers populated by the `@Injectable()` decorator.
 
 ```typescript
-import { getRegistry } from "@ambrosia/core";
+import { getRegistry } from "@ambrosia-unce/core";
 
 const registry = getRegistry();
 
@@ -127,7 +127,7 @@ Local registration **always** takes priority over the Registry.
 By default, `@Injectable()` registers the class as `SINGLETON`. Override via parameter:
 
 ```typescript
-import { Injectable, Scope } from "@ambrosia/core";
+import { Injectable, Scope } from "@ambrosia-unce/core";
 
 // Singleton (default)
 @Injectable()
@@ -210,7 +210,7 @@ container.registerExisting(ILogger, ConsoleLogger);
 In practice, **both** approaches are used together:
 
 ```typescript
-import { Injectable, Container, InjectionToken, Scope } from "@ambrosia/core";
+import { Injectable, Container, InjectionToken, Scope } from "@ambrosia-unce/core";
 
 // Auto-registration for regular services
 @Injectable()
@@ -252,7 +252,7 @@ const service = container.resolve(UserService); // UserService + UserRepository 
 In pack-based architecture, auto-registration is often **disabled** because packs explicitly declare their providers:
 
 ```typescript
-import { definePack } from "@ambrosia/core";
+import { definePack } from "@ambrosia-unce/core";
 
 const UserPack = definePack({
   meta: { name: "users" },
@@ -329,7 +329,7 @@ container.registerClass(Logger, VerboseLogger);
 ## Registry API
 
 ```typescript
-import { getRegistry, Registry } from "@ambrosia/core";
+import { getRegistry, Registry } from "@ambrosia-unce/core";
 
 const registry = getRegistry();
 

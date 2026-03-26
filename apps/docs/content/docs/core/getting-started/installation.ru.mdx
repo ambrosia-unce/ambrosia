@@ -1,6 +1,6 @@
 ---
 title: "Установка"
-description: "Установите и настройте @ambrosia/core в вашем проекте"
+description: "Установите и настройте @ambrosia-unce/core в вашем проекте"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -8,12 +8,12 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Установка
 
-Начните работу с @ambrosia/core меньше чем за минуту.
+Начните работу с @ambrosia-unce/core меньше чем за минуту.
 
 ## Требования
 
 <Callout type="info">
-  **@ambrosia/core** оптимизирован для **Bun runtime**. Хотя он может работать с Node.js, некоторые функции, такие как AsyncLogger, используют специфичные для Bun API.
+  **@ambrosia-unce/core** оптимизирован для **Bun runtime**. Хотя он может работать с Node.js, некоторые функции, такие как AsyncLogger, используют специфичные для Bun API.
 </Callout>
 
 **Требования:**
@@ -43,27 +43,27 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 bun --version
 ```
 
-## Установка @ambrosia/core
+## Установка @ambrosia-unce/core
 
 <Tabs items={['bun', 'npm', 'pnpm', 'yarn']}>
   <Tab value="bun">
     ```bash
-    bun add @ambrosia/core
+    bun add @ambrosia-unce/core
     ```
   </Tab>
   <Tab value="npm">
     ```bash
-    npm install @ambrosia/core
+    npm install @ambrosia-unce/core
     ```
   </Tab>
   <Tab value="pnpm">
     ```bash
-    pnpm add @ambrosia/core
+    pnpm add @ambrosia-unce/core
     ```
   </Tab>
   <Tab value="yarn">
     ```bash
-    yarn add @ambrosia/core
+    yarn add @ambrosia-unce/core
     ```
   </Tab>
 </Tabs>
@@ -96,7 +96,7 @@ bun --version
 Создайте тестовый файл для проверки работы:
 
 ```typescript title="test.ts"
-import { Injectable, Container } from '@ambrosia/core';
+import { Injectable, Container } from '@ambrosia-unce/core';
 
 @Injectable()
 class HelloService {
@@ -123,12 +123,12 @@ bun run test.ts
 ```
 
 <Callout type="success">
-  **Успех!** Вы готовы использовать @ambrosia/core.
+  **Успех!** Вы готовы использовать @ambrosia-unce/core.
 </Callout>
 
 ## Структура проекта
 
-Рекомендуемая структура проекта TypeScript с @ambrosia/core:
+Рекомендуемая структура проекта TypeScript с @ambrosia-unce/core:
 
 ```
 my-app/
@@ -163,11 +163,11 @@ my-app/
 
 ### Не удаётся найти модуль
 
-**Ошибка:** `Cannot find module '@ambrosia/core'`
+**Ошибка:** `Cannot find module '@ambrosia-unce/core'`
 
 **Решение:** 
 1. Проверьте установку: `bun pm ls | grep ambrosia`
-2. Переустановите: `bun add @ambrosia/core`
+2. Переустановите: `bun add @ambrosia-unce/core`
 3. Очистите кэш: `rm -rf node_modules && bun install`
 
 ### Ошибки времени выполнения с функциями Bun
@@ -197,7 +197,7 @@ bun add -d @typescript-eslint/eslint-plugin
 
 ## Следующие шаги
 
-Теперь, когда у вас установлен @ambrosia/core:
+Теперь, когда у вас установлен @ambrosia-unce/core:
 
 1. Следуйте [Руководству быстрого старта](/docs/core/getting-started/quick-start) для создания вашего первого контейнера
 2. Узнайте об [Основных концепциях](/docs/core/getting-started/concepts)

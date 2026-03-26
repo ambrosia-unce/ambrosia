@@ -329,7 +329,7 @@ export default async function Home() {
                   1
                 </span>
                 <CopyCommand
-                  command="bun add -g @ambrosia/cli"
+                  command="bun add -g @ambrosia-unce/cli"
                   className="flex-1"
                 />
               </div>

@@ -6,10 +6,10 @@
  * exposes the buffer to the API and SSE controllers.
  */
 
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import type { DevToolsEventEmitter } from "../types.ts";
 
-/** Shape matching @ambrosia/core LogEntry */
+/** Shape matching @ambrosia-unce/core LogEntry */
 export interface DevToolsLogEntry {
   level: "debug" | "info" | "warn" | "error" | "fatal";
   message: string;

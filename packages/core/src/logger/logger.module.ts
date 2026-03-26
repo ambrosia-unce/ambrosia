@@ -3,7 +3,7 @@
  *
  * @example
  * ```typescript
- * import { LoggerModule } from '@ambrosia/core';
+ * import { LoggerModule } from '@ambrosia-unce/core';
  *
  * const AppPack = definePack({
  *   imports: [LoggerModule.forRoot()],
@@ -25,7 +25,7 @@ export class LoggerModule {
   static forRoot(config?: LoggerConfig): PackDefinition {
     return definePack({
       meta: {
-        name: "@ambrosia/logger",
+        name: "@ambrosia-unce/logger",
         version: "0.1.0",
         description: "Standardized logging service",
       },
@@ -43,7 +43,7 @@ export class LoggerModule {
   static forRootAsync(options: AsyncPackOptions<LoggerConfig>): PackDefinition {
     return definePack({
       meta: {
-        name: "@ambrosia/logger",
+        name: "@ambrosia-unce/logger",
         version: "0.1.0",
         description: "Standardized logging service (async config)",
       },

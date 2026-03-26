@@ -2,7 +2,7 @@
  * Mock helpers for unit testing guards, pipes, interceptors
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import type { ExecutionContext } from "../context/execution-context.ts";
 import { ExecutionContextImpl } from "../context/execution-context.ts";
 import { HttpContext } from "../context/http-context.ts";

@@ -179,7 +179,7 @@ const codeExamples: { tab: string; filename: string; lines: CodeLine[] }[] = [
     tab: "DI & Packs",
     filename: "app.pack.ts",
     lines: [
-      { tokens: [{ t: "kw", v: "import" }, { t: "p", v: " { " }, { t: "type", v: "definePack" }, { t: "p", v: " } " }, { t: "kw", v: "from" }, { t: "s", v: ' "@ambrosia/core"' }] },
+      { tokens: [{ t: "kw", v: "import" }, { t: "p", v: " { " }, { t: "type", v: "definePack" }, { t: "p", v: " } " }, { t: "kw", v: "from" }, { t: "s", v: ' "@ambrosia-unce/core"' }] },
       { tokens: [] },
       { tokens: [{ t: "kw", v: "export const" }, { t: "id", v: " AppPack" }, { t: "p", v: " = " }, { t: "fn", v: "definePack" }, { t: "p", v: "({" }] },
       { tokens: [{ t: "id", v: "  providers" }, { t: "p", v: ": [" }, { t: "type", v: "UserService" }, { t: "p", v: ", " }, { t: "type", v: "AuthService" }, { t: "p", v: "]," }] },
@@ -207,7 +207,7 @@ const codeExamples: { tab: string; filename: string; lines: CodeLine[] }[] = [
     tab: "Validation",
     filename: "create-user.dto.ts",
     lines: [
-      { tokens: [{ t: "kw", v: "import" }, { t: "p", v: " { " }, { t: "type", v: "assert" }, { t: "p", v: ", " }, { t: "type", v: "Email" }, { t: "p", v: " } " }, { t: "kw", v: "from" }, { t: "s", v: ' "@ambrosia/validator"' }] },
+      { tokens: [{ t: "kw", v: "import" }, { t: "p", v: " { " }, { t: "type", v: "assert" }, { t: "p", v: ", " }, { t: "type", v: "Email" }, { t: "p", v: " } " }, { t: "kw", v: "from" }, { t: "s", v: ' "@ambrosia-unce/validator"' }] },
       { tokens: [] },
       { tokens: [{ t: "kw", v: "interface" }, { t: "type", v: " CreateUserDto" }, { t: "p", v: " {" }] },
       { tokens: [{ t: "id", v: "  name" }, { t: "p", v: ": " }, { t: "type", v: "string" }] },
@@ -310,10 +310,10 @@ function Packages({ t, lang }: { t: LandingTranslations; lang: string }) {
         </div>
 
         <div className="mx-auto mt-12 grid max-w-3xl gap-3 sm:grid-cols-2">
-          <PackageCard name="@ambrosia/core" description={t.packages.core} href={`/${lang}/docs/core`} icon={Cpu} />
-          <PackageCard name="@ambrosia/http" description={t.packages.http} href={`/${lang}/docs/http`} icon={Globe} />
-          <PackageCard name="@ambrosia/validator" description={t.packages.validator} href={`/${lang}/docs/validator`} icon={Lock} />
-          <PackageCard name="@ambrosia/cli" description={t.packages.cli} href={`/${lang}/docs/cli`} icon={Terminal} />
+          <PackageCard name="@ambrosia-unce/core" description={t.packages.core} href={`/${lang}/docs/core`} icon={Cpu} />
+          <PackageCard name="@ambrosia-unce/http" description={t.packages.http} href={`/${lang}/docs/http`} icon={Globe} />
+          <PackageCard name="@ambrosia-unce/validator" description={t.packages.validator} href={`/${lang}/docs/validator`} icon={Lock} />
+          <PackageCard name="@ambrosia-unce/cli" description={t.packages.cli} href={`/${lang}/docs/cli`} icon={Terminal} />
         </div>
       </div>
     </section>
@@ -338,7 +338,7 @@ function GettingStarted({ t, lang }: { t: LandingTranslations; lang: string }) {
           <p className="mt-3 text-[14px] text-fd-muted-foreground/60">{t.quickstartDescription}</p>
 
           <div className="mx-auto mt-8 max-w-sm space-y-2.5">
-            <StepCommand step={1} command="bun add -g @ambrosia/cli" />
+            <StepCommand step={1} command="bun add -g @ambrosia-unce/cli" />
             <StepCommand step={2} command="ambrosia new my-app" />
             <StepCommand step={3} command="cd my-app && bun run dev" />
           </div>

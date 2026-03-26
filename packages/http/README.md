@@ -1,4 +1,4 @@
-# @ambrosia/http
+# @ambrosia-unce/http
 
 Provider-agnostic HTTP layer for the Ambrosia framework. Decorator-based controllers, a pre-compiled request pipeline, and full support for guards, interceptors, pipes, middleware, exception filters, SSE, and OpenAPI generation.
 
@@ -21,20 +21,20 @@ Provider-agnostic HTTP layer for the Ambrosia framework. Decorator-based control
 ## Installation
 
 ```bash
-bun add @ambrosia/http @ambrosia/core reflect-metadata
+bun add @ambrosia-unce/http @ambrosia-unce/core reflect-metadata
 ```
 
 You will also need an HTTP provider adapter, for example:
 
 ```bash
-bun add @ambrosia/http-elysia
+bun add @ambrosia-unce/http-elysia
 ```
 
 ## Quick Start
 
 ```typescript
 import "reflect-metadata";
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import {
   HttpApplication,
   Controller,
@@ -44,8 +44,8 @@ import {
   Query,
   Status,
   type HttpPackDefinition,
-} from "@ambrosia/http";
-import { ElysiaProvider } from "@ambrosia/http-elysia";
+} from "@ambrosia-unce/http";
+import { ElysiaProvider } from "@ambrosia-unce/http-elysia";
 
 // Define a service
 @Injectable()
@@ -404,7 +404,7 @@ class EventsController {
 Generate an OpenAPI 3.0 specification from your controller metadata:
 
 ```typescript
-import { OpenApiGenerator } from "@ambrosia/http";
+import { OpenApiGenerator } from "@ambrosia-unce/http";
 
 const spec = OpenApiGenerator.generate({
   title: "My API",
@@ -467,7 +467,7 @@ await app.close();    // Graceful shutdown with pack onDestroy hooks
 `TestingHttpFactory` creates an application backed by a `MockHttpProvider` so you can exercise the full request pipeline without starting a server:
 
 ```typescript
-import { TestingHttpFactory } from "@ambrosia/http";
+import { TestingHttpFactory } from "@ambrosia-unce/http";
 
 const module = await TestingHttpFactory
   .create({
@@ -502,7 +502,7 @@ await module.close();
 
 - TypeScript >= 5.0
 - Bun >= 1.3.6
-- `@ambrosia/core` as a peer
+- `@ambrosia-unce/core` as a peer
 - `experimentalDecorators: true` in tsconfig.json
 - `emitDecoratorMetadata: true` in tsconfig.json
 - `reflect-metadata` imported at the application entry point

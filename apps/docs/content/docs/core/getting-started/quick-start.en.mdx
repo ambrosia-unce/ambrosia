@@ -8,7 +8,7 @@ import { Steps } from 'fumadocs-ui/components/steps';
 
 # Quick Start
 
-Get started with @ambrosia/core in 5 minutes. This guide will teach you the basics of dependency injection with a simple example.
+Get started with @ambrosia-unce/core in 5 minutes. This guide will teach you the basics of dependency injection with a simple example.
 
 ## What We'll Build
 
@@ -26,7 +26,7 @@ A simple user management system with:
 First, create a service for database operations:
 
 ```typescript title="src/services/database.service.ts"
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 
 @Injectable()
 export class DatabaseService {
@@ -59,7 +59,7 @@ export class DatabaseService {
 Create a repository that depends on the database service:
 
 ```typescript title="src/repositories/user.repository.ts"
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 import { DatabaseService } from '../services/database.service.ts';
 
 @Injectable()
@@ -95,7 +95,7 @@ export class UserRepository {
 Create a service layer that depends on the repository:
 
 ```typescript title="src/services/user.service.ts"
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 import { UserRepository } from '../repositories/user.repository.ts';
 
 @Injectable()
@@ -130,7 +130,7 @@ export class UserService {
 Set up the DI container:
 
 ```typescript title="src/container.ts"
-import { Container } from '@ambrosia/core';
+import { Container } from '@ambrosia-unce/core';
 
 // Create a container with production mode for better performance
 export const container = new Container({

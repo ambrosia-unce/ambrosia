@@ -1,4 +1,4 @@
-import type { HttpPackDefinition } from "@ambrosia/http";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import { TaskController } from "./task.controller.ts";
 import { TaskService } from "./task.service.ts";
 

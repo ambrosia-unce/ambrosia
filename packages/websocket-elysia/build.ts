@@ -6,7 +6,7 @@ await Bun.build({
   outdir: "dist",
   target: "node",
   format: "esm",
-  external: ["@ambrosia/websocket", "elysia"],
+  external: ["@ambrosia-unce/websocket", "elysia"],
 });
 
 console.log("JavaScript build complete");

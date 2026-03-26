@@ -16,9 +16,9 @@ export async function infoCommand() {
   // CLI version
   try {
     const pkg = await import("../../package.json");
-    lines.push(`@ambrosia/cli:  v${pkg.version}`);
+    lines.push(`@ambrosia-unce/cli:  v${pkg.version}`);
   } catch {
-    lines.push("@ambrosia/cli:  unknown");
+    lines.push("@ambrosia-unce/cli:  unknown");
   }
 
   // Bun version
@@ -34,7 +34,7 @@ export async function infoCommand() {
   // OS/Platform
   lines.push(`Platform:       ${process.platform} ${process.arch}`);
 
-  // @ambrosia/* package versions
+  // @ambrosia-unce/* package versions
   const pkgJsonPath = pathJoin(cwd, "package.json");
   if (await fileExists(pkgJsonPath)) {
     try {
@@ -45,7 +45,7 @@ export async function infoCommand() {
 
       const allDeps = { ...pkgJson.dependencies, ...pkgJson.devDependencies };
       const ambrosiaPkgs = Object.entries(allDeps)
-        .filter(([name]) => name.startsWith("@ambrosia/"))
+        .filter(([name]) => name.startsWith("@ambrosia-unce/"))
         .sort(([a], [b]) => a.localeCompare(b));
 
       if (ambrosiaPkgs.length > 0) {

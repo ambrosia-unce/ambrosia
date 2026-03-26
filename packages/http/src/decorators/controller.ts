@@ -4,7 +4,7 @@
  * Marks a class as an HTTP controller and registers it with the DI system
  */
 
-import { type Constructor, DEFAULT_SCOPE, Injectable, type Scope } from "@ambrosia/core";
+import { type Constructor, DEFAULT_SCOPE, Injectable, type Scope } from "@ambrosia-unce/core";
 import { HttpMetadataManager } from "../metadata";
 import { normalize } from "../routing/path-matcher.ts";
 import type { ControllerMetadata, ControllerOptions } from "../types";

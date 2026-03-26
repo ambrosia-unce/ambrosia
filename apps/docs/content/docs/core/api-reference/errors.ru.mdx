@@ -1,6 +1,6 @@
 ---
 title: "Типы ошибок"
-description: "Справочник по всем ошибкам DI-контейнера @ambrosia/core"
+description: "Справочник по всем ошибкам DI-контейнера @ambrosia-unce/core"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -70,7 +70,7 @@ class DIError extends Error {
 Используйте `instanceof DIError` для перехвата всех DI-ошибок:
 
 ```typescript
-import { DIError } from "@ambrosia/core";
+import { DIError } from "@ambrosia-unce/core";
 
 try {
   container.resolve(SomeService);
@@ -116,7 +116,7 @@ Possible solutions:
 ### Обработка
 
 ```typescript
-import { CircularDependencyError } from "@ambrosia/core";
+import { CircularDependencyError } from "@ambrosia-unce/core";
 
 try {
   container.resolve(ServiceA);
@@ -210,7 +210,7 @@ Possible solutions:
 4. **Pack не экспортирует** токен при `enforceExports: true`
 
 ```typescript
-import { ProviderNotFoundError } from "@ambrosia/core";
+import { ProviderNotFoundError } from "@ambrosia-unce/core";
 
 try {
   container.resolve(UnknownService);
@@ -293,7 +293,7 @@ This usually means:
 3. **Отсутствует зависимость** конструктора (нет metadata)
 
 ```typescript
-import { ResolutionError } from "@ambrosia/core";
+import { ResolutionError } from "@ambrosia-unce/core";
 
 try {
   container.resolve(DatabaseService);
@@ -331,7 +331,7 @@ Wrap your code with:
 ### Как исправить
 
 ```typescript
-import { NoRequestScopeError } from "@ambrosia/core";
+import { NoRequestScopeError } from "@ambrosia-unce/core";
 
 // ❌ Ошибка — нет request контекста
 container.resolve(RequestContext); // throws NoRequestScopeError
@@ -384,7 +384,7 @@ import {
   ProviderNotFoundError,
   ResolutionError,
   NoRequestScopeError,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 
 try {
   const service = container.resolve(MyService);

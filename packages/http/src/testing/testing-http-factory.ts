@@ -2,7 +2,7 @@
  * TestingHttpFactory - creates HTTP applications with a mock provider for testing
  */
 
-import type { Constructor, Token } from "@ambrosia/core";
+import type { Constructor, Token } from "@ambrosia-unce/core";
 import { HttpApplication, type HttpApplicationOptions } from "../application/http-application.ts";
 import type { HttpProvider, RouteConfig } from "../providers/http-provider.interface.ts";
 import { PathMatcher } from "../routing/path-matcher.ts";

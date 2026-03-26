@@ -1,5 +1,5 @@
 /**
- * Build script for @ambrosia/http
+ * Build script for @ambrosia-unce/http
  */
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
@@ -12,7 +12,7 @@ await Bun.build({
   outdir: "dist",
   target: "node",
   format: "esm",
-  external: ["@ambrosia/core", "reflect-metadata", "@sinclair/typebox"],
+  external: ["@ambrosia-unce/core", "reflect-metadata", "@sinclair/typebox"],
 });
 
 console.log("JavaScript build complete");

@@ -375,7 +375,7 @@ interface ValidationErrorDetail {
 **Пример:**
 
 ```typescript
-import { ValidationError } from '@ambrosia/http';
+import { ValidationError } from '@ambrosia-unce/http';
 
 throw new ValidationError('Validation failed', [
   {
@@ -505,7 +505,7 @@ export enum HttpStatus {
 **Пример использования:**
 
 ```typescript
-import { HttpStatus, HttpException } from '@ambrosia/http';
+import { HttpStatus, HttpException } from '@ambrosia-unce/http';
 
 throw new HttpException(
   'Custom error',

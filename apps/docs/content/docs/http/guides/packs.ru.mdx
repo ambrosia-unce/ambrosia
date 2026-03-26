@@ -8,12 +8,12 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Паки в HTTP
 
-`HttpPackDefinition` расширяет базовый `PackDefinition` из `@ambrosia/core` добавляя поддержку контроллеров — HTTP-специфичной концепции, которая не относится к DI-ядру.
+`HttpPackDefinition` расширяет базовый `PackDefinition` из `@ambrosia-unce/core` добавляя поддержку контроллеров — HTTP-специфичной концепции, которая не относится к DI-ядру.
 
 ## HttpPackDefinition
 
 ```typescript
-import type { HttpPackDefinition } from "@ambrosia/http";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 
 export const UserPack: HttpPackDefinition = {
   meta: { name: "user" },
@@ -35,7 +35,7 @@ export const UserPack: HttpPackDefinition = {
 | `controllers` | - | + |
 
 <Callout type="info">
-Контроллеры — это концепция HTTP-слоя. Базовый `PackDefinition` в `@ambrosia/core` работает только с DI-провайдерами. Если ваш пак не содержит контроллеров (например, пак для базы данных), используйте обычный `PackDefinition`.
+Контроллеры — это концепция HTTP-слоя. Базовый `PackDefinition` в `@ambrosia-unce/core` работает только с DI-провайдерами. Если ваш пак не содержит контроллеров (например, пак для базы данных), используйте обычный `PackDefinition`.
 </Callout>
 
 ## Структура HTTP-приложения
@@ -65,7 +65,7 @@ src/
 
 ```typescript
 // src/modules/user/user.pack.ts
-import type { HttpPackDefinition } from "@ambrosia/http";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import { UserController } from "./user.controller.ts";
 import { UserService } from "./user.service.ts";
 import { UserRepository } from "./user.repository.ts";
@@ -82,8 +82,8 @@ export const UserPack: HttpPackDefinition = {
 
 ```typescript
 // src/main.ts
-import { HttpApplication } from "@ambrosia/http";
-import { ElysiaProvider } from "@ambrosia/http-elysia";
+import { HttpApplication } from "@ambrosia-unce/http";
+import { ElysiaProvider } from "@ambrosia-unce/http-elysia";
 import { HealthPack } from "./modules/health/health.pack.ts";
 import { UserPack } from "./modules/user/user.pack.ts";
 import { AuthPack } from "./modules/auth/auth.pack.ts";
@@ -140,8 +140,8 @@ const app = await HttpApplication.create({
 Паттерн `forRoot` / `forRootAsync` работает так же, как в core, но с добавлением контроллеров:
 
 ```typescript
-import type { HttpPackDefinition, AsyncPackOptions } from "@ambrosia/http";
-import { createAsyncProvider } from "@ambrosia/core";
+import type { HttpPackDefinition, AsyncPackOptions } from "@ambrosia-unce/http";
+import { createAsyncProvider } from "@ambrosia-unce/core";
 
 export class AuthPack {
   static forRoot(config: AuthConfig): HttpPackDefinition {
@@ -248,7 +248,7 @@ process.on("SIGTERM", async () => {
 Пак базы данных не содержит контроллеров — для него подходит обычный `PackDefinition`:
 
 ```typescript
-import type { PackDefinition } from "@ambrosia/core";
+import type { PackDefinition } from "@ambrosia-unce/core";
 
 // Core pack — без контроллеров
 export const DatabasePack: PackDefinition = {
@@ -259,7 +259,7 @@ export const DatabasePack: PackDefinition = {
 ```
 
 ```typescript
-import type { HttpPackDefinition } from "@ambrosia/http";
+import type { HttpPackDefinition } from "@ambrosia-unce/http";
 
 // HTTP pack — с контроллерами
 export const UserPack: HttpPackDefinition = {

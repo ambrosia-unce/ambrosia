@@ -1,4 +1,4 @@
-import { Controller, Http, Body, Param, Query, Status, UseGuard } from "@ambrosia/http";
+import { Controller, Http, Body, Param, Query, Status, UseGuard } from "@ambrosia-unce/http";
 import { AuthGuard } from "../auth/auth.guard.ts";
 import type { CreateTaskDto } from "./dto/create-task.dto.ts";
 import type { UpdateTaskDto } from "./dto/update-task.dto.ts";

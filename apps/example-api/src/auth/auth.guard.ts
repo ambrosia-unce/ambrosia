@@ -1,7 +1,7 @@
-import { Injectable } from "@ambrosia/core";
-import { ConfigService } from "@ambrosia/config";
-import type { ExecutionContext, Guard } from "@ambrosia/http";
-import { UnauthorizedException } from "@ambrosia/http";
+import { Injectable } from "@ambrosia-unce/core";
+import { ConfigService } from "@ambrosia-unce/config";
+import type { ExecutionContext, Guard } from "@ambrosia-unce/http";
+import { UnauthorizedException } from "@ambrosia-unce/http";
 
 /**
  * Simple token-based auth guard.

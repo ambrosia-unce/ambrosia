@@ -12,8 +12,8 @@ Exception Filters handle all exceptions thrown during request execution. They in
 An Exception Filter is a class with a `catch()` method that receives the exception and context:
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
-import { ExceptionFilter, ExceptionFilterArgs, HttpException } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { ExceptionFilter, ExceptionFilterArgs, HttpException } from '@ambrosia-unce/http';
 
 @Injectable()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -53,7 +53,7 @@ import {
   ConflictException,            // 409
   UnprocessableEntityException, // 422
   InternalServerErrorException  // 500
-} from '@ambrosia/http';
+} from '@ambrosia-unce/http';
 
 @Controller('/users')
 export class UserController {
@@ -86,7 +86,7 @@ export class UserController {
 ### At the Method Level
 
 ```typescript
-import { UseFilter } from '@ambrosia/http';
+import { UseFilter } from '@ambrosia-unce/http';
 
 @Controller('/users')
 export class UserController {
@@ -161,11 +161,11 @@ The default filter returns JSON with error details:
 The `@Catch(...ExceptionTypes)` decorator specifies which exception types a filter handles. Filters without `@Catch` catch all exceptions (as before).
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 import {
   ExceptionFilter, ExceptionFilterArgs, Catch,
   NotFoundException, BadRequestException, HttpException
-} from '@ambrosia/http';
+} from '@ambrosia-unce/http';
 
 // Catches only NotFoundException
 @Catch(NotFoundException)

@@ -8,7 +8,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 # Async Operations
 
-@ambrosia/core supports async operations for cases where instance creation requires asynchronous initialization - connecting to a database, loading configuration, verifying external services.
+@ambrosia-unce/core supports async operations for cases where instance creation requires asynchronous initialization - connecting to a database, loading configuration, verifying external services.
 
 ## Async Flow Overview
 
@@ -42,7 +42,7 @@ sequenceDiagram
 Register providers with async factories for cases where initialization requires `await`:
 
 ```typescript
-import { Container, Scope, InjectionToken } from "@ambrosia/core";
+import { Container, Scope, InjectionToken } from "@ambrosia-unce/core";
 
 const DB_CONNECTION = new InjectionToken<DatabaseConnection>("DbConnection");
 
@@ -83,7 +83,7 @@ Regular `resolve()` will throw an error if the factory returns a `Promise`. Alwa
 The factory receives the container and can resolve dependencies:
 
 ```typescript
-import { Injectable, InjectionToken } from "@ambrosia/core";
+import { Injectable, InjectionToken } from "@ambrosia-unce/core";
 
 @Injectable()
 class ConfigService {
@@ -113,7 +113,7 @@ container.register({
 Classes implementing `OnInit` can have an async `onInit()`:
 
 ```typescript
-import { Injectable, Inject, type OnInit, type OnDestroy } from "@ambrosia/core";
+import { Injectable, Inject, type OnInit, type OnDestroy } from "@ambrosia-unce/core";
 
 @Injectable()
 class DatabaseService implements OnInit, OnDestroy {
@@ -238,7 +238,7 @@ const userService = await container.resolveAsync(UserService);
 A specialized manager for non-blocking plugin event processing:
 
 ```typescript
-import { Container, AsyncPluginManager, LoggingPlugin } from "@ambrosia/core";
+import { Container, AsyncPluginManager, LoggingPlugin } from "@ambrosia-unce/core";
 
 const asyncManager = new AsyncPluginManager({
   batchSize: 50,       // Max events per batch (default 50)
@@ -265,7 +265,7 @@ expect(telemetryPlugin.getStats().totalResolutions).toBe(5);
 A non-blocking logger optimized for Bun:
 
 ```typescript
-import { getAsyncLogger } from "@ambrosia/core";
+import { getAsyncLogger } from "@ambrosia-unce/core";
 
 const logger = getAsyncLogger({
   bufferSize: 100,      // Flush when reaching 100 entries
@@ -304,7 +304,7 @@ import {
   type OnDestroy,
   definePack,
   createAsyncProvider,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 
 // Tokens
 const DB_CONFIG = new InjectionToken<DbConfig>("DbConfig");

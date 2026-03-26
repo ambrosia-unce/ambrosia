@@ -1,8 +1,8 @@
 import "reflect-metadata";
 
-import { ConfigService } from "@ambrosia/config";
-import { HttpApplication } from "@ambrosia/http";
-import { ElysiaProvider } from "@ambrosia/http-elysia";
+import { ConfigService } from "@ambrosia-unce/config";
+import { HttpApplication } from "@ambrosia-unce/http";
+import { ElysiaProvider } from "@ambrosia-unce/http-elysia";
 import { AppPack } from "./app.pack.ts";
 import { GlobalErrorFilter } from "./common/error.filter.ts";
 import { LoggingInterceptor } from "./common/logging.interceptor.ts";

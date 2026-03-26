@@ -6,7 +6,7 @@
  * immutable after initialization.
  */
 
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import type {
   DevToolsEventEmitter,
   DevToolsPlugin,

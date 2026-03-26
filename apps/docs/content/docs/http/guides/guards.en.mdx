@@ -12,8 +12,8 @@ Guards determine whether a request should be handled or rejected. They execute a
 A Guard is a class with a `canActivate()` method that returns a boolean or Promise\<boolean\>:
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
-import { Guard, ExecutionContext, ForbiddenException } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { Guard, ExecutionContext, ForbiddenException } from '@ambrosia-unce/http';
 
 @Injectable()
 export class AuthGuard implements Guard {
@@ -42,7 +42,7 @@ export class AuthGuard implements Guard {
 ### At the Method Level
 
 ```typescript
-import { Controller, Http, UseGuard } from '@ambrosia/http';
+import { Controller, Http, UseGuard } from '@ambrosia-unce/http';
 
 @Controller('/users')
 export class UserController {
@@ -118,7 +118,7 @@ export class RoleGuard implements Guard {
 `SetMetadata(key, value)` is a universal decorator for attaching arbitrary metadata to a class or method. Metadata is accessible via `context.getMetadata(key)` in guards and interceptors.
 
 ```typescript
-import { SetMetadata } from '@ambrosia/http';
+import { SetMetadata } from '@ambrosia-unce/http';
 
 // Create a custom decorator
 export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
@@ -137,7 +137,7 @@ async adminOnly() {
 `@Public()` is a built-in decorator that marks a route as public. This is useful when a global guard protects the entire application, but certain routes should be accessible without authorization:
 
 ```typescript
-import { Public, IS_PUBLIC_KEY } from '@ambrosia/http';
+import { Public, IS_PUBLIC_KEY } from '@ambrosia-unce/http';
 
 // Guard checks for @Public
 @Injectable()

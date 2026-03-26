@@ -1,5 +1,5 @@
 {
-  "name": "@ambrosia/http-elysia",
+  "name": "@ambrosia-unce/http-elysia",
   "version": "0.1.0",
   "description": "Elysia.js HTTP provider for Ambrosia framework",
   "type": "module",
@@ -48,7 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ambrosia/http": "workspace:*"
+    "@ambrosia-unce/http": "workspace:*"
   },
   "peerDependencies": {
     "elysia": "^1.0.0"

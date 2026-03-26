@@ -21,7 +21,7 @@
  * ```
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import { EVENTS_METADATA } from "../tokens.ts";
 import type { EventHandlerMetadata, OnEventOptions } from "../types.ts";
 

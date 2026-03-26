@@ -14,8 +14,8 @@ export { ${name.toUpperCase().replace(/-/g, "_")}_CONFIG } from "./types";
 export function packDefinition(name: string, pascalName: string): string {
   const configToken = `${name.toUpperCase().replace(/-/g, "_")}_CONFIG`;
 
-  return `import type { PackDefinition, AsyncPackOptions } from "@ambrosia/core";
-import { createAsyncProvider } from "@ambrosia/core";
+  return `import type { PackDefinition, AsyncPackOptions } from "@ambrosia-unce/core";
+import { createAsyncProvider } from "@ambrosia-unce/core";
 import { ${pascalName}Service } from "./${name}.service";
 import type { ${pascalName}Config } from "./types";
 import { ${configToken} } from "./types";
@@ -49,7 +49,7 @@ export class ${pascalName}Pack {
 export function packService(name: string, pascalName: string): string {
   const configToken = `${name.toUpperCase().replace(/-/g, "_")}_CONFIG`;
 
-  return `import { Injectable, Inject } from "@ambrosia/core";
+  return `import { Injectable, Inject } from "@ambrosia-unce/core";
 import type { ${pascalName}Config } from "./types";
 import { ${configToken} } from "./types";
 
@@ -67,7 +67,7 @@ export class ${pascalName}Service {
 export function packTypes(pascalName: string, name: string): string {
   const configToken = `${name.toUpperCase().replace(/-/g, "_")}_CONFIG`;
 
-  return `import { InjectionToken } from "@ambrosia/core";
+  return `import { InjectionToken } from "@ambrosia-unce/core";
 
 export interface ${pascalName}Config {
   // Define your pack configuration here

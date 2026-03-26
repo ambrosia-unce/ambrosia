@@ -1,11 +1,11 @@
-# @ambrosia/cli
+# @ambrosia-unce/cli
 
 CLI tool for scaffolding Ambrosia framework projects.
 
 ## Installation
 
 ```bash
-bun add -g @ambrosia/cli
+bun add -g @ambrosia-unce/cli
 ```
 
 ## Usage

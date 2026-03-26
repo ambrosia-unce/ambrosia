@@ -1,6 +1,6 @@
 ---
 title: "Декораторы"
-description: "Полный справочник по декораторам DI-системы @ambrosia/core"
+description: "Полный справочник по декораторам DI-системы @ambrosia-unce/core"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -58,7 +58,7 @@ interface InjectableOptions {
 ### Использование
 
 ```typescript
-import { Injectable, Scope } from "@ambrosia/core";
+import { Injectable, Scope } from "@ambrosia-unce/core";
 
 // Singleton (по умолчанию)
 @Injectable()
@@ -107,7 +107,7 @@ TypeScript `emitDecoratorMetadata` генерирует metadata только д
 <Tabs items={['InjectionToken', 'Абстрактный класс', 'Интерфейс через токен']}>
 <Tab value="InjectionToken">
 ```typescript
-import { Injectable, Inject, InjectionToken } from "@ambrosia/core";
+import { Injectable, Inject, InjectionToken } from "@ambrosia-unce/core";
 
 const API_URL = new InjectionToken<string>("API_URL");
 const MAX_RETRIES = new InjectionToken<number>("MAX_RETRIES");
@@ -123,7 +123,7 @@ class ApiClient {
 </Tab>
 <Tab value="Абстрактный класс">
 ```typescript
-import { Injectable, Inject } from "@ambrosia/core";
+import { Injectable, Inject } from "@ambrosia-unce/core";
 
 abstract class Logger {
   abstract log(msg: string): void;
@@ -137,7 +137,7 @@ class UserService {
 </Tab>
 <Tab value="Интерфейс через токен">
 ```typescript
-import { Injectable, Inject, InjectionToken } from "@ambrosia/core";
+import { Injectable, Inject, InjectionToken } from "@ambrosia-unce/core";
 
 interface CacheConfig {
   ttl: number;
@@ -182,7 +182,7 @@ class UserRepository {
 ### С параметрами конструктора
 
 ```typescript
-import { Injectable, Inject, Optional, InjectionToken } from "@ambrosia/core";
+import { Injectable, Inject, Optional, InjectionToken } from "@ambrosia-unce/core";
 
 const METRICS = new InjectionToken<MetricsClient>("Metrics");
 
@@ -244,7 +244,7 @@ class NotificationService {
 ### Базовое использование
 
 ```typescript
-import { Injectable, Autowired } from "@ambrosia/core";
+import { Injectable, Autowired } from "@ambrosia-unce/core";
 
 @Injectable()
 class OrderService {
@@ -320,7 +320,7 @@ Property injection выполняется **после** кэширования 
 ### Использование
 
 ```typescript
-import { Injectable, Implements, Inject } from "@ambrosia/core";
+import { Injectable, Implements, Inject } from "@ambrosia-unce/core";
 
 // Абстрактный класс как "интерфейс"
 abstract class Logger {
@@ -395,7 +395,7 @@ import {
   InjectionToken,
   Scope,
   type OnInit,
-} from "@ambrosia/core";
+} from "@ambrosia-unce/core";
 
 const METRICS_TOKEN = new InjectionToken<MetricsClient>("Metrics");
 

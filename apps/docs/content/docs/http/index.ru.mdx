@@ -5,9 +5,9 @@ description: "Высокопроизводительный HTTP фреймвор
 
 import {Card, Cards} from 'fumadocs-ui/components/card';
 
-# @ambrosia/http
+# @ambrosia-unce/http
 
-**@ambrosia/http** — это современный высокопроизводительный HTTP фреймворк для TypeScript с мощной системой Dependency Injection. Построен на основе [@ambrosia/core](/docs/core) и предоставляет абстракцию над популярными HTTP библиотеками (Elysia.js, Hono).
+**@ambrosia-unce/http** — это современный высокопроизводительный HTTP фреймворк для TypeScript с мощной системой Dependency Injection. Построен на основе [@ambrosia-unce/core](/docs/core) и предоставляет абстракцию над популярными HTTP библиотеками (Elysia.js, Hono).
 
 ## Ключевые возможности
 
@@ -63,8 +63,8 @@ Response
 ## Быстрый пример
 
 ```typescript
-import { HttpApplication, Controller, Http, Body, UseGuard, Status } from '@ambrosia/http';
-import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { HttpApplication, Controller, Http, Body, UseGuard, Status } from '@ambrosia-unce/http';
+import { ElysiaProvider } from '@ambrosia-unce/http-elysia';
 import { Type } from '@sinclair/typebox';
 
 // DTO с TypeBox схемой
@@ -116,7 +116,7 @@ await app.listen();
 <Cards>
     <Card
         title="Установка"
-        description="Установите @ambrosia/http и настройте ваш проект"
+        description="Установите @ambrosia-unce/http и настройте ваш проект"
         href="/docs/http/getting-started/installation"
     />
     <Card
@@ -191,7 +191,7 @@ await app.listen();
     />
 </Cards>
 
-## Почему @ambrosia/http?
+## Почему @ambrosia-unce/http?
 
 ### Производительность без компромиссов
 
@@ -293,7 +293,7 @@ export class PostController {
 
 ## Следующие шаги
 
-1. [Установите @ambrosia/http](/docs/http/getting-started/installation)
+1. [Установите @ambrosia-unce/http](/docs/http/getting-started/installation)
 2. Следуйте [Руководству быстрого старта](/docs/http/getting-started/quick-start)
 3. Изучите [Контроллеры](/docs/http/guides/controllers)
 4. Посмотрите [Примеры](/docs/http/examples/rest-api)

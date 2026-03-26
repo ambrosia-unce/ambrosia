@@ -22,8 +22,8 @@ import { Callout } from 'fumadocs-ui/components/callout';
 Пак -- это обычный объект, реализующий интерфейс `PackDefinition` (или `HttpPackDefinition`):
 
 ```ts
-import { definePack } from '@ambrosia/core';
-import type { HttpPackDefinition } from '@ambrosia/http';
+import { definePack } from '@ambrosia-unce/core';
+import type { HttpPackDefinition } from '@ambrosia-unce/http';
 
 export const UsersPack: HttpPackDefinition = {
   ...definePack({
@@ -109,8 +109,8 @@ export const DatabasePack = definePack({
 
 ```ts
 // src/app.pack.ts
-import { definePack } from '@ambrosia/core';
-import { ConfigModule } from '@ambrosia/config';
+import { definePack } from '@ambrosia-unce/core';
+import { ConfigModule } from '@ambrosia-unce/config';
 import { AppConfig } from './config/app.config.ts';
 import { UsersPack } from './users/users.pack.ts';
 import { PostsPack } from './posts/posts.pack.ts';
@@ -244,7 +244,7 @@ src/
 Ambrosia предоставляет `TestingPackFactory` для юнит-тестирования паков в изоляции:
 
 ```ts
-import { TestingPackFactory } from '@ambrosia/core';
+import { TestingPackFactory } from '@ambrosia-unce/core';
 import { PostsPack } from './posts.pack.ts';
 
 const testingPack = await TestingPackFactory.create(PostsPack);

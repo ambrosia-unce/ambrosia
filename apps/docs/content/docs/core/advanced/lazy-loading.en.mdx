@@ -15,7 +15,7 @@ Techniques for deferred dependency initialization to optimize startup time and m
 The container can create transparent proxy objects that resolve the real instance on first property or method access:
 
 ```typescript
-import { Container, Injectable } from "@ambrosia/core";
+import { Container, Injectable } from "@ambrosia-unce/core";
 
 const container = new Container({ autoResolveCircular: true });
 
@@ -52,7 +52,7 @@ Do not access the lazy proxy **in the constructor**. The constructor is called b
 For heavy resources, use `FactoryProvider` with `Scope.SINGLETON`:
 
 ```typescript
-import { Container, InjectionToken, Scope, Injectable, Inject } from "@ambrosia/core";
+import { Container, InjectionToken, Scope, Injectable, Inject } from "@ambrosia-unce/core";
 
 const ML_MODEL = new InjectionToken<MLModel>("MLModel");
 
@@ -84,7 +84,7 @@ const service = await container.resolveAsync(PredictionService);
 Dynamic `import()` for code splitting:
 
 ```typescript
-import { Container, InjectionToken, Scope } from "@ambrosia/core";
+import { Container, InjectionToken, Scope } from "@ambrosia-unce/core";
 
 const SHARP = new InjectionToken<typeof import("sharp")>("Sharp");
 
@@ -111,7 +111,7 @@ class ImageService {
 To break circular imports between packs, use `lazyImports`:
 
 ```typescript
-import { definePack, type PackDefinition } from "@ambrosia/core";
+import { definePack, type PackDefinition } from "@ambrosia-unce/core";
 
 const PackA: PackDefinition = definePack({
   meta: { name: "pack-a" },

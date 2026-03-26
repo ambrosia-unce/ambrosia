@@ -1,6 +1,6 @@
-import { Injectable } from "@ambrosia/core";
-import { EventBus } from "@ambrosia/events";
-import { NotFoundException } from "@ambrosia/http";
+import { Injectable } from "@ambrosia-unce/core";
+import { EventBus } from "@ambrosia-unce/events";
+import { NotFoundException } from "@ambrosia-unce/http";
 import { UserCreatedEvent } from "../common/events/user-created.event.ts";
 import type { CreateUserDto } from "./dto/create-user.dto.ts";
 import type { User } from "./user.entity.ts";

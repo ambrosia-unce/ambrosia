@@ -38,7 +38,7 @@ sequenceDiagram
 ```
 
 ```typescript
-import { Injectable, type OnInit, type OnDestroy } from "@ambrosia/core";
+import { Injectable, type OnInit, type OnDestroy } from "@ambrosia-unce/core";
 
 @Injectable()
 class DatabaseService implements OnInit, OnDestroy {
@@ -61,7 +61,7 @@ class DatabaseService implements OnInit, OnDestroy {
 Called **after** instance creation and injection of all dependencies (constructor + `@Autowired`).
 
 ```typescript
-import { Injectable, Inject, type OnInit } from "@ambrosia/core";
+import { Injectable, Inject, type OnInit } from "@ambrosia-unce/core";
 
 @Injectable()
 class CacheService implements OnInit {
@@ -135,7 +135,7 @@ All dependencies are already injected by the time `onInit()` is called, so you c
 Called when the container is destroyed - `container.destroyAll()` or `app.close()`.
 
 ```typescript
-import { Injectable, type OnDestroy } from "@ambrosia/core";
+import { Injectable, type OnDestroy } from "@ambrosia-unce/core";
 
 @Injectable()
 class MetricsCollector implements OnDestroy {
@@ -195,7 +195,7 @@ class FlakyService implements OnDestroy {
 ## Full Example
 
 ```typescript
-import { Injectable, Inject, type OnInit, type OnDestroy } from "@ambrosia/core";
+import { Injectable, Inject, type OnInit, type OnDestroy } from "@ambrosia-unce/core";
 
 const DB_CONFIG = Symbol("DB_CONFIG");
 
@@ -236,7 +236,7 @@ class DatabaseService implements OnInit, OnDestroy {
 ### Usage with Packs
 
 ```typescript
-import { definePack, createAsyncProvider } from "@ambrosia/core";
+import { definePack, createAsyncProvider } from "@ambrosia-unce/core";
 
 export const DatabasePack = definePack({
   meta: { name: "database" },
@@ -323,7 +323,7 @@ interface OnDestroy {
 ### Type Guards
 
 ```typescript
-import { hasOnInit, hasOnDestroy } from "@ambrosia/core";
+import { hasOnInit, hasOnDestroy } from "@ambrosia-unce/core";
 
 if (hasOnInit(instance)) {
   await instance.onInit();

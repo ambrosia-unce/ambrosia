@@ -2,12 +2,12 @@
  * DevToolsEventCollector — collects event handler metadata
  * and maintains a live event log for DevTools.
  *
- * If @ambrosia/events is installed, this collector reads
+ * If @ambrosia-unce/events is installed, this collector reads
  * handler metadata from the EventBus. Otherwise it returns
  * empty data gracefully.
  */
 
-import { Injectable, type Container } from "@ambrosia/core";
+import { Injectable, type Container } from "@ambrosia-unce/core";
 import type { EventHandlerInfo, EventInfo, EventLogEntry, EventMapData } from "../types.ts";
 
 /** Maximum number of recent events to keep in the log. */
@@ -26,7 +26,7 @@ export class DevToolsEventCollector {
 
     try {
       // Try to resolve EventBus — it may not be registered if
-      // @ambrosia/events is not used in the application.
+      // @ambrosia-unce/events is not used in the application.
       const eventBus = container.resolveOptional<any>(
         this.getEventBusToken(),
       );
@@ -97,7 +97,7 @@ export class DevToolsEventCollector {
   private getEventBusToken(): any {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const events = require("@ambrosia/events");
+      const events = require("@ambrosia-unce/events");
       return events.EventBus;
     } catch {
       return class EventBusPlaceholder {};

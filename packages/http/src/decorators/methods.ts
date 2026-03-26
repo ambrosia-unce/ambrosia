@@ -5,7 +5,7 @@
  * Организованы через namespace Http для удобства
  */
 
-import type { Constructor } from "@ambrosia/core";
+import type { Constructor } from "@ambrosia-unce/core";
 import { HttpMetadataManager } from "../metadata";
 import { normalize } from "../routing/path-matcher.ts";
 import type { HttpMethod, RouteMethodMetadata, RouteOptions } from "../types";

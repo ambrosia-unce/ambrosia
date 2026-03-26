@@ -50,7 +50,7 @@ sequenceDiagram
 ## Enum Scope
 
 ```typescript
-import { Scope } from "@ambrosia/core";
+import { Scope } from "@ambrosia-unce/core";
 
 enum Scope {
   SINGLETON  = "singleton",
@@ -163,7 +163,7 @@ await container.requestStorage.runAsync(async () => {
 ## DEFAULT_SCOPE
 
 ```typescript
-import { DEFAULT_SCOPE } from "@ambrosia/core";
+import { DEFAULT_SCOPE } from "@ambrosia-unce/core";
 
 console.log(DEFAULT_SCOPE); // "singleton"
 ```
@@ -177,7 +177,7 @@ console.log(DEFAULT_SCOPE); // "singleton"
 Управляет request-scoped экземплярами через `AsyncLocalStorage`.
 
 ```typescript
-import { Container } from "@ambrosia/core";
+import { Container } from "@ambrosia-unce/core";
 
 const container = new Container();
 const storage = container.requestStorage;
@@ -261,7 +261,7 @@ size(): number
 ## Пример: HTTP-сервер с request scope
 
 ```typescript
-import { Injectable, Inject, InjectionToken, Scope, Container } from "@ambrosia/core";
+import { Injectable, Inject, InjectionToken, Scope, Container } from "@ambrosia-unce/core";
 
 const USER_ID = new InjectionToken<string>("UserId");
 

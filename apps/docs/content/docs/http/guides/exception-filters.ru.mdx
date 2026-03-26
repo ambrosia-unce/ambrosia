@@ -12,8 +12,8 @@ Exception Filters отвечают за обработку всех исключ
 Exception Filter - это класс с методом `catch()`, который получает исключение и контекст:
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
-import { ExceptionFilter, ExceptionFilterArgs, HttpException } from '@ambrosia/http';
+import { Injectable } from '@ambrosia-unce/core';
+import { ExceptionFilter, ExceptionFilterArgs, HttpException } from '@ambrosia-unce/http';
 
 @Injectable()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -53,7 +53,7 @@ import {
   ConflictException,            // 409
   UnprocessableEntityException, // 422
   InternalServerErrorException  // 500
-} from '@ambrosia/http';
+} from '@ambrosia-unce/http';
 
 @Controller('/users')
 export class UserController {
@@ -86,7 +86,7 @@ export class UserController {
 ### На уровне метода
 
 ```typescript
-import { UseFilter } from '@ambrosia/http';
+import { UseFilter } from '@ambrosia-unce/http';
 
 @Controller('/users')
 export class UserController {
@@ -161,11 +161,11 @@ const app = await HttpApplication.create({
 Декоратор `@Catch(...ExceptionTypes)` позволяет указать, какие типы исключений обрабатывает фильтр. Фильтры без `@Catch` ловят все исключения (как раньше).
 
 ```typescript
-import { Injectable } from '@ambrosia/core';
+import { Injectable } from '@ambrosia-unce/core';
 import { 
   ExceptionFilter, ExceptionFilterArgs, Catch,
   NotFoundException, BadRequestException, HttpException 
-} from '@ambrosia/http';
+} from '@ambrosia-unce/http';
 
 // Ловит только NotFoundException
 @Catch(NotFoundException)

@@ -1,5 +1,5 @@
 /**
- * ConfigModule — Pack-based module registration for @ambrosia/config.
+ * ConfigModule — Pack-based module registration for @ambrosia-unce/config.
  *
  * Provides forRoot() for synchronous config loading and
  * forRootAsync() for async/dynamic config loading.
@@ -7,7 +7,7 @@
  * All env vars are parsed ONCE at bootstrap into a frozen Map.
  */
 
-import { createAsyncProvider, definePack, type PackDefinition } from "@ambrosia/core";
+import { createAsyncProvider, definePack, type PackDefinition } from "@ambrosia-unce/core";
 import { ConfigService } from "./config.service.ts";
 import { ConfigMissingError, parseValue } from "./parsers.ts";
 import { CONFIG_SCHEMA, CONFIG_VALUES } from "./tokens.ts";
@@ -176,7 +176,7 @@ export class ConfigModule {
     const configMap = buildConfigMap(schema, envSource, validate);
 
     return definePack({
-      meta: { name: "@ambrosia/config" },
+      meta: { name: "@ambrosia-unce/config" },
       providers: [
         { token: CONFIG_SCHEMA, useValue: schema },
         { token: CONFIG_VALUES, useValue: configMap },
@@ -213,7 +213,7 @@ export class ConfigModule {
     });
 
     return definePack({
-      meta: { name: "@ambrosia/config" },
+      meta: { name: "@ambrosia-unce/config" },
       providers: [configOptionsProvider, configValuesProvider, ConfigService],
       exports: [ConfigService, CONFIG_VALUES, CONFIG_SCHEMA],
     });

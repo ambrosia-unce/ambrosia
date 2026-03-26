@@ -8,12 +8,12 @@
     "start": "bun run src/main.ts"
   },
   "dependencies": {
-    "@ambrosia/core": "workspace:*",
-    "@ambrosia/http": "workspace:*",
-    "@ambrosia/http-elysia": "workspace:*",
-    "@ambrosia/config": "workspace:*",
-    "@ambrosia/events": "workspace:*",
-    "@ambrosia/devtools": "workspace:*",
+    "@ambrosia-unce/core": "workspace:*",
+    "@ambrosia-unce/http": "workspace:*",
+    "@ambrosia-unce/http-elysia": "workspace:*",
+    "@ambrosia-unce/config": "workspace:*",
+    "@ambrosia-unce/events": "workspace:*",
+    "@ambrosia-unce/devtools": "workspace:*",
     "reflect-metadata": "^0.2.0",
     "elysia": "^1.0.0"
   }

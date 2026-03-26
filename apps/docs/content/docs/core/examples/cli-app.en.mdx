@@ -1,6 +1,6 @@
 ---
 title: "CLI Application"
-description: "Example of using @ambrosia/core in a console application with the Command pattern"
+description: "Example of using @ambrosia-unce/core in a console application with the Command pattern"
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
@@ -70,7 +70,7 @@ export abstract class Command {
 ### ConfigService
 
 ```typescript title="src/config/config.service.ts"
-import { Injectable, type OnInit } from "@ambrosia/core";
+import { Injectable, type OnInit } from "@ambrosia-unce/core";
 import { readFileSync, existsSync } from "fs";
 
 @Injectable()
@@ -97,7 +97,7 @@ export class ConfigService implements OnInit {
 ### Commands (TRANSIENT scope)
 
 ```typescript title="src/commands/build.command.ts"
-import { Injectable, Scope } from "@ambrosia/core";
+import { Injectable, Scope } from "@ambrosia-unce/core";
 import { Command } from "./command.interface";
 import { FileService } from "../services/file.service";
 import { ConfigService } from "../config/config.service";
@@ -139,7 +139,7 @@ export class BuildCommand extends Command {
 ### CommandRegistry
 
 ```typescript title="src/registry/command.registry.ts"
-import { Injectable, Container } from "@ambrosia/core";
+import { Injectable, Container } from "@ambrosia-unce/core";
 import { Command } from "../commands/command.interface";
 import { InitCommand } from "../commands/init.command";
 import { BuildCommand } from "../commands/build.command";
@@ -179,7 +179,7 @@ export class CommandRegistry {
 ### Entry Point
 
 ```typescript title="src/index.ts"
-import { Container } from "@ambrosia/core";
+import { Container } from "@ambrosia-unce/core";
 import { CommandRegistry } from "./registry/command.registry";
 
 const container = new Container({ mode: "production" });

@@ -1,4 +1,4 @@
-# @ambrosia/core
+# @ambrosia-unce/core
 
 A powerful and flexible Dependency Injection container for TypeScript applications, built for the Bun runtime.
 
@@ -18,14 +18,14 @@ A powerful and flexible Dependency Injection container for TypeScript applicatio
 ## Installation
 
 ```bash
-bun add @ambrosia/core reflect-metadata
+bun add @ambrosia-unce/core reflect-metadata
 ```
 
 ## Quick Start
 
 ```typescript
 import "reflect-metadata";
-import { Container, Injectable } from "@ambrosia/core";
+import { Container, Injectable } from "@ambrosia-unce/core";
 
 @Injectable()
 class Logger {
@@ -142,7 +142,7 @@ container.registerFactory(
 Packs are the unit of composition in Ambrosia. A `PackDefinition` declares providers, exports (for encapsulation), imports, and lifecycle hooks:
 
 ```typescript
-import { definePack } from "@ambrosia/core";
+import { definePack } from "@ambrosia-unce/core";
 
 const LoggingPack = definePack({
   meta: { name: "logging", version: "1.0.0" },

@@ -2,10 +2,10 @@
  * ConfigCollector — collects configuration values from
  * ConfigService for DevTools introspection.
  *
- * If @ambrosia/config is not installed, returns empty data.
+ * If @ambrosia-unce/config is not installed, returns empty data.
  */
 
-import { Injectable, type Container } from "@ambrosia/core";
+import { Injectable, type Container } from "@ambrosia-unce/core";
 import type { ConfigMapData, ConfigValueInfo } from "../types.ts";
 
 @Injectable()
@@ -78,7 +78,7 @@ export class ConfigCollector {
   private getConfigServiceToken(): any {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const config = require("@ambrosia/config");
+      const config = require("@ambrosia-unce/config");
       return config.ConfigService;
     } catch {
       return class ConfigServicePlaceholder {};

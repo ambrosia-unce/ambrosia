@@ -69,7 +69,7 @@ interface PackDisplayData {
 }
 
 function categorize(name: string): 'core' | 'framework' | 'app' {
-  if (name.startsWith('@ambrosia/')) return 'core';
+  if (name.startsWith('@ambrosia-unce/')) return 'core';
   if (['devtools', 'auth'].includes(name)) return 'framework';
   return 'app';
 }

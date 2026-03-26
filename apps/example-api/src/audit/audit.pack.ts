@@ -1,4 +1,4 @@
-import { definePack } from "@ambrosia/core";
+import { definePack } from "@ambrosia-unce/core";
 import { AuditService } from "./audit.service.ts";
 import { NotificationPack } from "../notifications/notification.pack.ts";
 import { CachePack } from "../cache/cache.pack.ts";

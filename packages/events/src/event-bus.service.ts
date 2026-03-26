@@ -10,7 +10,7 @@
  * - Minimal allocations: reuse arrays, avoid spreading
  */
 
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import type { HandlerEntry } from "./types.ts";
 
 @Injectable()

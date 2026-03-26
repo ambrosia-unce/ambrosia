@@ -40,7 +40,7 @@ sequenceDiagram
 3. Если провайдер найден — используется, как если бы был зарегистрирован вручную
 
 ```typescript
-import { Injectable, Container } from "@ambrosia/core";
+import { Injectable, Container } from "@ambrosia-unce/core";
 
 @Injectable()
 class UserService {
@@ -94,7 +94,7 @@ const service = container.resolve(OrderService); // OK
 `Registry` — singleton-хранилище провайдеров, заполняемое декоратором `@Injectable()`.
 
 ```typescript
-import { getRegistry } from "@ambrosia/core";
+import { getRegistry } from "@ambrosia-unce/core";
 
 const registry = getRegistry();
 
@@ -127,7 +127,7 @@ console.log(registry.size);
 По умолчанию `@Injectable()` регистрирует класс как `SINGLETON`. Переопределите через параметр:
 
 ```typescript
-import { Injectable, Scope } from "@ambrosia/core";
+import { Injectable, Scope } from "@ambrosia-unce/core";
 
 // Singleton (по умолчанию)
 @Injectable()
@@ -210,7 +210,7 @@ container.registerExisting(ILogger, ConsoleLogger);
 На практике используют **оба** подхода вместе:
 
 ```typescript
-import { Injectable, Container, InjectionToken, Scope } from "@ambrosia/core";
+import { Injectable, Container, InjectionToken, Scope } from "@ambrosia-unce/core";
 
 // Авто-регистрация для обычных сервисов
 @Injectable()
@@ -252,7 +252,7 @@ const service = container.resolve(UserService); // UserService + UserRepository 
 В паковой архитектуре авторегистрация часто **отключена**, потому что паки явно объявляют свои провайдеры:
 
 ```typescript
-import { definePack } from "@ambrosia/core";
+import { definePack } from "@ambrosia-unce/core";
 
 const UserPack = definePack({
   meta: { name: "users" },
@@ -329,7 +329,7 @@ container.registerClass(Logger, VerboseLogger);
 ## Registry API
 
 ```typescript
-import { getRegistry, Registry } from "@ambrosia/core";
+import { getRegistry, Registry } from "@ambrosia-unce/core";
 
 const registry = getRegistry();
 

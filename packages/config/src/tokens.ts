@@ -1,8 +1,8 @@
 /**
- * Injection tokens for @ambrosia/config
+ * Injection tokens for @ambrosia-unce/config
  */
 
-import { InjectionToken } from "@ambrosia/core";
+import { InjectionToken } from "@ambrosia-unce/core";
 import type { ConfigSchema } from "./types.ts";
 
 /** Injection token for the parsed config values Map */

@@ -79,7 +79,7 @@ export interface QueryHandler<TQuery extends Query = Query, TResult = unknown> {
 }
 
 function commandBusTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 import type { Command, CommandHandler } from "./interfaces";
 
 @Injectable()
@@ -102,7 +102,7 @@ export class CommandBus {
 }
 
 function queryBusTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 import type { Query, QueryHandler } from "./interfaces";
 
 @Injectable()
@@ -125,7 +125,7 @@ export class QueryBus {
 }
 
 function sharedPackTs(): string {
-  return `import type { PackDefinition } from "@ambrosia/core";
+  return `import type { PackDefinition } from "@ambrosia-unce/core";
 import { CommandBus } from "./cqrs/command-bus";
 import { QueryBus } from "./cqrs/query-bus";
 
@@ -139,7 +139,7 @@ export const SharedPack: PackDefinition = {
 // --- Health Module ---
 
 function healthControllerTs(): string {
-  return `import { Controller, Http } from "@ambrosia/http";
+  return `import { Controller, Http } from "@ambrosia-unce/http";
 import { HealthService } from "./health.service";
 
 @Controller("/health")
@@ -160,7 +160,7 @@ export class HealthController {
 }
 
 function healthServiceTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 
 @Injectable()
 export class HealthService {
@@ -190,7 +190,7 @@ export class HealthService {
 }
 
 function healthPackTs(): string {
-  return `import type { HttpPackDefinition } from "@ambrosia/http";
+  return `import type { HttpPackDefinition } from "@ambrosia-unce/http";
 import { HealthController } from "./health.controller";
 import { HealthService } from "./health.service";
 
@@ -229,7 +229,7 @@ export class DeleteUserCommand implements Command {
 }
 
 function createUserHandlerTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 import type { CommandHandler } from "../../../../shared/cqrs/interfaces";
 import type { CreateUserCommand } from "../create-user.command";
 import { UserStore } from "../../user.store";
@@ -247,7 +247,7 @@ export class CreateUserHandler implements CommandHandler<CreateUserCommand, User
 }
 
 function deleteUserHandlerTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 import type { CommandHandler } from "../../../../shared/cqrs/interfaces";
 import type { DeleteUserCommand } from "../delete-user.command";
 import { UserStore } from "../../user.store";
@@ -286,7 +286,7 @@ export class ListUsersQuery implements Query {
 }
 
 function getUserHandlerTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 import type { QueryHandler } from "../../../../shared/cqrs/interfaces";
 import type { GetUserQuery } from "../get-user.query";
 import { UserStore } from "../../user.store";
@@ -304,7 +304,7 @@ export class GetUserHandler implements QueryHandler<GetUserQuery, User | undefin
 }
 
 function listUsersHandlerTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 import type { QueryHandler } from "../../../../shared/cqrs/interfaces";
 import type { ListUsersQuery } from "../list-users.query";
 import { UserStore } from "../../user.store";
@@ -335,7 +335,7 @@ function userModelTs(): string {
 }
 
 function userStoreTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
+  return `import { Injectable } from "@ambrosia-unce/core";
 import type { User } from "./models/user.model";
 
 @Injectable()
@@ -375,9 +375,9 @@ export class UserStore {
 // --- User Controller & Pack ---
 
 function userControllerTs(): string {
-  return `import { Controller, Http, Body, Param, Status } from "@ambrosia/http";
-import { NotFoundException } from "@ambrosia/http";
-import { assert } from "@ambrosia/validator";
+  return `import { Controller, Http, Body, Param, Status } from "@ambrosia-unce/http";
+import { NotFoundException } from "@ambrosia-unce/http";
+import { assert } from "@ambrosia-unce/validator";
 import { CommandBus } from "../../shared/cqrs/command-bus";
 import { QueryBus } from "../../shared/cqrs/query-bus";
 import { CreateUserCommand } from "./commands/create-user.command";
@@ -425,8 +425,8 @@ export class UserController {
 }
 
 function userPackTs(): string {
-  return `import type { HttpPackDefinition } from "@ambrosia/http";
-import type { OnInit } from "@ambrosia/core";
+  return `import type { HttpPackDefinition } from "@ambrosia-unce/http";
+import type { OnInit } from "@ambrosia-unce/core";
 import { UserController } from "./user.controller";
 import { UserStore } from "./user.store";
 import { CreateUserHandler } from "./commands/handlers/create-user.handler";
@@ -465,7 +465,7 @@ export const UserPack: HttpPackDefinition = {
 // --- Root ---
 
 function appPackTs(): string {
-  return `import type { PackDefinition } from "@ambrosia/core";
+  return `import type { PackDefinition } from "@ambrosia-unce/core";
 import { SharedPack } from "./shared/shared.pack";
 import { HealthPack } from "./modules/health/health.pack";
 import { UserPack } from "./modules/user/user.pack";
@@ -478,8 +478,8 @@ export const AppPack: PackDefinition = {
 
 function mainTs(): string {
   return `import "reflect-metadata";
-import { HttpApplication } from "@ambrosia/http";
-import { ElysiaProvider } from "@ambrosia/http-elysia";
+import { HttpApplication } from "@ambrosia-unce/http";
+import { ElysiaProvider } from "@ambrosia-unce/http-elysia";
 import { AppPack } from "./app.pack";
 
 async function bootstrap() {
@@ -505,9 +505,9 @@ bootstrap().catch((err) => {
 // --- Common ---
 
 function authGuardTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { Guard, ExecutionContext } from "@ambrosia/http";
-import { UnauthorizedException } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Guard, ExecutionContext } from "@ambrosia-unce/http";
+import { UnauthorizedException } from "@ambrosia-unce/http";
 
 @Injectable()
 export class AuthGuard implements Guard {
@@ -527,8 +527,8 @@ export class AuthGuard implements Guard {
 }
 
 function loggingInterceptorTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { Interceptor, ExecutionContext, CallHandler } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Interceptor, ExecutionContext, CallHandler } from "@ambrosia-unce/http";
 
 @Injectable()
 export class LoggingInterceptor implements Interceptor {
@@ -549,9 +549,9 @@ export class LoggingInterceptor implements Interceptor {
 }
 
 function httpExceptionFilterTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { ExceptionFilter, ExceptionFilterArgs } from "@ambrosia/http";
-import { HttpException } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { ExceptionFilter, ExceptionFilterArgs } from "@ambrosia-unce/http";
+import { HttpException } from "@ambrosia-unce/http";
 
 @Injectable()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -577,8 +577,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
 }
 
 function corsMiddlewareTs(): string {
-  return `import { Injectable } from "@ambrosia/core";
-import type { Middleware, IHttpRequest, IHttpResponse } from "@ambrosia/http";
+  return `import { Injectable } from "@ambrosia-unce/core";
+import type { Middleware, IHttpRequest, IHttpResponse } from "@ambrosia-unce/http";
 
 @Injectable()
 export class CorsMiddleware implements Middleware {

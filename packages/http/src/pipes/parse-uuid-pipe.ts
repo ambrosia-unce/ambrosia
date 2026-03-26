@@ -2,7 +2,7 @@
  * ParseUUIDPipe - validates UUID v4 format
  */
 
-import { Injectable } from "@ambrosia/core";
+import { Injectable } from "@ambrosia-unce/core";
 import { BadRequestException } from "../exceptions/built-in-exceptions.ts";
 import type { Pipe, PipeMetadata } from "./pipe.interface.ts";
 

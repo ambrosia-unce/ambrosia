@@ -2,13 +2,13 @@
  * DevToolsRouteCollector — collects registered route metadata
  * from HTTP controllers for DevTools introspection.
  *
- * Not to be confused with @ambrosia/http's RouteCollector which
+ * Not to be confused with @ambrosia-unce/http's RouteCollector which
  * is used during application bootstrap. This collector reads
  * the same metadata but returns a DevTools-friendly format.
  */
 
-import { Injectable, type Constructor } from "@ambrosia/core";
-import { HttpMetadataManager, RouteCollector } from "@ambrosia/http";
+import { Injectable, type Constructor } from "@ambrosia-unce/core";
+import { HttpMetadataManager, RouteCollector } from "@ambrosia-unce/http";
 import type { RouteInfo, RouteMapData, RouteParamInfo } from "../types.ts";
 
 @Injectable()
