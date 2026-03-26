@@ -1,6 +1,6 @@
 {
   "name": "@ambrosia-unce/devtools",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "DevTools dashboard backend for the Ambrosia framework — introspection, live events, and plugin system",
   "type": "module",
   "license": "MIT",
