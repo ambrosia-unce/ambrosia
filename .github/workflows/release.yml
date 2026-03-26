@@ -12,6 +12,7 @@ permissions:
   contents: write
   pull-requests: write
   id-token: write
+  packages: write
 
 jobs:
   release:
@@ -28,12 +29,12 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Build
         run: bun run build
 
-      - name: Create Release PR or Publish
+      - name: Create Release PR or Publish to npm
         id: changesets
         uses: changesets/action@v1
         with:
@@ -44,3 +45,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Dual publish: also push to GitHub Packages
+      - name: Publish to GitHub Packages
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > .npmrc
+          echo "@ambrosia:registry=https://npm.pkg.github.com" >> .npmrc
+          echo "provenance=false" >> .npmrc
+
+          for pkg in packages/core packages/http packages/http-elysia packages/validator packages/cli packages/config packages/events packages/devtools; do
+            if [ -f "$pkg/package.json" ]; then
+              echo "Publishing $pkg to GitHub Packages..."
+              cd "$pkg"
+              npm publish --registry=https://npm.pkg.github.com || true
+              cd "$GITHUB_WORKSPACE"
+            fi
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

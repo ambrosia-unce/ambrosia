@@ -35,7 +35,7 @@ export function baseOptions(locale: string): BaseLayoutProps {
       },
       {
         text: 'GitHub',
-        url: 'https://github.com/unmake/ambrosia',
+        url: 'https://github.com/ambrosia-unce/ambrosia',
         external: true,
         on: 'nav',
       },

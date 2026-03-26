@@ -5,14 +5,14 @@
   "type": "module",
   "license": "MIT",
   "author": "Ambrosia Framework",
-  "homepage": "https://github.com/unmake/ambrosia/tree/master/packages/config",
+  "homepage": "https://github.com/ambrosia-unce/ambrosia/tree/master/packages/config",
   "repository": {
     "type": "git",
-    "url": "https://github.com/unmake/ambrosia.git",
+    "url": "https://github.com/ambrosia-unce/ambrosia.git",
     "directory": "packages/config"
   },
   "bugs": {
-    "url": "https://github.com/unmake/ambrosia/issues"
+    "url": "https://github.com/ambrosia-unce/ambrosia/issues"
   },
   "keywords": [
     "config",

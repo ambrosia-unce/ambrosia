@@ -366,7 +366,7 @@ function Footer({ t, lang }: { t: LandingTranslations; lang: string }) {
   const footerLinks = [
     { label: t.footer.docs, href: `/${lang}/docs` },
     { label: t.footer.packMarket, href: "https://packs.ambrosia.dev" },
-    { label: "GitHub", href: "https://github.com/unmake/ambrosia" },
+    { label: "GitHub", href: "https://github.com/ambrosia-unce/ambrosia" },
     { label: "Discord", href: "https://discord.gg/ambrosia" },
   ];
 

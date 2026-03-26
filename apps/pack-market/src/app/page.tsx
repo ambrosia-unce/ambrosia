@@ -365,7 +365,7 @@ export default async function Home() {
           </div>
           <div className="flex items-center gap-4 text-[12px] text-muted-foreground/30">
             <Link
-              href="https://github.com/unmake/ambrosia"
+              href="https://github.com/ambrosia-unce/ambrosia"
               target="_blank"
               className="transition-colors hover:text-muted-foreground"
             >

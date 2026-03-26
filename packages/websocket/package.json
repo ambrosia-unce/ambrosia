@@ -5,10 +5,10 @@
   "type": "module",
   "license": "MIT",
   "author": "Ambrosia Framework",
-  "homepage": "https://github.com/unmake/ambrosia/tree/master/packages/websocket",
+  "homepage": "https://github.com/ambrosia-unce/ambrosia/tree/master/packages/websocket",
   "repository": {
     "type": "git",
-    "url": "https://github.com/unmake/ambrosia.git",
+    "url": "https://github.com/ambrosia-unce/ambrosia.git",
     "directory": "packages/websocket"
   },
   "main": "./dist/index.js",
