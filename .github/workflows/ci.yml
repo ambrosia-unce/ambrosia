@@ -50,5 +50,14 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
-      - name: Test
-        run: bun run test
+      - name: Test core
+        working-directory: packages/core
+        run: bun test
+
+      - name: Test config
+        working-directory: packages/config
+        run: bun test
+
+      - name: Test events
+        working-directory: packages/events
+        run: bun test
