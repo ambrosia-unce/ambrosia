@@ -1,0 +1,295 @@
+---
+title: "Quick Start"
+description: "Create your first HTTP server in 5 minutes"
+---
+
+# Quick Start
+
+Create a full-featured HTTP server with validation, guards, and DI in just a few minutes.
+
+## Step 1: Installation
+
+```bash
+bun add @ambrosia/http @ambrosia/http-elysia @ambrosia/core @sinclair/typebox
+```
+
+## Step 2: Create a DTO
+
+Create `src/dto/create-user.dto.ts`:
+
+```typescript title="src/dto/create-user.dto.ts"
+import { Type } from '@sinclair/typebox';
+
+export class CreateUserDto {
+  // TypeBox schema for validation
+  static schema = Type.Object({
+    name: Type.String({ minLength: 2, maxLength: 50 }),
+    email: Type.String({ format: 'email' }),
+    age: Type.Number({ minimum: 18, maximum: 120 })
+  });
+
+  name!: string;
+  email!: string;
+  age!: number;
+}
+```
+
+## Step 3: Create a Service
+
+Create `src/services/user.service.ts`:
+
+```typescript title="src/services/user.service.ts"
+import { Injectable } from '@ambrosia/core';
+import type { CreateUserDto } from '../dto/create-user.dto.ts';
+
+@Injectable()
+export class UserService {
+  private users: any[] = [];
+  private idCounter = 1;
+
+  findAll() {
+    return this.users;
+  }
+
+  findById(id: string) {
+    return this.users.find(u => u.id === id);
+  }
+
+  create(dto: CreateUserDto) {
+    const user = {
+      id: String(this.idCounter++),
+      ...dto,
+      createdAt: new Date().toISOString()
+    };
+    this.users.push(user);
+    return user;
+  }
+
+  delete(id: string) {
+    const index = this.users.findIndex(u => u.id === id);
+    if (index === -1) return false;
+    this.users.splice(index, 1);
+    return true;
+  }
+}
+```
+
+## Step 4: Create a Controller
+
+Create `src/controllers/user.controller.ts`:
+
+```typescript title="src/controllers/user.controller.ts"
+import {
+  Controller,
+  Http,
+  Body,
+  Param,
+  Status,
+  NotFoundException
+} from '@ambrosia/http';
+import { UserService } from '../services/user.service.ts';
+import { CreateUserDto } from '../dto/create-user.dto.ts';
+
+@Controller('/users')
+export class UserController {
+  constructor(private userService: UserService) {}
+
+  @Http.Get('/')
+  findAll() {
+    return this.userService.findAll();
+  }
+
+  @Http.Get('/:id')
+  findOne(@Param('id') id: string) {
+    const user = this.userService.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return user;
+  }
+
+  @Http.Post('/')
+  @Status(201)
+  create(@Body() dto: CreateUserDto) {
+    // ValidationPipe automatically validates dto
+    return this.userService.create(dto);
+  }
+
+  @Http.Delete('/:id')
+  @Status(204)
+  delete(@Param('id') id: string) {
+    const deleted = this.userService.delete(id);
+    if (!deleted) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+  }
+}
+```
+
+## Step 5: Create the Main File
+
+Create `src/main.ts`:
+
+```typescript title="src/main.ts"
+import { HttpApplication, ValidationPipe } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalPipes: [ValidationPipe], // Automatic validation
+  port: 3000,
+  prefix: '/api' // Global prefix
+});
+
+await app.listen();
+```
+
+## Step 6: Run
+
+```bash
+bun run src/main.ts
+```
+
+You'll see:
+
+```
+[Ambrosia] Registered 4 routes from 1 controllers
+Ambrosia HTTP Server running on http://localhost:3000
+```
+
+## Step 7: Testing
+
+### Create a User
+
+```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "age": 25
+  }'
+```
+
+Response:
+
+```json
+{
+  "id": "1",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "age": 25,
+  "createdAt": "2024-02-03T12:00:00.000Z"
+}
+```
+
+### Validation Works!
+
+Try invalid data:
+
+```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "A",
+    "email": "not-an-email",
+    "age": 15
+  }'
+```
+
+You'll get a validation error:
+
+```json
+{
+  "statusCode": 422,
+  "error": "Validation Failed",
+  "message": "Validation failed",
+  "errors": [
+    {
+      "property": "/name",
+      "constraints": {
+        "minLength": "String must have at least 2 characters"
+      },
+      "value": "A"
+    },
+    {
+      "property": "/email",
+      "constraints": {
+        "format": "String does not match email format"
+      },
+      "value": "not-an-email"
+    },
+    {
+      "property": "/age",
+      "constraints": {
+        "minimum": "Number must be greater than or equal to 18"
+      },
+      "value": 15
+    }
+  ],
+  "timestamp": "2024-02-03T12:00:00.000Z",
+  "path": "/api/users"
+}
+```
+
+## What We Built
+
+- **RESTful API** with CRUD operations
+- **Automatic validation** with TypeBox
+- **Dependency Injection** - UserService injected automatically
+- **Error handling** - NotFoundException automatically returns 404
+- **HTTP status codes** - @Status(201) for creation, @Status(204) for deletion
+- **Detailed validation errors** - ValidationError with error array
+
+## Adding a Guard
+
+Let's protect our routes with a guard:
+
+```typescript title="src/guards/auth.guard.ts"
+import { Injectable } from '@ambrosia/core';
+import {
+  Guard,
+  ExecutionContext,
+  UnauthorizedException
+} from '@ambrosia/http';
+
+@Injectable()
+export class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers['authorization'];
+
+    if (!token) {
+      throw new UnauthorizedException('Authorization token required');
+    }
+
+    if (!token.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Invalid token format');
+    }
+
+    return true;
+  }
+}
+```
+
+Apply it to the controller:
+
+```typescript {1,3}
+import { UseGuard } from '@ambrosia/http';
+
+@UseGuard(AuthGuard)
+@Controller('/users')
+export class UserController {
+  // ...
+}
+```
+
+Now all routes require an Authorization header!
+
+## Next Steps
+
+- [Core Concepts](/docs/http/getting-started/concepts) - Understand the architecture
+- [Controllers](/docs/http/guides/controllers) - More about controllers
+- [Guards](/docs/http/guides/guards) - Route protection
+- [Interceptors](/docs/http/guides/interceptors) - Request transformation
+- [Examples](/docs/http/examples/rest-api) - More examples

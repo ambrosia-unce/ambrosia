@@ -1,0 +1,254 @@
+---
+title: Server-Sent Events (SSE)
+description: Streaming data from the server with SSE in Ambrosia HTTP
+---
+
+# Server-Sent Events (SSE)
+
+SSE allows the server to send a stream of events to the client through a one-way HTTP connection. It is simpler than WebSocket and ideal for notifications, real-time updates, and data streaming.
+
+## Basics
+
+To create an SSE endpoint, use the `@Sse()` decorator and return an `SseStream` instance:
+
+```typescript
+import { Controller, Http } from '@ambrosia/http';
+import { Sse, SseStream } from '@ambrosia/http';
+
+@Controller('/events')
+export class EventController {
+  @Sse()
+  @Http.Get('/stream')
+  stream() {
+    const sse = new SseStream();
+
+    // Send events every second
+    const interval = setInterval(() => {
+      sse.send({ data: { time: Date.now() } });
+    }, 1000);
+
+    // Cleanup on client disconnect
+    sse.onClose(() => {
+      clearInterval(interval);
+    });
+
+    return sse;
+  }
+}
+```
+
+Ambrosia automatically:
+- Sets `Content-Type: text/event-stream`
+- Sets `Cache-Control: no-cache`
+- Sets `Connection: keep-alive`
+- Returns a `ReadableStream` to the provider
+
+## SseStream API
+
+### send(event)
+
+Sends an event to the client:
+
+```typescript
+// Data only
+sse.send({ data: { message: 'hello' } });
+
+// With event name
+sse.send({ event: 'notification', data: { text: 'New message' } });
+
+// With ID (for connection recovery)
+sse.send({ id: '42', data: { count: 42 } });
+
+// With retry (reconnection interval in ms)
+sse.send({ retry: 5000, data: { status: 'reconnect' } });
+```
+
+### close()
+
+Closes the stream:
+
+```typescript
+sse.close();
+```
+
+### onClose(callback)
+
+Registers a callback when the stream closes:
+
+```typescript
+sse.onClose(() => {
+  console.log('Client disconnected');
+  // Release resources
+});
+```
+
+### stream
+
+The `ReadableStream` property for low-level access:
+
+```typescript
+const readableStream = sse.stream;
+```
+
+## SseEvent Interface
+
+```typescript
+interface SseEvent {
+  /** Event name (event: field) */
+  event?: string;
+  /** Data (data: field, serialized to JSON if object) */
+  data: any;
+  /** Event ID (id: field) */
+  id?: string;
+  /** Reconnection interval in ms (retry: field) */
+  retry?: number;
+}
+```
+
+## Examples
+
+### Real-Time Notifications
+
+```typescript
+@Controller('/notifications')
+export class NotificationController {
+  constructor(private notificationService: NotificationService) {}
+
+  @Sse()
+  @Http.Get('/live')
+  live() {
+    const sse = new SseStream();
+
+    const unsubscribe = this.notificationService.subscribe((notification) => {
+      sse.send({
+        event: 'notification',
+        data: notification,
+        id: notification.id,
+      });
+    });
+
+    sse.onClose(() => {
+      unsubscribe();
+    });
+
+    return sse;
+  }
+}
+```
+
+### Long-Running Operation Progress
+
+```typescript
+@Controller('/tasks')
+export class TaskController {
+  constructor(private taskService: TaskService) {}
+
+  @Sse()
+  @Http.Get('/:id/progress')
+  progress(@Param('id') taskId: string) {
+    const sse = new SseStream();
+
+    this.taskService.onProgress(taskId, (progress) => {
+      sse.send({
+        event: 'progress',
+        data: { taskId, percent: progress },
+      });
+
+      if (progress >= 100) {
+        sse.send({ event: 'complete', data: { taskId } });
+        sse.close();
+      }
+    });
+
+    sse.onClose(() => {
+      this.taskService.removeProgressListener(taskId);
+    });
+
+    return sse;
+  }
+}
+```
+
+### Log Streaming
+
+```typescript
+@Controller('/logs')
+export class LogController {
+  @Sse()
+  @Http.Get('/tail')
+  tail() {
+    const sse = new SseStream();
+    let lineCount = 0;
+
+    const watcher = watchFile('/var/log/app.log', (line) => {
+      sse.send({
+        event: 'log',
+        data: { line, number: ++lineCount },
+        id: String(lineCount),
+      });
+    });
+
+    sse.onClose(() => {
+      watcher.close();
+    });
+
+    return sse;
+  }
+}
+```
+
+## Client Side
+
+```javascript
+const source = new EventSource('/events/stream');
+
+// All events
+source.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Message:', data);
+};
+
+// Named events
+source.addEventListener('notification', (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Notification:', data);
+});
+
+// Errors and reconnection
+source.onerror = (error) => {
+  console.error('SSE error:', error);
+  // EventSource automatically reconnects
+};
+
+// Close
+source.close();
+```
+
+## SSE vs WebSocket
+
+| Feature | SSE | WebSocket |
+|---|---|---|
+| Direction | Server -> Client | Bidirectional |
+| Protocol | HTTP | WS |
+| Reconnection | Automatic | Manual |
+| Binary data | No | Yes |
+| Browser support | All modern | All modern |
+| Proxy/CDN | Full | Limited |
+
+Use SSE when:
+- Data flows only from server to client
+- You need automatic reconnection
+- HTTP infrastructure compatibility (proxies, CDN) matters
+
+## Best Practices
+
+1. **Clean up resources**: Always use `onClose()` to release resources when the client disconnects
+2. **Use IDs**: Specify `id` for events so the client can recover missed events via `Last-Event-ID`
+3. **Name events**: Use `event` to separate message types
+4. **Limit frequency**: Don't send events too often -- use throttling/debouncing
+5. **Graceful shutdown**: Close streams when the server stops
+
+## See Also
+
+- [Controllers](/docs/http/guides/controllers) - Creating controllers
+- [Interceptors](/docs/http/guides/interceptors) - Response transformation

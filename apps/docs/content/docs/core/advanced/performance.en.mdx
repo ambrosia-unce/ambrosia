@@ -1,0 +1,135 @@
+---
+title: "Performance Optimization"
+description: "Production mode, metadata caching, and scope selection for maximum performance"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Performance Optimization
+
+Guide to achieving maximum DI container performance.
+
+## Benchmark Results
+
+| Operation | Ops/sec | Time |
+|-----------|---------|------|
+| Singleton (cache) | 1,005,257 | 0.995us |
+| Simple (production) | 867,814 | 1.152us |
+| Complex (production) | 443,715 | 2.254us |
+| Simple (development) | 806,392 | 1.240us |
+| Complex (development) | 351,549 | 2.845us |
+
+## Production vs Development
+
+```typescript
+// Development: full diagnostics
+const devContainer = new Container({
+  mode: "development",
+  enableCycleDetection: true,
+});
+
+// Production: maximum speed
+const prodContainer = new Container({
+  mode: "production",
+});
+```
+
+**Production mode gains:**
+- Simple service: **+7.4%** (806K -> 867K ops/sec)
+- Complex service: **+22.8%** (351K -> 443K ops/sec)
+
+## Choosing the Right Scope
+
+| Scope | Ops/sec | Overhead | Recommendation |
+|-------|---------|----------|----------------|
+| SINGLETON | 1,000,000+ | Minimal | Default for everything |
+| REQUEST | ~600,000 | AsyncLocalStorage | Only for request context |
+| TRANSIENT | ~400,000 | Creation + GC | Only for stateful objects |
+
+<Callout type="success">
+**Rule:** Use `SINGLETON` for everything unless you need state isolation (REQUEST/TRANSIENT).
+</Callout>
+
+## Container Optimizations
+
+### Flattened Provider Lookup
+
+The container pre-populates providers from the Registry and parent container into a flat map for single-lookup resolution.
+
+**Gain:** ~50% faster provider lookup.
+
+### WeakMap Metadata Cache
+
+Caching reflect-metadata in WeakMap for one-time metadata extraction.
+
+**Gain:** ~70% faster parameter resolution.
+
+### Silent Logger in Production
+
+```typescript
+import { setGlobalLogger, SilentLogger } from "@ambrosia/core";
+
+setGlobalLogger(new SilentLogger());
+```
+
+**Gain:** 100% (complete elimination of logging overhead).
+
+## Anti-Patterns
+
+### Resolve in a Loop
+
+```typescript
+// Bad: resolve on every iteration
+for (const item of items) {
+  const service = container.resolve(UserService);
+  await service.process(item);
+}
+
+// Good: resolve once
+const service = container.resolve(UserService);
+for (const item of items) {
+  await service.process(item);
+}
+```
+
+### Deep Dependency Graphs
+
+```typescript
+// Bad: 7+ nesting levels (5-10ms on first resolve)
+// Good: <= 3-4 levels (1-2ms on first resolve)
+// Controller -> Service -> Repository -> Database
+```
+
+### TRANSIENT Without Need
+
+```typescript
+// Bad: TRANSIENT for a stateless service
+@Injectable({ scope: Scope.TRANSIENT })
+class MathService {
+  add(a: number, b: number) { return a + b; }
+}
+
+// Good: SINGLETON (default)
+@Injectable()
+class MathService {
+  add(a: number, b: number) { return a + b; }
+}
+```
+
+## Production Checklist
+
+- `mode: "production"` in ContainerOptions
+- `SilentLogger` or no LoggingPlugin
+- SINGLETON for all stateless services
+- REQUEST scope only for HTTP context
+- TRANSIENT only for stateful objects
+- Resolve outside loops (cache the result)
+- Dependency graph 4 levels or fewer
+- `Bun.gc(true)` after initialization (optional)
+
+## Next Steps
+
+- [Benchmarks](/docs/core/benchmarks/results) - Detailed results
+- [Scopes](/docs/core/guides/scopes) - Scope selection
+- [Plugin Development](/docs/core/advanced/plugin-development) - Profiling via plugins

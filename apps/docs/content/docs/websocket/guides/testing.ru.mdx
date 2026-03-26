@@ -1,0 +1,118 @@
+---
+title: "Тестирование"
+description: "Тестирование WebSocket гейтвеев с TestingWsFactory"
+---
+
+# Тестирование WebSocket
+
+`@ambrosia/websocket` предоставляет утилиты для тестирования гейтвеев без запуска реального сервера.
+
+## TestingWsFactory
+
+Создаёт WebSocket приложение с mock провайдером:
+
+```typescript title="chat.gateway.test.ts"
+import { describe, test, expect } from "bun:test";
+import "reflect-metadata";
+import { TestingWsFactory, MockWsClient } from "@ambrosia/websocket";
+import { ChatGateway } from "./chat.gateway";
+
+describe("ChatGateway", () => {
+  test("handles message", async () => {
+    const module = await TestingWsFactory.create({
+      gateways: [ChatGateway],
+    }).compile();
+
+    const client = new MockWsClient("user-1");
+    await module.connect("/chat", client);
+
+    await module.send("/chat", client, {
+      event: "sendMessage",
+      data: { text: "Hello!" },
+    });
+
+    // Проверяем что клиент получил ответ
+    expect(client.sent).toHaveLength(1);
+    expect(client.sent[0].event).toBe("newMessage");
+    expect(client.sent[0].data.text).toBe("Hello!");
+  });
+});
+```
+
+## MockWsClient
+
+Мок WebSocket клиента. Записывает все отправленные сообщения:
+
+```typescript
+const client = new MockWsClient("test-user");
+
+// После взаимодействия с гейтвеем:
+client.sent;      // [{ event: "newMessage", data: { text: "Hello" } }]
+client.rawSent;   // ["raw data"]
+client.closed;    // false
+client.data;      // { custom: "data" }
+```
+
+## Методы TestingWsModule
+
+```typescript
+const module = await TestingWsFactory.create({ gateways: [...] }).compile();
+
+// Симуляция клиентского подключения
+await module.connect("/chat", client);
+
+// Отправка сообщения
+await module.send("/chat", client, { event: "ping", data: {} });
+
+// Отключение
+await module.disconnect("/chat", client, 1000, "bye");
+
+// Доступ к DI
+const service = module.get(ChatService);
+
+// Список зарегистрированных gateway путей
+module.getGatewayPaths(); // ["/chat", "/notifications"]
+```
+
+## Override зависимостей
+
+```typescript
+const mockChatService = {
+  addMessage: (text: string) => ({ text, ts: 0 }),
+  getHistory: () => [],
+};
+
+const module = await TestingWsFactory.create({
+  gateways: [ChatGateway],
+})
+  .overrideValue(ChatService, mockChatService)
+  .compile();
+```
+
+## Тестирование lifecycle
+
+```typescript
+test("connection and disconnection", async () => {
+  const module = await TestingWsFactory.create({
+    gateways: [ChatGateway],
+  }).compile();
+
+  const client = new MockWsClient("user-1");
+
+  // Подключение
+  await module.connect("/chat", client);
+  const gateway = module.get(ChatGateway);
+  expect(gateway.getConnectedClients()).toContain("user-1");
+
+  // Отключение
+  await module.disconnect("/chat", client);
+  expect(gateway.getConnectedClients()).not.toContain("user-1");
+});
+```
+
+## Best Practices
+
+- Создавайте новый `MockWsClient` для каждого теста
+- Проверяйте `client.sent` для валидации ответов
+- Используйте `overrideValue` для мокирования сервисов
+- Тестируйте edge cases: отправка в неизвестный event, disconnect без connect

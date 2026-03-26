@@ -1,0 +1,638 @@
+---
+title: "Создание первого API"
+description: "Пошаговое руководство по созданию CRUD API на Ambrosia: контроллеры, сервисы, валидация, конфиг и события"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# Создание первого API
+
+В этом руководстве вы создадите API для блог-постов с нуля. Каждый шаг знакомит с новой концепцией Ambrosia, и к концу у вас будет полностью рабочий CRUD API с внедрением зависимостей, валидацией, конфигурацией и событиями.
+
+<Callout type="info">
+Предполагается, что вы прошли шаг [Установка](/docs/getting-started/installation) и создали проект через `ambrosia new my-api --arch modular`.
+</Callout>
+
+## Шаг 1: Создание контроллера
+
+Контроллеры обрабатывают входящие HTTP-запросы и возвращают ответы. Сгенерируем один:
+
+```bash
+ambrosia g controller posts
+```
+
+Будет создан файл `src/posts/posts.controller.ts`. Откройте его и замените содержимое:
+
+```ts
+import { Controller, Http } from '@ambrosia/http';
+
+@Controller('/posts')
+export class PostsController {
+  @Http.Get()
+  findAll() {
+    return { message: 'Здесь будут все посты' };
+  }
+}
+```
+
+Что здесь происходит:
+
+- `@Controller('/posts')` помечает класс как HTTP-контроллер на пути `/posts`. Он также автоматически применяет `@Injectable()` -- добавлять его вручную не нужно.
+- `@Http.Get()` связывает метод `findAll` с `GET /posts`.
+- Возвращаемое значение автоматически сериализуется в JSON.
+
+### Регистрация контроллера
+
+Откройте `src/main.ts` и добавьте контроллер:
+
+```ts
+import 'reflect-metadata';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { AppPack } from './app.pack.ts';
+import { PostsController } from './posts/posts.controller.ts';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  controllers: [PostsController],
+  port: 3000,
+});
+
+await app.listen();
+```
+
+### Проверка
+
+```bash
+bun run dev
+```
+
+```bash
+curl http://localhost:3000/posts
+```
+
+Ожидаемый результат:
+
+```json
+{"message":"Здесь будут все посты"}
+```
+
+## Шаг 2: Добавление сервиса
+
+Бизнес-логика не должна находиться в контроллерах. Создадим сервис для управления постами:
+
+```bash
+ambrosia g service posts
+```
+
+Будет создан `src/posts/posts.service.ts`. Замените содержимое:
+
+```ts
+import { Injectable } from '@ambrosia/core';
+
+export interface Post {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: Date;
+}
+
+@Injectable()
+export class PostsService {
+  private posts: Post[] = [];
+
+  findAll(): Post[] {
+    return this.posts;
+  }
+
+  findOne(id: string): Post | undefined {
+    return this.posts.find(p => p.id === id);
+  }
+
+  create(title: string, content: string): Post {
+    const post: Post = {
+      id: crypto.randomUUID(),
+      title,
+      content,
+      createdAt: new Date(),
+    };
+    this.posts.push(post);
+    return post;
+  }
+
+  update(id: string, title: string, content: string): Post | undefined {
+    const post = this.findOne(id);
+    if (!post) return undefined;
+    post.title = title;
+    post.content = content;
+    return post;
+  }
+
+  delete(id: string): boolean {
+    const index = this.posts.findIndex(p => p.id === id);
+    if (index === -1) return false;
+    this.posts.splice(index, 1);
+    return true;
+  }
+}
+```
+
+Декоратор `@Injectable()` регистрирует класс в DI-контейнере. Контейнер создает синглтон по умолчанию и инжектит его везде, где он запрашивается.
+
+### Подключение сервиса к контроллеру
+
+Обновите `posts.controller.ts`, чтобы инжектить сервис:
+
+```ts
+import { Controller, Http, Body, Param, Status } from '@ambrosia/http';
+import { PostsService } from './posts.service.ts';
+
+@Controller('/posts')
+export class PostsController {
+  constructor(private postsService: PostsService) {}
+
+  @Http.Get()
+  findAll() {
+    return this.postsService.findAll();
+  }
+
+  @Http.Get('/:id')
+  findOne(@Param('id') id: string) {
+    return this.postsService.findOne(id);
+  }
+
+  @Http.Post()
+  @Status(201)
+  create(@Body() body: { title: string; content: string }) {
+    return this.postsService.create(body.title, body.content);
+  }
+
+  @Http.Put('/:id')
+  update(
+    @Param('id') id: string,
+    @Body() body: { title: string; content: string },
+  ) {
+    return this.postsService.update(id, body.title, body.content);
+  }
+
+  @Http.Delete('/:id')
+  delete(@Param('id') id: string) {
+    const deleted = this.postsService.delete(id);
+    return { deleted };
+  }
+}
+```
+
+Новые концепции:
+
+- **Инъекция через конструктор** -- `private postsService: PostsService` в конструкторе. Ambrosia читает метаданные типов и автоматически разрешает зависимость.
+- `@Param('id')` извлекает path-параметр `:id`.
+- `@Body()` извлекает распарсенное тело запроса.
+- `@Status(201)` устанавливает код ответа для метода `create`.
+
+### Регистрация сервиса
+
+Добавьте `PostsService` в providers в `app.pack.ts`:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import { PostsService } from './posts/posts.service.ts';
+
+export const AppPack = definePack({
+  providers: [PostsService],
+});
+```
+
+### Тестирование CRUD
+
+```bash
+bun run dev
+```
+
+Создание поста:
+
+```bash
+curl -X POST http://localhost:3000/posts \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Мой первый пост", "content": "Привет из Ambrosia!"}'
+```
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "title": "Мой первый пост",
+  "content": "Привет из Ambrosia!",
+  "createdAt": "2025-01-15T10:30:00.000Z"
+}
+```
+
+Список всех постов:
+
+```bash
+curl http://localhost:3000/posts
+```
+
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "Мой первый пост",
+    "content": "Привет из Ambrosia!",
+    "createdAt": "2025-01-15T10:30:00.000Z"
+  }
+]
+```
+
+## Шаг 3: Создание пака
+
+Сейчас контроллер и сервис зарегистрированы в разных местах. Объединим их в **пак** -- единицу модульности Ambrosia:
+
+Создайте `src/posts/posts.pack.ts`:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import type { HttpPackDefinition } from '@ambrosia/http';
+import { PostsController } from './posts.controller.ts';
+import { PostsService } from './posts.service.ts';
+
+export const PostsPack: HttpPackDefinition = {
+  ...definePack({
+    providers: [PostsService],
+    exports: [PostsService],
+  }),
+  controllers: [PostsController],
+};
+```
+
+Упростите `app.pack.ts`:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import { PostsPack } from './posts/posts.pack.ts';
+
+export const AppPack = definePack({
+  imports: [PostsPack],
+});
+```
+
+И упростите `main.ts` -- удалите массив `controllers`, ведь пак теперь управляет ими:
+
+```ts
+import 'reflect-metadata';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { AppPack } from './app.pack.ts';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  port: 3000,
+});
+
+await app.listen();
+```
+
+<Callout type="info">
+**Зачем паки?** Паки обеспечивают инкапсуляцию. Провайдеры пака приватны по умолчанию -- только то, что указано в `exports`, видно другим пакам. Это предотвращает жесткую связанность между фичами.
+</Callout>
+
+## Шаг 4: Добавление валидации
+
+Типы `body` не дают гарантий в рантайме. Добавим compile-time валидацию через `@ambrosia/validator`.
+
+Установите валидатор:
+
+```bash
+bun add @ambrosia/validator
+```
+
+Убедитесь, что в `bunfig.toml` есть preload:
+
+```toml
+preload = ["@ambrosia/validator/preload"]
+```
+
+Создайте DTO (Data Transfer Object) в `src/posts/dto/create-post.dto.ts`:
+
+```ts
+export interface CreatePostDto {
+  /** @minLength 1 */
+  /** @maxLength 200 */
+  title: string;
+
+  /** @minLength 1 */
+  content: string;
+}
+```
+
+Обновите контроллер для использования валидации:
+
+```ts
+import { Controller, Http, Body, Param, Status, Validate } from '@ambrosia/http';
+import { PostsService } from './posts.service.ts';
+import type { CreatePostDto } from './dto/create-post.dto.ts';
+
+@Controller('/posts')
+export class PostsController {
+  constructor(private postsService: PostsService) {}
+
+  @Http.Get()
+  findAll() {
+    return this.postsService.findAll();
+  }
+
+  @Http.Get('/:id')
+  findOne(@Param('id') id: string) {
+    return this.postsService.findOne(id);
+  }
+
+  @Http.Post()
+  @Status(201)
+  create(@Body() @Validate() body: CreatePostDto) {
+    return this.postsService.create(body.title, body.content);
+  }
+
+  @Http.Put('/:id')
+  update(
+    @Param('id') id: string,
+    @Body() @Validate() body: CreatePostDto,
+  ) {
+    return this.postsService.update(id, body.title, body.content);
+  }
+
+  @Http.Delete('/:id')
+  delete(@Param('id') id: string) {
+    const deleted = this.postsService.delete(id);
+    return { deleted };
+  }
+}
+```
+
+Декоратор `@Validate()` -- это маркер. TypeScript-трансформер `@ambrosia/validator` обнаруживает его на этапе компиляции и генерирует встроенный валидационный код. Никаких runtime-библиотек для схем не требуется.
+
+### Тестирование валидации
+
+```bash
+curl -X POST http://localhost:3000/posts \
+  -H "Content-Type: application/json" \
+  -d '{"title": "", "content": "test"}'
+```
+
+Вернется `400 Bad Request`, потому что заголовок нарушает ограничение `@minLength 1`.
+
+<Callout type="warn">
+Декоратор `@Validate()` требует активации `@ambrosia/validator/preload` в `bunfig.toml`. Без этого декоратор ничего не делает.
+</Callout>
+
+## Шаг 5: Добавление конфигурации
+
+Хардкодить порт и другие значения -- плохая практика. Используем `@ambrosia/config` для типобезопасной конфигурации из окружения.
+
+```bash
+bun add @ambrosia/config
+```
+
+Создайте схему конфига в `src/config/app.config.ts`:
+
+```ts
+import { defineConfig } from '@ambrosia/config';
+
+export const AppConfig = defineConfig({
+  port: { env: 'PORT', type: 'int', default: 3000 },
+  nodeEnv: { env: 'NODE_ENV', type: 'string', default: 'development' },
+  logLevel: { env: 'LOG_LEVEL', type: 'string', default: 'info' },
+});
+```
+
+Создайте файл `.env` в корне проекта:
+
+```
+PORT=3000
+NODE_ENV=development
+LOG_LEVEL=info
+```
+
+Обновите `app.pack.ts`, чтобы импортировать модуль конфигурации:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import { ConfigModule } from '@ambrosia/config';
+import { AppConfig } from './config/app.config.ts';
+import { PostsPack } from './posts/posts.pack.ts';
+
+export const AppPack = definePack({
+  imports: [
+    ConfigModule.forRoot({
+      schema: AppConfig,
+      envPath: '.env',
+      validate: true,
+    }),
+    PostsPack,
+  ],
+});
+```
+
+Теперь используйте `ConfigService` в `main.ts`:
+
+```ts
+import 'reflect-metadata';
+import { Container } from '@ambrosia/core';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { ConfigService } from '@ambrosia/config';
+import { AppPack } from './app.pack.ts';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+});
+
+// Доступ к конфигу после создания приложения (паки обработаны)
+const config = app.getContainer().resolve(ConfigService);
+const port = config.get<number>('port') ?? 3000;
+
+await app.listen(port);
+```
+
+<Callout type="info">
+`defineConfig` определяет схему с именами переменных окружения, типами и значениями по умолчанию. При загрузке `ConfigModule.forRoot()` парсит все переменные **один раз** в неизменяемую Map. После этого `ConfigService.get<T>(key)` -- это бесплатный `Map.get()`.
+</Callout>
+
+## Шаг 6: Добавление событий
+
+Сделаем так, чтобы при создании поста отправлялось событие -- другие части системы смогут реагировать без жесткой связанности.
+
+```bash
+bun add @ambrosia/events
+```
+
+Создайте класс события в `src/posts/events/post-created.event.ts`:
+
+```ts
+export class PostCreatedEvent {
+  constructor(
+    public readonly postId: string,
+    public readonly title: string,
+  ) {}
+}
+```
+
+Создайте слушатель в `src/posts/listeners/post-created.listener.ts`:
+
+```ts
+import { Injectable } from '@ambrosia/core';
+import { OnEvent } from '@ambrosia/events';
+import { PostCreatedEvent } from '../events/post-created.event.ts';
+
+@Injectable()
+export class PostCreatedListener {
+  @OnEvent(PostCreatedEvent)
+  onPostCreated(event: PostCreatedEvent) {
+    console.log(`[PostCreatedListener] Новый пост: "${event.title}" (${event.postId})`);
+  }
+}
+```
+
+Обновите сервис для отправки события:
+
+```ts
+import { Injectable } from '@ambrosia/core';
+import { EventBus } from '@ambrosia/events';
+import { PostCreatedEvent } from './events/post-created.event.ts';
+
+export interface Post {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: Date;
+}
+
+@Injectable()
+export class PostsService {
+  private posts: Post[] = [];
+
+  constructor(private eventBus: EventBus) {}
+
+  findAll(): Post[] {
+    return this.posts;
+  }
+
+  findOne(id: string): Post | undefined {
+    return this.posts.find(p => p.id === id);
+  }
+
+  create(title: string, content: string): Post {
+    const post: Post = {
+      id: crypto.randomUUID(),
+      title,
+      content,
+      createdAt: new Date(),
+    };
+    this.posts.push(post);
+
+    // Отправляем событие -- слушатели реагируют, а сервис о них ничего не знает
+    this.eventBus.emit(new PostCreatedEvent(post.id, post.title));
+
+    return post;
+  }
+
+  update(id: string, title: string, content: string): Post | undefined {
+    const post = this.findOne(id);
+    if (!post) return undefined;
+    post.title = title;
+    post.content = content;
+    return post;
+  }
+
+  delete(id: string): boolean {
+    const index = this.posts.findIndex(p => p.id === id);
+    if (index === -1) return false;
+    this.posts.splice(index, 1);
+    return true;
+  }
+}
+```
+
+Обновите пак постов, чтобы включить модуль событий и слушатель:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import type { HttpPackDefinition } from '@ambrosia/http';
+import { EventBusModule } from '@ambrosia/events';
+import { PostsController } from './posts.controller.ts';
+import { PostsService } from './posts.service.ts';
+import { PostCreatedListener } from './listeners/post-created.listener.ts';
+
+export const PostsPack: HttpPackDefinition = {
+  ...definePack({
+    imports: [EventBusModule.forRoot()],
+    providers: [PostsService, PostCreatedListener],
+    exports: [PostsService],
+  }),
+  controllers: [PostsController],
+};
+```
+
+### Тестирование событий
+
+```bash
+bun run dev
+```
+
+```bash
+curl -X POST http://localhost:3000/posts \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Event-Driven пост", "content": "Это вызовет событие!"}'
+```
+
+Проверьте консоль сервера -- вы увидите:
+
+```
+[PostCreatedListener] Новый пост: "Event-Driven пост" (550e8400-...)
+```
+
+Слушатель сработает автоматически. `PostsService` ничего не знает о слушателе -- они развязаны через шину событий.
+
+## Итоговая структура проекта
+
+После выполнения всех шагов структура проекта выглядит так:
+
+```
+my-api/
+  src/
+    config/
+      app.config.ts             # Схема конфигурации
+    posts/
+      dto/
+        create-post.dto.ts      # DTO для валидации
+      events/
+        post-created.event.ts   # Класс события
+      listeners/
+        post-created.listener.ts # Слушатель события
+      posts.controller.ts       # HTTP-контроллер
+      posts.service.ts          # Бизнес-логика
+      posts.pack.ts             # Feature-пак
+    app.pack.ts                 # Корневой пак
+    main.ts                     # Точка входа
+  bunfig.toml
+  package.json
+  tsconfig.json
+  .env
+```
+
+## Итоги
+
+В этом руководстве вы узнали:
+
+1. **Контроллеры** обрабатывают HTTP-запросы с помощью `@Controller` и `@Http.Get/Post/Put/Delete`
+2. **Сервисы** содержат бизнес-логику и инжектятся через параметры конструктора
+3. **Паки** группируют связанный код в инкапсулированные модули с `definePack`
+4. **Валидация** использует compile-time DTO с `@Validate()` -- без runtime-библиотек для схем
+5. **Конфиг** обеспечивает типобезопасные переменные окружения через `ConfigModule.forRoot()`
+6. **События** позволяют развязать коммуникацию через `EventBus` и `@OnEvent`
+
+<Callout type="info">
+Далее: узнайте больше о [Паках](/docs/getting-started/packs) -- как структурировать большие приложения с импортами, экспортами и инкапсуляцией.
+</Callout>

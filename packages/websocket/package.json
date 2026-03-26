@@ -1,0 +1,43 @@
+{
+  "name": "@ambrosia/websocket",
+  "version": "0.1.0",
+  "description": "Provider-agnostic WebSocket layer with decorators for the Ambrosia framework",
+  "type": "module",
+  "license": "MIT",
+  "author": "Ambrosia Framework",
+  "homepage": "https://github.com/unmake/ambrosia/tree/master/packages/websocket",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/unmake/ambrosia.git",
+    "directory": "packages/websocket"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun run build.ts",
+    "prepublishOnly": "bun run typecheck && bun run build",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "files": ["dist", "README.md"],
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@ambrosia/core": "workspace:*",
+    "reflect-metadata": "^0.2.1"
+  }
+}

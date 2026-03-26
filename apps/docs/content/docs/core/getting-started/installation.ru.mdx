@@ -1,0 +1,204 @@
+---
+title: "Установка"
+description: "Установите и настройте @ambrosia/core в вашем проекте"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Установка
+
+Начните работу с @ambrosia/core меньше чем за минуту.
+
+## Требования
+
+<Callout type="info">
+  **@ambrosia/core** оптимизирован для **Bun runtime**. Хотя он может работать с Node.js, некоторые функции, такие как AsyncLogger, используют специфичные для Bun API.
+</Callout>
+
+**Требования:**
+- Bun 1.0.0 или выше
+- TypeScript 5.0 или выше (опционально, но рекомендуется)
+
+## Установка Bun
+
+Если у вас ещё не установлен Bun:
+
+<Tabs items={['macOS/Linux', 'Windows']}>
+  <Tab value="macOS/Linux">
+    ```bash
+    curl -fsSL https://bun.sh/install | bash
+    ```
+  </Tab>
+  <Tab value="Windows">
+    ```powershell
+    powershell -c "irm bun.sh/install.ps1 | iex"
+    ```
+  </Tab>
+</Tabs>
+
+Проверьте установку:
+
+```bash
+bun --version
+```
+
+## Установка @ambrosia/core
+
+<Tabs items={['bun', 'npm', 'pnpm', 'yarn']}>
+  <Tab value="bun">
+    ```bash
+    bun add @ambrosia/core
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @ambrosia/core
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @ambrosia/core
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @ambrosia/core
+    ```
+  </Tab>
+</Tabs>
+
+## Настройка TypeScript
+
+Настройте TypeScript для поддержки декораторов:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["bun-types"]
+  }
+}
+```
+
+<Callout type="warn">
+  **Важно**: Оба параметра `experimentalDecorators` и `emitDecoratorMetadata` должны быть включены для работы декораторов.
+</Callout>
+
+## Проверка установки
+
+Создайте тестовый файл для проверки работы:
+
+```typescript title="test.ts"
+import { Injectable, Container } from '@ambrosia/core';
+
+@Injectable()
+class HelloService {
+  greet(name: string) {
+    return `Привет, ${name}!`;
+  }
+}
+
+const container = new Container();
+const service = container.resolve(HelloService);
+
+console.log(service.greet('Мир'));
+```
+
+Запустите:
+
+```bash
+bun run test.ts
+```
+
+Ожидаемый вывод:
+```
+Привет, Мир!
+```
+
+<Callout type="success">
+  **Успех!** Вы готовы использовать @ambrosia/core.
+</Callout>
+
+## Структура проекта
+
+Рекомендуемая структура проекта TypeScript с @ambrosia/core:
+
+```
+my-app/
+├── src/
+│   ├── services/
+│   │   ├── database.service.ts
+│   │   └── user.service.ts
+│   ├── container.ts          # Конфигурация контейнера
+│   └── index.ts              # Точка входа приложения
+├── tests/
+│   └── services/
+│       └── user.service.test.ts
+├── package.json
+└── tsconfig.json
+```
+
+## Устранение проблем
+
+### Декораторы не работают
+
+**Ошибка:** `experimentalDecorators must be enabled`
+
+**Решение:** Убедитесь, что ваш `tsconfig.json` содержит:
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+### Не удаётся найти модуль
+
+**Ошибка:** `Cannot find module '@ambrosia/core'`
+
+**Решение:** 
+1. Проверьте установку: `bun pm ls | grep ambrosia`
+2. Переустановите: `bun add @ambrosia/core`
+3. Очистите кэш: `rm -rf node_modules && bun install`
+
+### Ошибки времени выполнения с функциями Bun
+
+**Ошибка:** `Bun.write is not a function`
+
+**Решение:** Убедитесь, что вы запускаете с Bun, а не с Node.js:
+```bash
+bun run index.ts  # ✓ Правильно
+node index.ts     # ✗ Неправильно
+```
+
+## Дополнительные пакеты
+
+### Инструменты разработки
+
+```bash
+# Проверка типов
+bun add -d typescript
+
+# Тестирование
+bun add -d bun:test
+
+# Линтинг
+bun add -d @typescript-eslint/eslint-plugin
+```
+
+## Следующие шаги
+
+Теперь, когда у вас установлен @ambrosia/core:
+
+1. Следуйте [Руководству быстрого старта](/docs/core/getting-started/quick-start) для создания вашего первого контейнера
+2. Узнайте об [Основных концепциях](/docs/core/getting-started/concepts)
+3. Изучите паттерны [Базового использования](/docs/core/guides/basic-usage)

@@ -1,0 +1,130 @@
+---
+title: "Что такое Ambrosia?"
+description: "TypeScript-фреймворк для Bun с декоратор-ориентированным DI и провайдеро-агностичным HTTP-слоем"
+---
+
+import {Card, Cards} from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Что такое Ambrosia?
+
+**Ambrosia** -- это TypeScript-фреймворк, созданный для рантайма [Bun](https://bun.sh). Он сочетает мощный DI-контейнер с провайдеро-агностичным HTTP-слоем, давая вам архитектуру enterprise-уровня на скорости Bun.
+
+## Зачем Ambrosia?
+
+Большинство TypeScript-фреймворков для бэкенда заставляют выбирать между скоростью и архитектурой. Ambrosia дает и то, и другое:
+
+- **Декоратор-ориентированный DI** -- знакомые паттерны для тех, кто работал с NestJS или Spring, но спроектированные для Bun с нуля
+- **Провайдеро-агностичный HTTP** -- замените Elysia на любой другой HTTP-движок без изменения бизнес-логики
+- **Система паков** -- модульная архитектура с инкапсуляцией, а не просто соглашения по папкам
+- **Compile-time валидация** -- типовая валидация с нулевой стоимостью в рантайме через TypeScript-трансформер
+- **Event-driven подход** -- встроенная шина событий для слабосвязанной коммуникации между сервисами
+
+## Для кого этот фреймворк?
+
+Ambrosia подойдет вам, если вы:
+
+- Разрабатываете продуктовые API и микросервисы на TypeScript
+- Хотите надежные архитектурные паттерны без лишнего бойлерплейта
+- Нуждаетесь в настоящем внедрении зависимостей, а не просто в service locator
+- Заботитесь о производительности и хотите использовать скорость Bun
+- Предпочитаете декоратор-ориентированные API с полной типобезопасностью
+
+## Архитектура
+
+```
+@ambrosia/core          -- Самостоятельный DI-контейнер (без привязки к HTTP)
+@ambrosia/http          -- Провайдеро-агностичный HTTP-слой (контроллеры, гарды, пайпы, интерцепторы)
+@ambrosia/http-elysia   -- Адаптер Elysia.js для @ambrosia/http
+@ambrosia/config        -- Типобезопасная конфигурация из окружения
+@ambrosia/events        -- Высокопроизводительная шина событий
+@ambrosia/validator     -- Compile-time валидация типов
+@ambrosia/cli           -- Генерация проектов и кода
+```
+
+DI-контейнер не зависит от HTTP -- его можно использовать в CLI-утилитах, воркерах и любых TypeScript-приложениях. HTTP-слой -- это отдельный пакет, который подключается к ядру через систему паков.
+
+## Что вы создадите
+
+Это руководство проведет вас через создание REST API шаг за шагом:
+
+<Cards>
+    <Card
+        title="Установка"
+        description="Установите CLI, создайте новый проект и разберитесь в структуре файлов"
+        href="/docs/getting-started/installation"
+    />
+    <Card
+        title="Первый API"
+        description="Создайте полноценный CRUD API с контроллерами, сервисами, валидацией, конфигом и событиями"
+        href="/docs/getting-started/first-api"
+    />
+    <Card
+        title="Паки"
+        description="Организуйте код в переиспользуемые инкапсулированные модули"
+        href="/docs/getting-started/packs"
+    />
+    <Card
+        title="Деплой"
+        description="Соберите для продакшена и задеплойте приложение на Ambrosia"
+        href="/docs/getting-started/deployment"
+    />
+</Cards>
+
+## Как это выглядит
+
+Вот как выглядит типичный API на Ambrosia:
+
+```ts
+import { Injectable, definePack } from '@ambrosia/core';
+import { Controller, Http, Body, Param, Status } from '@ambrosia/http';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+
+@Injectable()
+class PostsService {
+  private posts = [{ id: '1', title: 'Hello Ambrosia' }];
+
+  findAll() {
+    return this.posts;
+  }
+
+  create(title: string) {
+    const post = { id: crypto.randomUUID(), title };
+    this.posts.push(post);
+    return post;
+  }
+}
+
+@Controller('/posts')
+class PostsController {
+  constructor(private posts: PostsService) {}
+
+  @Http.Get()
+  findAll() {
+    return this.posts.findAll();
+  }
+
+  @Http.Post()
+  @Status(201)
+  create(@Body() body: { title: string }) {
+    return this.posts.create(body.title);
+  }
+}
+
+const AppPack = definePack({
+  providers: [PostsService],
+});
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  controllers: [PostsController],
+});
+
+await app.listen(3000);
+```
+
+<Callout type="info">
+Готовы начать? Переходите к разделу [Установка](/docs/getting-started/installation).
+</Callout>

@@ -1,0 +1,442 @@
+---
+title: Interceptors
+description: Transforming requests and responses with Interceptors in Ambrosia HTTP
+---
+
+# Interceptors
+
+Interceptors allow you to intercept request execution before and after the handler is called. They are ideal for logging, data transformation, caching, and response management.
+
+## Basics
+
+An Interceptor is a class with an `intercept()` method that receives an `ExecutionContext` and a `CallHandler`:
+
+```typescript
+import { Injectable } from '@ambrosia/core';
+import { Interceptor, ExecutionContext, CallHandler } from '@ambrosia/http';
+
+@Injectable()
+export class LoggingInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const { request } = context.switchToHttp();
+    const startTime = Date.now();
+
+    console.log(`→ ${request.method} ${request.url}`);
+
+    // Call the next interceptor or handler
+    const result = await next.handle();
+
+    const duration = Date.now() - startTime;
+    console.log(`← ${request.method} ${request.url} - ${duration}ms`);
+
+    return result;
+  }
+}
+```
+
+## CallHandler
+
+`CallHandler` is an interface for invoking the next interceptor or handler:
+
+```typescript
+interface CallHandler<T = any> {
+  handle(): Promise<T>;
+}
+```
+
+Calling `next.handle()` passes control down the chain:
+
+```
+Request → Interceptor1 → Interceptor2 → Handler → Interceptor2 → Interceptor1 → Response
+```
+
+## Applying Interceptors
+
+### At the Method Level
+
+```typescript
+import { Controller, Http, UseInterceptor } from '@ambrosia/http';
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')
+  @UseInterceptor(LoggingInterceptor)
+  async list() {
+    return [{ id: 1, name: 'John' }];
+  }
+}
+```
+
+### At the Controller Level
+
+```typescript
+@Controller('/api')
+@UseInterceptor(LoggingInterceptor, TransformInterceptor)
+export class ApiController {
+  // All methods use both interceptors
+
+  @Http.Get('/data')
+  async getData() {
+    return { data: [] };
+  }
+}
+```
+
+### Global Interceptors
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalInterceptors: [LoggingInterceptor, ErrorInterceptor],
+  port: 3000
+});
+```
+
+## Response Transformation
+
+Interceptors can modify the handler result:
+
+```typescript
+@Injectable()
+export class TransformInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const result = await next.handle();
+
+    // Wrap result in a standard format
+    return {
+      success: true,
+      timestamp: new Date().toISOString(),
+      data: result
+    };
+  }
+}
+
+// Response:
+// {
+//   "success": true,
+//   "timestamp": "2024-01-15T10:30:00.000Z",
+//   "data": { "id": 1, "name": "John" }
+// }
+```
+
+## Error Handling
+
+Interceptors can catch and handle errors:
+
+```typescript
+@Injectable()
+export class ErrorInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    try {
+      return await next.handle();
+    } catch (error) {
+      console.error('Error in handler:', error);
+
+      // Transform the error
+      if (error instanceof DatabaseError) {
+        throw new InternalServerErrorException('Database error');
+      }
+
+      // Re-throw for exception filters
+      throw error;
+    }
+  }
+}
+```
+
+## Dependency Injection
+
+Interceptors support full DI:
+
+```typescript
+@Injectable()
+export class CacheInterceptor implements Interceptor {
+  constructor(
+    private cacheService: CacheService,
+    private configService: ConfigService
+  ) {}
+
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const { request } = context.switchToHttp();
+    const cacheKey = this.generateCacheKey(request);
+
+    // Check cache
+    const cached = await this.cacheService.get(cacheKey);
+    if (cached) {
+      console.log(`Cache HIT: ${cacheKey}`);
+      return cached;
+    }
+
+    // Execute handler
+    const result = await next.handle();
+
+    // Save to cache
+    const ttl = this.configService.get('cache.ttl');
+    await this.cacheService.set(cacheKey, result, ttl);
+
+    return result;
+  }
+
+  private generateCacheKey(request: IHttpRequest): string {
+    return `${request.method}:${request.url}`;
+  }
+}
+```
+
+## Execution Order
+
+Interceptors execute in the following order:
+
+```typescript
+const app = await HttpApplication.create({
+  globalInterceptors: [Global1, Global2], // 1. Global (before)
+});
+
+@Controller('/users')
+@UseInterceptor(Controller1, Controller2) // 2. Controller (before)
+export class UserController {
+  @Http.Get('/')
+  @UseInterceptor(Method1) // 3. Method (before)
+  async list() {
+    return []; // 4. Handler
+  }
+  // 5. Method (after)
+  // 6. Controller (after)
+  // 7. Global (after)
+}
+```
+
+Full cycle:
+```
+Request
+  → Global1 (before)
+    → Global2 (before)
+      → Controller1 (before)
+        → Controller2 (before)
+          → Method1 (before)
+            → Handler
+          ← Method1 (after)
+        ← Controller2 (after)
+      ← Controller1 (after)
+    ← Global2 (after)
+  ← Global1 (after)
+Response
+```
+
+## Usage Patterns
+
+### Timeout Interceptor
+
+```typescript
+@Injectable()
+export class TimeoutInterceptor implements Interceptor {
+  constructor(private readonly timeout: number = 5000) {}
+
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), this.timeout);
+    });
+
+    try {
+      return await Promise.race([
+        next.handle(),
+        timeoutPromise
+      ]);
+    } catch (error) {
+      if (error.message === 'Request timeout') {
+        throw new InternalServerErrorException('Request timed out');
+      }
+      throw error;
+    }
+  }
+}
+```
+
+### Performance Monitoring
+
+```typescript
+@Injectable()
+export class PerformanceInterceptor implements Interceptor {
+  constructor(private metricsService: MetricsService) {}
+
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const { request } = context.switchToHttp();
+    const startTime = Date.now();
+    const route = `${request.method} ${context.getClass().name}.${context.getHandler()}`;
+
+    try {
+      const result = await next.handle();
+      const duration = Date.now() - startTime;
+
+      // Send metrics
+      this.metricsService.recordSuccess(route, duration);
+
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.metricsService.recordError(route, duration);
+      throw error;
+    }
+  }
+}
+```
+
+### Serialization Interceptor
+
+```typescript
+@Injectable()
+export class SerializationInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const result = await next.handle();
+
+    // Remove sensitive data
+    if (result && typeof result === 'object') {
+      return this.sanitize(result);
+    }
+
+    return result;
+  }
+
+  private sanitize(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.sanitize(item));
+    }
+
+    if (obj && typeof obj === 'object') {
+      const sanitized = { ...obj };
+
+      // Remove sensitive fields
+      delete sanitized.password;
+      delete sanitized.passwordHash;
+      delete sanitized.secret;
+      delete sanitized.token;
+
+      // Recursively process nested objects
+      Object.keys(sanitized).forEach(key => {
+        if (sanitized[key] && typeof sanitized[key] === 'object') {
+          sanitized[key] = this.sanitize(sanitized[key]);
+        }
+      });
+
+      return sanitized;
+    }
+
+    return obj;
+  }
+}
+```
+
+### Compression Interceptor
+
+```typescript
+@Injectable()
+export class CompressionInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const { request, response } = context.switchToHttp();
+    const result = await next.handle();
+
+    // Check Accept-Encoding header
+    const acceptEncoding = request.headers['accept-encoding'] || '';
+    const shouldCompress = acceptEncoding.includes('gzip') &&
+                          this.isCompressible(result);
+
+    if (shouldCompress) {
+      response.setHeader('Content-Encoding', 'gzip');
+      // Compression logic is handled at the HTTP provider level
+    }
+
+    return result;
+  }
+
+  private isCompressible(result: any): boolean {
+    // Check data size and type
+    const str = JSON.stringify(result);
+    return str.length > 1024; // Compress only if larger than 1KB
+  }
+}
+```
+
+### Conditional Interceptor
+
+```typescript
+@Injectable()
+export class ConditionalInterceptor implements Interceptor {
+  constructor(private configService: ConfigService) {}
+
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const isEnabled = this.configService.get('features.interceptor.enabled');
+
+    if (!isEnabled) {
+      // Skip processing
+      return next.handle();
+    }
+
+    // Execute logic
+    console.log('Interceptor active');
+    return next.handle();
+  }
+}
+```
+
+## Modifying the Request
+
+Interceptors can modify the request before the handler:
+
+```typescript
+@Injectable()
+export class RequestEnricherInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const { request } = context.switchToHttp();
+
+    // Add additional data to the request
+    request.timestamp = Date.now();
+    request.requestId = crypto.randomUUID();
+
+    // Log with requestId
+    console.log(`[${request.requestId}] ${request.method} ${request.url}`);
+
+    return next.handle();
+  }
+}
+```
+
+## Interceptor Composition
+
+You can create composite interceptors:
+
+```typescript
+@Injectable()
+export class ApiInterceptor implements Interceptor {
+  constructor(
+    private logging: LoggingInterceptor,
+    private transform: TransformInterceptor,
+    private error: ErrorInterceptor
+  ) {}
+
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    // Combine multiple interceptors
+    return this.error.intercept(context, {
+      handle: () => this.logging.intercept(context, {
+        handle: () => this.transform.intercept(context, next)
+      })
+    });
+  }
+}
+```
+
+## Best Practices
+
+1. **Always call next.handle()**: Always call `next.handle()` to continue the chain
+2. **Handle errors**: Use try-catch to handle errors from handlers
+3. **Minimize overhead**: Interceptors run on every request -- optimize performance
+4. **Use async/await**: Work with asynchronous operations via async/await
+5. **Don't modify request directly**: Prefer attaching data as new properties
+6. **Document side effects**: If an interceptor changes state, document it
+7. **Test in isolation**: Write unit tests for interceptors
+8. **Conditional execution**: Use configuration to enable/disable interceptors
+
+## See Also
+
+- [Guards](/docs/http/guides/guards) - Route protection
+- [Pipes](/docs/http/guides/pipes) - Parameter validation and transformation
+- [Exception Filters](/docs/http/guides/exception-filters) - Error handling

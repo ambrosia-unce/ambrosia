@@ -1,0 +1,398 @@
+---
+title: Guards (Охранники)
+description: Защита маршрутов с помощью Guards в Ambrosia HTTP
+---
+
+# Guards (Охранники)
+
+Guards отвечают за определение, должен ли запрос быть обработан или отклонен. Они выполняются после middleware, но до interceptors и handler'а.
+
+## Основы
+
+Guard - это класс с методом `canActivate()`, который возвращает boolean или Promise\<boolean\>:
+
+```typescript
+import { Injectable } from '@ambrosia/core';
+import { Guard, ExecutionContext, ForbiddenException } from '@ambrosia/http';
+
+@Injectable()
+export class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const token = request.headers['authorization'];
+    
+    if (!token) {
+      throw new ForbiddenException('Требуется авторизация');
+    }
+    
+    // Валидация токена
+    const isValid = await this.validateToken(token);
+    return isValid;
+  }
+  
+  private async validateToken(token: string): Promise<boolean> {
+    // Логика валидации токена
+    return token.startsWith('Bearer ');
+  }
+}
+```
+
+## Применение Guards
+
+### На уровне метода
+
+```typescript
+import { Controller, Http, UseGuard } from '@ambrosia/http';
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/profile')
+  @UseGuard(AuthGuard)
+  async getProfile() {
+    return { user: 'current user' };
+  }
+  
+  @Http.Get('/public')
+  async getPublic() {
+    return { data: 'public data' };
+  }
+}
+```
+
+### На уровне контроллера
+
+```typescript
+@Controller('/admin')
+@UseGuard(AuthGuard, AdminGuard)
+export class AdminController {
+  // Все методы защищены AuthGuard и AdminGuard
+  
+  @Http.Get('/users')
+  async getUsers() {
+    return [];
+  }
+  
+  @Http.Delete('/users/:id')
+  @UseGuard(SuperAdminGuard) // Дополнительный guard для этого метода
+  async deleteUser(@Param('id') id: string) {
+    // Требуется AuthGuard + AdminGuard + SuperAdminGuard
+  }
+}
+```
+
+### Глобальные Guards
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalGuards: [AuthGuard],
+  port: 3000
+});
+```
+
+## ExecutionContext
+
+Guards получают `ExecutionContext` для доступа к деталям запроса:
+
+```typescript
+@Injectable()
+export class RoleGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { getRequest } = context.switchToHttp();
+    const request = getRequest();
+    
+    // Получить метаданные handler'а
+    const requiredRoles = context.getMetadata<string[]>('roles');
+    if (!requiredRoles) {
+      return true; // Нет требований по ролям
+    }
+    
+    const user = request.user; // Предполагается, что установлен AuthGuard
+    return requiredRoles.some(role => user.roles?.includes(role));
+  }
+}
+```
+
+## SetMetadata и @Public
+
+`SetMetadata(key, value)` — универсальный декоратор для привязки произвольных метаданных к классу или методу. Метаданные доступны через `context.getMetadata(key)` в guards и interceptors.
+
+```typescript
+import { SetMetadata } from '@ambrosia/http';
+
+// Создаём кастомный декоратор
+export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
+
+// В контроллере
+@Http.Get('/admin')
+@UseGuard(RoleGuard)
+@Roles('admin', 'moderator')
+async adminOnly() {
+  return { message: 'Только для администраторов' };
+}
+```
+
+### @Public и IS_PUBLIC_KEY
+
+`@Public()` — встроенный декоратор, который помечает маршрут как публичный. Это удобно, когда глобальный guard защищает всё приложение, но отдельные маршруты должны быть доступны без авторизации:
+
+```typescript
+import { Public, IS_PUBLIC_KEY } from '@ambrosia/http';
+
+// Guard проверяет наличие @Public
+@Injectable()
+export class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Если маршрут помечен @Public — пропускаем авторизацию
+    const isPublic = context.getMetadata<boolean>(IS_PUBLIC_KEY);
+    if (isPublic) {
+      return true;
+    }
+
+    const { getRequest } = context.switchToHttp();
+    const token = getRequest().headers['authorization'];
+    return !!token && this.validateToken(token);
+  }
+}
+
+// Регистрация глобального guard
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalGuards: [AuthGuard],
+});
+
+// Контроллер
+@Controller('/api')
+export class AppController {
+  @Public()
+  @Http.Get('/health')
+  health() {
+    return { ok: true }; // Доступен без токена
+  }
+
+  @Http.Get('/profile')
+  profile() {
+    return { user: 'current' }; // Требует авторизацию
+  }
+}
+```
+
+`@Public()` — это сахар для `SetMetadata(IS_PUBLIC_KEY, true)`.
+
+## Dependency Injection
+
+Guards поддерживают полную DI:
+
+```typescript
+@Injectable()
+export class AuthGuard implements Guard {
+  constructor(
+    private authService: AuthService,
+    private userRepository: UserRepository
+  ) {}
+  
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const token = request.headers['authorization'];
+    
+    if (!token) {
+      return false;
+    }
+    
+    try {
+      // Использование внедренных зависимостей
+      const payload = await this.authService.verifyToken(token);
+      const user = await this.userRepository.findById(payload.userId);
+      
+      if (!user) {
+        return false;
+      }
+      
+      // Прикрепить пользователя к request для использования в handler'ах
+      request.user = user;
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+}
+```
+
+## Исключения в Guards
+
+Guards могут выбрасывать исключения вместо возврата `false`:
+
+```typescript
+@Injectable()
+export class PermissionGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const user = request.user;
+    
+    if (!user) {
+      throw new UnauthorizedException('Пользователь не аутентифицирован');
+    }
+    
+    const requiredPermission = context.getMetadata<string>('permission');
+    if (!requiredPermission) {
+      return true;
+    }
+    
+    if (!user.permissions.includes(requiredPermission)) {
+      throw new ForbiddenException(
+        `Требуется разрешение: ${requiredPermission}`
+      );
+    }
+    
+    return true;
+  }
+}
+```
+
+## Порядок выполнения
+
+Guards выполняются в следующем порядке:
+
+1. Глобальные guards
+2. Guards на уровне контроллера
+3. Guards на уровне метода
+
+Если хотя бы один guard вернет `false` или выбросит исключение, request будет отклонен.
+
+```typescript
+// Порядок выполнения:
+const app = await HttpApplication.create({
+  globalGuards: [GlobalAuthGuard], // 1. Первым
+});
+
+@Controller('/users')
+@UseGuard(ControllerAuthGuard) // 2. Вторым
+export class UserController {
+  @Http.Get('/:id')
+  @UseGuard(MethodAuthGuard) // 3. Третьим
+  async getUser(@Param('id') id: string) {
+    return {};
+  }
+}
+```
+
+## Паттерны использования
+
+### IP Whitelist Guard
+
+```typescript
+@Injectable()
+export class IpWhitelistGuard implements Guard {
+  private whitelist = ['127.0.0.1', '::1'];
+  
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const clientIp = request.ip;
+    
+    if (!this.whitelist.includes(clientIp)) {
+      throw new ForbiddenException('IP адрес не в whitelist');
+    }
+    
+    return true;
+  }
+}
+```
+
+### Rate Limiting Guard
+
+```typescript
+@Injectable()
+export class RateLimitGuard implements Guard {
+  private requests = new Map<string, number[]>();
+  private readonly limit = 100; // 100 запросов
+  private readonly window = 60000; // за 1 минуту
+  
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const key = request.ip || 'unknown';
+    
+    const now = Date.now();
+    const timestamps = this.requests.get(key) || [];
+    
+    // Удалить старые timestamps
+    const validTimestamps = timestamps.filter(t => now - t < this.window);
+    
+    if (validTimestamps.length >= this.limit) {
+      throw new BadRequestException('Превышен лимит запросов');
+    }
+    
+    validTimestamps.push(now);
+    this.requests.set(key, validTimestamps);
+    
+    return true;
+  }
+}
+```
+
+### Feature Flag Guard
+
+```typescript
+@Injectable()
+export class FeatureGuard implements Guard {
+  constructor(private configService: ConfigService) {}
+  
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const feature = context.getMetadata<string>('feature');
+    if (!feature) {
+      return true;
+    }
+    
+    const isEnabled = await this.configService.isFeatureEnabled(feature);
+    if (!isEnabled) {
+      throw new NotFoundException('Функция недоступна');
+    }
+    
+    return true;
+  }
+}
+
+// Использование
+export const Feature = (name: string) => SetMetadata('feature', name);
+
+@Http.Get('/beta-feature')
+@UseGuard(FeatureGuard)
+@Feature('beta-dashboard')
+async betaFeature() {
+  return { data: 'beta feature' };
+}
+```
+
+## Композиция Guards
+
+Можно комбинировать несколько guards:
+
+```typescript
+@Controller('/api')
+@UseGuard(AuthGuard, RoleGuard)
+export class ApiController {
+  @Http.Post('/data')
+  @UseGuard(RateLimitGuard, PermissionGuard)
+  @Roles('admin')
+  @Permission('data:write')
+  async createData(@Body() data: CreateDataDto) {
+    // Требуется: Auth + Role(admin) + RateLimit + Permission(data:write)
+    return { id: 1 };
+  }
+}
+```
+
+## Best Practices
+
+1. **Один guard - одна ответственность**: Guard должен проверять только одно условие
+2. **Кэшируйте результаты**: Если валидация дорогая, кэшируйте результаты в request
+3. **Используйте исключения**: Выбрасывайте конкретные исключения вместо возврата `false` для лучшего error handling
+4. **Прикрепляйте данные к request**: После валидации прикрепите данные пользователя к request для использования в handler'ах
+5. **Глобальные guards для базовой защиты**: Используйте глобальные guards для аутентификации, локальные - для авторизации
+6. **Метаданные для конфигурации**: Используйте метаданные для передачи конфигурации в guards
+7. **DI для логики**: Внедряйте сервисы для реализации сложной логики валидации
+
+## См. также
+
+- [Interceptors](/docs/http/guides/interceptors) - Преобразование запросов и ответов
+- [Middleware](/docs/http/guides/middleware) - Обработка на уровне HTTP
+- [Exception Filters](/docs/http/guides/exception-filters) - Обработка ошибок

@@ -1,0 +1,320 @@
+---
+title: Testing (TestingHttpFactory)
+description: Testing HTTP applications with TestingHttpFactory in Ambrosia
+---
+
+# Testing HTTP Applications
+
+`TestingHttpFactory` allows you to test HTTP routes without starting a real server. Requests go through the full pipeline (middleware, guards, interceptors, pipes, handler, filters), but instead of a network call, internal routing is used.
+
+## Quick Start
+
+```typescript
+import { TestingHttpFactory } from '@ambrosia/http';
+import { expect, test, afterAll } from 'bun:test';
+
+const module = await TestingHttpFactory
+  .create({
+    controllers: [HealthController],
+  })
+  .compile();
+
+test('GET /health returns 200', async () => {
+  const res = await module.inject({
+    method: 'GET',
+    url: '/health',
+  });
+
+  expect(res.statusCode).toBe(200);
+  expect(res.body).toEqual({ ok: true });
+});
+
+afterAll(() => module.close());
+```
+
+## TestingHttpFactory API
+
+### create(options)
+
+Creates a builder for the test module. Accepts the same options as `HttpApplication.create`, except for `provider` (the built-in `MockHttpProvider` is used):
+
+```typescript
+const builder = TestingHttpFactory.create({
+  controllers: [UserController, PostController],
+  packs: [DatabasePack],
+  globalGuards: [AuthGuard],
+  globalPipes: [ValidationPipe],
+  prefix: '/api',
+});
+```
+
+### override(token, classOrValue)
+
+Replaces a provider in the DI container with a class or value:
+
+```typescript
+const builder = TestingHttpFactory
+  .create({ controllers: [UserController] })
+  .override(UserService, MockUserService);
+```
+
+### overrideValue(token, value)
+
+Replaces a provider with a specific value (convenient for mocking):
+
+```typescript
+const mockDb = {
+  query: async (sql: string) => [{ id: 1, name: 'Test' }],
+};
+
+const builder = TestingHttpFactory
+  .create({ controllers: [UserController] })
+  .overrideValue(DatabaseService, mockDb)
+  .overrideValue('CONFIG', { debug: true });
+```
+
+### compile()
+
+Builds the test module. Returns `Promise<TestingHttpModule>`:
+
+```typescript
+const module = await builder.compile();
+```
+
+## TestingHttpModule API
+
+### inject(request)
+
+Simulates an HTTP request through the full pipeline:
+
+```typescript
+const res = await module.inject({
+  method: 'POST',
+  url: '/users',
+  body: { name: 'Alice', email: 'alice@example.com' },
+  headers: { 'Authorization': 'Bearer test-token' },
+  query: { notify: 'true' },
+});
+
+// res.statusCode -- HTTP response code (number)
+// res.headers -- response headers (Record<string, string>)
+// res.body -- response body (any)
+```
+
+### get(token)
+
+Gets an instance from the DI container:
+
+```typescript
+const userService = module.get(UserService);
+```
+
+### getApp()
+
+Returns the internal `HttpApplication`:
+
+```typescript
+const app = module.getApp();
+```
+
+### close()
+
+Shuts down the module and cleans up resources:
+
+```typescript
+await module.close();
+```
+
+## Examples
+
+### CRUD Controller
+
+```typescript
+import { TestingHttpFactory } from '@ambrosia/http';
+import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+
+describe('UserController', () => {
+  let module: Awaited<ReturnType<ReturnType<typeof TestingHttpFactory.create>['compile']>>;
+
+  const mockUsers = [
+    { id: 1, name: 'Alice' },
+    { id: 2, name: 'Bob' },
+  ];
+
+  beforeAll(async () => {
+    module = await TestingHttpFactory
+      .create({ controllers: [UserController] })
+      .overrideValue(UserRepository, {
+        findAll: async () => mockUsers,
+        findById: async (id: number) => mockUsers.find(u => u.id === id),
+        create: async (data: any) => ({ id: 3, ...data }),
+      })
+      .compile();
+  });
+
+  afterAll(() => module.close());
+
+  test('GET /users', async () => {
+    const res = await module.inject({ method: 'GET', url: '/users' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveLength(2);
+  });
+
+  test('GET /users/:id', async () => {
+    const res = await module.inject({ method: 'GET', url: '/users/1' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.name).toBe('Alice');
+  });
+
+  test('POST /users', async () => {
+    const res = await module.inject({
+      method: 'POST',
+      url: '/users',
+      body: { name: 'Charlie' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.name).toBe('Charlie');
+  });
+});
+```
+
+### Testing Guards
+
+```typescript
+describe('AuthGuard', () => {
+  let module: any;
+
+  beforeAll(async () => {
+    module = await TestingHttpFactory
+      .create({
+        controllers: [ProtectedController],
+        globalGuards: [AuthGuard],
+      })
+      .overrideValue(TokenService, {
+        verify: (token: string) => token === 'valid-token' ? { userId: 1 } : null,
+      })
+      .compile();
+  });
+
+  afterAll(() => module.close());
+
+  test('rejects without token', async () => {
+    const res = await module.inject({ method: 'GET', url: '/protected' });
+    expect(res.statusCode).toBe(403);
+  });
+
+  test('allows with valid token', async () => {
+    const res = await module.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { authorization: 'Bearer valid-token' },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+});
+```
+
+### Testing with Packs
+
+```typescript
+const module = await TestingHttpFactory
+  .create({
+    packs: [UserPack, DatabasePack],
+  })
+  .overrideValue(DB_TOKEN, mockDatabase)
+  .compile();
+
+const res = await module.inject({ method: 'GET', url: '/users' });
+expect(res.statusCode).toBe(200);
+```
+
+### Testing Pipes and Validation
+
+```typescript
+test('validates body', async () => {
+  const res = await module.inject({
+    method: 'POST',
+    url: '/users',
+    body: { name: '' }, // invalid name
+  });
+  expect(res.statusCode).toBe(422);
+});
+
+test('parses params', async () => {
+  const res = await module.inject({
+    method: 'GET',
+    url: '/users/abc', // not a number, ParseIntPipe should reject
+  });
+  expect(res.statusCode).toBe(400);
+});
+```
+
+## Mock Helpers
+
+For unit testing individual components (guards, interceptors, pipes), use helpers to create mock contexts:
+
+```typescript
+import { createMockHttpContext, createMockExecutionContext } from '@ambrosia/http';
+
+test('AuthGuard denies without token', async () => {
+  const guard = new AuthGuard(mockTokenService);
+  const context = createMockExecutionContext({
+    request: { headers: {} },
+  });
+
+  const result = await guard.canActivate(context);
+  expect(result).toBe(false);
+});
+
+test('AuthGuard allows with token', async () => {
+  const guard = new AuthGuard(mockTokenService);
+  const context = createMockExecutionContext({
+    request: { headers: { authorization: 'Bearer valid' } },
+  });
+
+  const result = await guard.canActivate(context);
+  expect(result).toBe(true);
+});
+```
+
+### createMockHttpContext(options?)
+
+Creates a mock `HttpContext` with configurable request/response:
+
+```typescript
+const ctx = createMockHttpContext({
+  method: 'POST',
+  url: '/users',
+  headers: { 'content-type': 'application/json' },
+  body: { name: 'Alice' },
+  params: { id: '1' },
+  query: { page: '1' },
+});
+```
+
+### createMockExecutionContext(options?)
+
+Creates a mock `ExecutionContext` for guards and interceptors:
+
+```typescript
+const ctx = createMockExecutionContext({
+  request: { method: 'GET', url: '/test', headers: {} },
+  controllerClass: TestController,
+  handlerName: 'getTest',
+});
+```
+
+## Best Practices
+
+1. **Isolate dependencies**: Use `overrideValue()` to replace external services (DB, API, file system)
+2. **Clean up resources**: Always call `module.close()` in `afterAll`
+3. **Test the pipeline**: `inject()` goes through the entire pipeline -- use this for integration tests
+4. **Unit tests for components**: For isolated testing of guards/interceptors/pipes, use mock helpers
+5. **Test errors**: Verify that the API correctly handles invalid data and errors
+
+## See Also
+
+- [Controllers](/docs/http/guides/controllers) - Creating controllers
+- [Guards](/docs/http/guides/guards) - Route protection
+- [Pipes](/docs/http/guides/pipes) - Data validation
+- [Packs](/docs/http/guides/packs) - Modular structure

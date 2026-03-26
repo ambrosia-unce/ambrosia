@@ -1,0 +1,14 @@
+{
+  "title": "@ambrosia/http",
+  "description": "DI Контейнер на основе bun",
+  "pages": [
+    "index",
+    "getting-started",
+    "guides",
+    "api-reference",
+    "advanced",
+    "examples",
+    "benchmarks"
+  ],
+  "root": true
+}

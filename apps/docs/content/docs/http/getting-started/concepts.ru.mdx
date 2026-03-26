@@ -1,0 +1,432 @@
+---
+title: "Основные концепции"
+description: "Поймите архитектуру и жизненный цикл @ambrosia/http"
+---
+
+# Основные концепции
+
+Понимание фундаментальных концепций **@ambrosia/http** поможет вам создавать лучшие HTTP приложения.
+
+## Архитектура
+
+@ambrosia/http состоит из нескольких ключевых компонентов:
+
+```
+┌─────────────────────────────────────┐
+│      HttpApplication                │
+│  (Orchestrates everything)          │
+└──────────────┬──────────────────────┘
+               │
+      ┌────────┴─────────┐
+      │                  │
+┌─────▼──────┐    ┌──────▼──────┐
+│  Provider  │    │  Container  │
+│  (Elysia)  │    │    (DI)     │
+└────────────┘    └─────────────┘
+      │                  │
+      │           ┌──────┴──────┐
+      │           │             │
+      │      ┌────▼───┐   ┌────▼────┐
+      │      │Guards  │   │Services │
+      │      │Pipes   │   │         │
+      │      │Filters │   │         │
+      │      └────────┘   └─────────┘
+      │
+┌─────▼────────────────┐
+│  Controllers         │
+│  (HTTP Handlers)     │
+└──────────────────────┘
+```
+
+### HttpApplication
+
+Главный класс приложения, который:
+- Создает и управляет DI контейнером
+- Регистрирует контроллеры автоматически
+- Настраивает HTTP провайдер
+- Компилирует lifecycle pipeline
+- Управляет глобальными компонентами
+
+### HttpProvider
+
+Абстракция над HTTP библиотекой (Elysia, Hono):
+- Регистрирует маршруты
+- Обрабатывает HTTP запросы
+- Предоставляет native API
+
+### Controllers
+
+Классы с декораторами, которые обрабатывают HTTP запросы:
+- Определяют маршруты
+- Обрабатывают параметры
+- Возвращают ответы
+
+## Жизненный цикл запроса
+
+Каждый HTTP запрос проходит через следующие этапы:
+
+```
+1. Incoming Request
+        ↓
+2. Middleware
+   │
+   ├─ @UseMiddleware(CorsMiddleware)
+   ├─ @UseMiddleware(RateLimitMiddleware)
+   └─ Custom middleware
+        ↓
+3. Guards
+   │
+   ├─ @UseGuard(AuthGuard)
+   ├─ @UseGuard(RoleGuard)
+   └─ Authorization checks
+        ↓
+4. Interceptors (before)
+   │
+   ├─ @UseInterceptor(LoggingInterceptor)
+   ├─ Transform request
+   └─ Add metadata
+        ↓
+5. Pipes
+   │
+   ├─ ValidationPipe (validate DTO)
+   ├─ ParseIntPipe (transform params)
+   └─ Custom transformation
+        ↓
+6. Route Handler
+   │
+   └─ Controller method execution
+        ↓
+7. Interceptors (after)
+   │
+   ├─ Transform response
+   ├─ Add headers
+   └─ Log execution time
+        ↓
+8. Exception Filters (if error)
+   │
+   ├─ DefaultExceptionFilter
+   ├─ HttpExceptionFilter
+   └─ Custom error handling
+        ↓
+9. Response
+```
+
+### Middleware
+
+Выполняется **первым** в pipeline. Используется для:
+- CORS headers
+- Rate limiting
+- Request logging
+- Body parsing
+
+```typescript
+@Injectable()
+class CorsMiddleware implements Middleware {
+  async use(req: IHttpRequest, res: IHttpResponse, next: () => Promise<void>) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    await next();
+  }
+}
+```
+
+### Guards
+
+Выполняются **после middleware**. Используются для:
+- Authentication
+- Authorization
+- Role checks
+- Permission validation
+
+```typescript
+@Injectable()
+class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers['authorization'];
+    return !!token; // true = allow, false = deny
+  }
+}
+```
+
+### Interceptors
+
+Выполняются **до и после** handler. Используются для:
+- Request/response transformation
+- Logging
+- Caching
+- Timeout handling
+
+```typescript
+@Injectable()
+class LoggingInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const start = Date.now();
+    const result = await next.handle();
+    const duration = Date.now() - start;
+    console.log(`Request took ${duration}ms`);
+    return result;
+  }
+}
+```
+
+### Pipes
+
+Выполняются **перед handler**. Используются для:
+- Data validation
+- Data transformation
+- Type conversion
+
+```typescript
+@Injectable()
+class ValidationPipe implements Pipe {
+  transform(value: any, metadata: PipeMetadata): any {
+    // Validate value against TypeBox schema
+    return TypeBoxValidator.validate(schema, value);
+  }
+}
+```
+
+### Exception Filters
+
+Выполняются **при ошибке**. Используются для:
+- Error formatting
+- Error logging
+- Custom error responses
+
+```typescript
+@Injectable()
+class HttpExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, httpContext } = args;
+    return {
+      statusCode: exception.status || 500,
+      message: exception.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+```
+
+## Уровни применения компонентов
+
+Lifecycle компоненты могут применяться на трех уровнях:
+
+### 1. Global (приложение)
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalGuards: [AuthGuard],
+  globalInterceptors: [LoggingInterceptor],
+  globalPipes: [ValidationPipe],
+  globalFilters: [HttpExceptionFilter]
+});
+```
+
+Применяются ко **всем маршрутам**.
+
+### 2. Controller (класс)
+
+```typescript
+@Controller('/users')
+@UseGuard(AuthGuard)
+@UseInterceptor(LoggingInterceptor)
+export class UserController {
+  // Все методы защищены AuthGuard
+}
+```
+
+Применяются ко **всем методам контроллера**.
+
+### 3. Method (метод)
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')
+  findAll() {
+    // Без guard
+  }
+
+  @Http.Delete('/:id')
+  @UseGuard(AdminGuard)  // Только этот метод
+  delete(@Param('id') id: string) {
+    // Требует admin права
+  }
+}
+```
+
+Применяются **только к этому методу**.
+
+## Порядок выполнения
+
+Когда компоненты определены на нескольких уровнях, они выполняются в порядке:
+
+```
+Global → Controller → Method
+```
+
+Например:
+
+```typescript
+// Global
+globalGuards: [AuthGuard]
+
+// Controller
+@UseGuard(RoleGuard)
+@Controller('/admin')
+class AdminController {
+  
+  // Method
+  @UseGuard(OwnerGuard)
+  @Http.Delete('/:id')
+  delete() {}
+}
+
+// Порядок выполнения:
+// 1. AuthGuard (global)
+// 2. RoleGuard (controller)
+// 3. OwnerGuard (method)
+```
+
+## Dependency Injection
+
+Все lifecycle компоненты и контроллеры управляются DI контейнером:
+
+```typescript
+@Injectable()
+class AuthService {
+  validateToken(token: string) {
+    // Validate JWT
+  }
+}
+
+@Injectable()
+class AuthGuard implements Guard {
+  constructor(private authService: AuthService) {}
+  
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers['authorization'];
+    return this.authService.validateToken(token);
+  }
+}
+
+@Controller('/users')
+export class UserController {
+  constructor(private userService: UserService) {}
+  // UserService автоматически внедряется
+}
+```
+
+### Scopes
+
+Компоненты поддерживают разные scopes:
+
+- **SINGLETON** (по умолчанию) - Один экземпляр на приложение
+- **TRANSIENT** - Новый экземпляр каждый раз
+- **REQUEST** - Один экземпляр на HTTP запрос
+
+```typescript
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {
+  requestId: string = generateId();
+  // Уникален для каждого запроса
+}
+```
+
+## ExecutionContext
+
+Специальный объект, который передается в Guards и Interceptors:
+
+```typescript
+interface ExecutionContext {
+  getHttpContext(): HttpContext;
+  getClass(): Constructor;      // Класс контроллера
+  getHandler(): string | symbol; // Имя метода
+  getArgs(): any[];              // Аргументы метода
+  
+  switchToHttp(): {
+    getRequest(): IHttpRequest;
+    getResponse(): IHttpResponse;
+    getContext(): HttpContext;
+  };
+}
+```
+
+Используется для:
+- Доступа к request/response
+- Получения metadata о handler
+- Хранения данных между компонентами
+
+```typescript
+@Injectable()
+class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const user = await this.authService.validateToken(request.headers['authorization']);
+    
+    // Сохраняем пользователя в контексте
+    context.setMetadata('user', user);
+    return !!user;
+  }
+}
+
+@Injectable()
+class CurrentUserInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler) {
+    // Получаем пользователя из контекста
+    const user = context.getMetadata('user');
+    console.log('Current user:', user);
+    return next.handle();
+  }
+}
+```
+
+## Производительность
+
+### Handler Pre-compilation
+
+HttpApplication компилирует handlers один раз при инициализации:
+
+```typescript
+// При инициализации:
+const handler = this.createRouteHandler(route);
+// - Собирает все lifecycle компоненты
+// - Компилирует parameter resolver
+// - Создает оптимизированную функцию
+
+// При каждом запросе:
+// - Выполняется скомпилированный handler
+// - Минимум runtime overhead
+```
+
+### WeakMap кэширование
+
+Все metadata операции кэшируются:
+
+```typescript
+// Первый вызов - читает из Reflect
+const guards = HttpMetadataManager.getGuards(controller, method);
+
+// Последующие вызовы - из WeakMap кэша
+const guards = HttpMetadataManager.getGuards(controller, method);
+// ⚡ Мгновенно!
+```
+
+### Direct Passthrough
+
+HttpProvider использует прямые вызовы к нативной библиотеке:
+
+```typescript
+// Zero overhead
+this.app.get(path, handler); // Direct Elysia call
+// Сохраняет все оптимизации Elysia
+```
+
+## Следующие шаги
+
+- [Контроллеры](/docs/http/guides/controllers) - Создание контроллеров
+- [Guards](/docs/http/guides/guards) - Защита маршрутов
+- [Interceptors](/docs/http/guides/interceptors) - Трансформация запросов
+- [Pipes](/docs/http/guides/pipes) - Валидация данных

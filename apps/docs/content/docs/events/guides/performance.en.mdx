@@ -1,0 +1,97 @@
+---
+title: "Performance"
+description: "Optimizing event performance"
+---
+
+# Performance
+
+`@ambrosia/events` is designed for maximum performance. Here are the key principles and recommendations.
+
+## "Build Once, Emit Fast" Architecture
+
+All heavy work is done once at application startup:
+
+| Operation | When | Cost |
+|----------|-------|-----------|
+| Scanning `@OnEvent` metadata | `onInit` | O(n) providers |
+| `.bind()` methods to instances | `onInit` | O(n) handlers |
+| Sorting by priority | `onInit` | O(n log n) per event |
+| `emit()` -- lookup | Runtime | O(1) -- `Map.get()` |
+| `emit()` -- calling handlers | Runtime | O(k) -- direct for-loop |
+
+## Sync vs Async
+
+EventBus automatically detects which events have **only synchronous** handlers and uses a fast path:
+
+### Synchronous Fast Path
+
+If **all** handlers for an event are synchronous, `emit()` returns `void` (not `Promise`):
+
+```ts
+@Injectable()
+class MetricsListener {
+  @OnEvent(RequestEvent)
+  onRequest(event: RequestEvent) {
+    // Synchronous handler -- no async overhead
+    this.counter++;
+  }
+}
+
+// emit() returns void -- zero Promise allocations
+bus.emit(new RequestEvent()); // sync!
+```
+
+### Asynchronous Path
+
+If at least one handler is asynchronous, `Promise.all` is used:
+
+```ts
+@Injectable()
+class EmailListener {
+  @OnEvent(UserRegisteredEvent)
+  async sendEmail(event: UserRegisteredEvent) {
+    // Async -- triggers Promise path
+    await this.mailer.send(event.email, 'Welcome');
+  }
+}
+```
+
+### Recommendation
+
+If an event doesn't require async processing, use synchronous handlers for maximum speed.
+
+## Priorities
+
+Handlers are sorted by priority once during initialization, not on every `emit()`:
+
+```ts
+@OnEvent(OrderEvent, { priority: 100 })  // Executes first
+validateOrder(e: OrderEvent) {}
+
+@OnEvent(OrderEvent, { priority: 50 })   // Second
+chargePayment(e: OrderEvent) {}
+
+@OnEvent(OrderEvent)                      // Last (priority: 0)
+sendConfirmation(e: OrderEvent) {}
+```
+
+Use priorities to guarantee execution order (validation before sending).
+
+## Fire and Forget
+
+For events where handler results don't matter, use `emitAsync()`:
+
+```ts
+// Does NOT wait for handlers to finish
+this.bus.emitAsync(new AnalyticsEvent('page_view', { url: '/home' }));
+```
+
+This is useful for analytics, logging, and other side effects that don't affect the main flow.
+
+## Optimization Tips
+
+1. **Avoid heavy operations in sync handlers** -- they block emit
+2. **Group related handlers into a single method** -- fewer function calls
+3. **Use `emitAsync()` for non-critical events** -- doesn't block calling code
+4. **Minimize data in events** -- pass IDs instead of full objects
+5. **Don't create handlers that do nothing** -- each handler is a function call

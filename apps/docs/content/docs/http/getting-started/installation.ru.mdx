@@ -1,0 +1,156 @@
+---
+title: "Установка"
+description: "Установите @ambrosia/http и настройте ваш проект"
+---
+
+# Установка
+
+Установите **@ambrosia/http** и HTTP провайдер для начала работы.
+
+## Предварительные требования
+
+- **Bun** >= 1.0.0 или **Node.js** >= 18.0.0
+- **TypeScript** >= 5.0.0
+- Включенные экспериментальные декораторы
+
+## Установка пакетов
+
+<Tabs items={['bun', 'npm', 'pnpm', 'yarn']}>
+  <Tab value="bun">
+    ```bash
+    bun add @ambrosia/http @ambrosia/http-elysia @ambrosia/core
+    bun add -d @sinclair/typebox
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @ambrosia/http @ambrosia/http-elysia @ambrosia/core
+    npm install --save-dev @sinclair/typebox
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @ambrosia/http @ambrosia/http-elysia @ambrosia/core
+    pnpm add -D @sinclair/typebox
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @ambrosia/http @ambrosia/http-elysia @ambrosia/core
+    yarn add --dev @sinclair/typebox
+    ```
+  </Tab>
+</Tabs>
+
+### Пакеты
+
+- **@ambrosia/core** - DI контейнер (базовая зависимость)
+- **@ambrosia/http** - HTTP фреймворк (core функциональность)
+- **@ambrosia/http-elysia** - Elysia.js провайдер
+- **@sinclair/typebox** - TypeBox для валидации (optional, но рекомендуется)
+
+## Настройка TypeScript
+
+Обновите `tsconfig.json` для поддержки декораторов:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true
+  }
+}
+```
+
+### Важные опции
+
+- **experimentalDecorators** - Включает поддержку декораторов
+- **emitDecoratorMetadata** - Генерирует метаданные для рефлексии типов
+- **target** - ES2022 или выше для современных возможностей
+- **moduleResolution** - "bundler" для Bun или "node" для Node.js
+
+## Проверка установки
+
+Создайте простой файл для проверки:
+
+```typescript title="test.ts"
+import { HttpApplication, Controller, Http } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+
+@Controller('/')
+class AppController {
+  @Http.Get('/')
+  hello() {
+    return { message: 'Hello, Ambrosia!' };
+  }
+}
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  port: 3000
+});
+
+await app.listen();
+```
+
+Запустите:
+
+<Tabs items={['bun', 'node']}>
+  <Tab value="bun">
+    ```bash
+    bun run test.ts
+    ```
+  </Tab>
+  <Tab value="node">
+    ```bash
+    npx tsx test.ts
+    ```
+  </Tab>
+</Tabs>
+
+Если вы видите сообщение:
+
+```
+🚀 Ambrosia HTTP Server running on http://localhost:3000
+```
+
+Поздравляем! Установка прошла успешно.
+
+## Структура проекта
+
+Рекомендуемая структура для HTTP приложения:
+
+```
+my-app/
+├── src/
+│   ├── controllers/
+│   │   ├── user.controller.ts
+│   │   └── post.controller.ts
+│   ├── services/
+│   │   ├── user.service.ts
+│   │   └── post.service.ts
+│   ├── guards/
+│   │   └── auth.guard.ts
+│   ├── interceptors/
+│   │   └── logging.interceptor.ts
+│   ├── pipes/
+│   │   └── validation.pipe.ts
+│   ├── dto/
+│   │   ├── create-user.dto.ts
+│   │   └── create-post.dto.ts
+│   └── main.ts
+├── tsconfig.json
+└── package.json
+```
+
+## Следующие шаги
+
+- [Быстрый старт](/docs/http/getting-started/quick-start) - Создайте ваш первый HTTP сервер
+- [Основные концепции](/docs/http/getting-started/concepts) - Поймите архитектуру
+- [Контроллеры](/docs/http/guides/controllers) - Научитесь создавать контроллеры

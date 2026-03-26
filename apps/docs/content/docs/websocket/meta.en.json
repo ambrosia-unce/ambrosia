@@ -1,0 +1,6 @@
+{
+  "title": "@ambrosia/websocket",
+  "description": "WebSocket layer for Ambrosia",
+  "pages": ["index", "getting-started", "guides", "api"],
+  "root": true
+}

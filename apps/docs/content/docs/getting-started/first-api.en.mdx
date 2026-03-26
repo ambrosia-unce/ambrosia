@@ -1,0 +1,638 @@
+---
+title: "Build Your First API"
+description: "Step-by-step guide to building a CRUD API with Ambrosia: controllers, services, validation, config, and events"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+# Build Your First API
+
+In this tutorial you will build a blog posts API from scratch. Each step introduces a new Ambrosia concept, and by the end you will have a fully working CRUD API with dependency injection, validation, configuration, and events.
+
+<Callout type="info">
+This guide assumes you have completed the [Installation](/docs/getting-started/installation) step and have a project scaffolded with `ambrosia new my-api --arch modular`.
+</Callout>
+
+## Step 1: Create a Controller
+
+Controllers handle incoming HTTP requests and return responses. Let's generate one:
+
+```bash
+ambrosia g controller posts
+```
+
+This creates `src/posts/posts.controller.ts`. Open it and replace the contents with:
+
+```ts
+import { Controller, Http } from '@ambrosia/http';
+
+@Controller('/posts')
+export class PostsController {
+  @Http.Get()
+  findAll() {
+    return { message: 'This will return all posts' };
+  }
+}
+```
+
+What is happening here:
+
+- `@Controller('/posts')` marks this class as an HTTP controller mounted at `/posts`. It also automatically applies `@Injectable()` -- you do not need to add it yourself.
+- `@Http.Get()` maps the `findAll` method to `GET /posts`.
+- The return value is automatically serialized as JSON.
+
+### Register the controller
+
+Open `src/main.ts` and add the controller:
+
+```ts
+import 'reflect-metadata';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { AppPack } from './app.pack.ts';
+import { PostsController } from './posts/posts.controller.ts';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  controllers: [PostsController],
+  port: 3000,
+});
+
+await app.listen();
+```
+
+### Test it
+
+```bash
+bun run dev
+```
+
+```bash
+curl http://localhost:3000/posts
+```
+
+Expected output:
+
+```json
+{"message":"This will return all posts"}
+```
+
+## Step 2: Add a Service
+
+Business logic should not live in controllers. Create a service to manage posts:
+
+```bash
+ambrosia g service posts
+```
+
+This creates `src/posts/posts.service.ts`. Replace the contents with:
+
+```ts
+import { Injectable } from '@ambrosia/core';
+
+export interface Post {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: Date;
+}
+
+@Injectable()
+export class PostsService {
+  private posts: Post[] = [];
+
+  findAll(): Post[] {
+    return this.posts;
+  }
+
+  findOne(id: string): Post | undefined {
+    return this.posts.find(p => p.id === id);
+  }
+
+  create(title: string, content: string): Post {
+    const post: Post = {
+      id: crypto.randomUUID(),
+      title,
+      content,
+      createdAt: new Date(),
+    };
+    this.posts.push(post);
+    return post;
+  }
+
+  update(id: string, title: string, content: string): Post | undefined {
+    const post = this.findOne(id);
+    if (!post) return undefined;
+    post.title = title;
+    post.content = content;
+    return post;
+  }
+
+  delete(id: string): boolean {
+    const index = this.posts.findIndex(p => p.id === id);
+    if (index === -1) return false;
+    this.posts.splice(index, 1);
+    return true;
+  }
+}
+```
+
+The `@Injectable()` decorator registers this class with the DI container. The container creates a singleton instance by default and injects it wherever it is requested.
+
+### Wire the service to the controller
+
+Update `posts.controller.ts` to inject the service:
+
+```ts
+import { Controller, Http, Body, Param, Status } from '@ambrosia/http';
+import { PostsService } from './posts.service.ts';
+
+@Controller('/posts')
+export class PostsController {
+  constructor(private postsService: PostsService) {}
+
+  @Http.Get()
+  findAll() {
+    return this.postsService.findAll();
+  }
+
+  @Http.Get('/:id')
+  findOne(@Param('id') id: string) {
+    return this.postsService.findOne(id);
+  }
+
+  @Http.Post()
+  @Status(201)
+  create(@Body() body: { title: string; content: string }) {
+    return this.postsService.create(body.title, body.content);
+  }
+
+  @Http.Put('/:id')
+  update(
+    @Param('id') id: string,
+    @Body() body: { title: string; content: string },
+  ) {
+    return this.postsService.update(id, body.title, body.content);
+  }
+
+  @Http.Delete('/:id')
+  delete(@Param('id') id: string) {
+    const deleted = this.postsService.delete(id);
+    return { deleted };
+  }
+}
+```
+
+New concepts introduced:
+
+- **Constructor injection** -- `private postsService: PostsService` in the constructor. Ambrosia reads the type metadata and automatically resolves the dependency.
+- `@Param('id')` extracts the `:id` path parameter.
+- `@Body()` extracts the parsed request body.
+- `@Status(201)` sets the response status code for the `create` method.
+
+### Register the service
+
+Add `PostsService` to the providers in `app.pack.ts`:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import { PostsService } from './posts/posts.service.ts';
+
+export const AppPack = definePack({
+  providers: [PostsService],
+});
+```
+
+### Test the CRUD
+
+```bash
+bun run dev
+```
+
+Create a post:
+
+```bash
+curl -X POST http://localhost:3000/posts \
+  -H "Content-Type: application/json" \
+  -d '{"title": "My First Post", "content": "Hello from Ambrosia!"}'
+```
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "title": "My First Post",
+  "content": "Hello from Ambrosia!",
+  "createdAt": "2025-01-15T10:30:00.000Z"
+}
+```
+
+List all posts:
+
+```bash
+curl http://localhost:3000/posts
+```
+
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "My First Post",
+    "content": "Hello from Ambrosia!",
+    "createdAt": "2025-01-15T10:30:00.000Z"
+  }
+]
+```
+
+## Step 3: Create a Pack
+
+Right now the controller and service are registered in two places. Let's group them into a **pack** -- Ambrosia's unit of modularity:
+
+Create `src/posts/posts.pack.ts`:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import type { HttpPackDefinition } from '@ambrosia/http';
+import { PostsController } from './posts.controller.ts';
+import { PostsService } from './posts.service.ts';
+
+export const PostsPack: HttpPackDefinition = {
+  ...definePack({
+    providers: [PostsService],
+    exports: [PostsService],
+  }),
+  controllers: [PostsController],
+};
+```
+
+Now simplify `app.pack.ts`:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import { PostsPack } from './posts/posts.pack.ts';
+
+export const AppPack = definePack({
+  imports: [PostsPack],
+});
+```
+
+And simplify `main.ts` -- remove the explicit `controllers` array since the pack handles it:
+
+```ts
+import 'reflect-metadata';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { AppPack } from './app.pack.ts';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  port: 3000,
+});
+
+await app.listen();
+```
+
+<Callout type="info">
+**Why packs?** Packs give you encapsulation. A pack's providers are private by default -- only what you list in `exports` is visible to other packs. This prevents tight coupling between features.
+</Callout>
+
+## Step 4: Add Validation
+
+Raw `body` types provide no runtime guarantees. Let's add compile-time validation with `@ambrosia/validator`.
+
+First, install the validator:
+
+```bash
+bun add @ambrosia/validator
+```
+
+Make sure `bunfig.toml` has the preload:
+
+```toml
+preload = ["@ambrosia/validator/preload"]
+```
+
+Create a DTO (Data Transfer Object) in `src/posts/dto/create-post.dto.ts`:
+
+```ts
+export interface CreatePostDto {
+  /** @minLength 1 */
+  /** @maxLength 200 */
+  title: string;
+
+  /** @minLength 1 */
+  content: string;
+}
+```
+
+Update the controller to use validation:
+
+```ts
+import { Controller, Http, Body, Param, Status, Validate } from '@ambrosia/http';
+import { PostsService } from './posts.service.ts';
+import type { CreatePostDto } from './dto/create-post.dto.ts';
+
+@Controller('/posts')
+export class PostsController {
+  constructor(private postsService: PostsService) {}
+
+  @Http.Get()
+  findAll() {
+    return this.postsService.findAll();
+  }
+
+  @Http.Get('/:id')
+  findOne(@Param('id') id: string) {
+    return this.postsService.findOne(id);
+  }
+
+  @Http.Post()
+  @Status(201)
+  create(@Body() @Validate() body: CreatePostDto) {
+    return this.postsService.create(body.title, body.content);
+  }
+
+  @Http.Put('/:id')
+  update(
+    @Param('id') id: string,
+    @Body() @Validate() body: CreatePostDto,
+  ) {
+    return this.postsService.update(id, body.title, body.content);
+  }
+
+  @Http.Delete('/:id')
+  delete(@Param('id') id: string) {
+    const deleted = this.postsService.delete(id);
+    return { deleted };
+  }
+}
+```
+
+The `@Validate()` decorator is a marker -- the `@ambrosia/validator` TypeScript transformer detects it at compile time and generates inline validation code. No runtime schema library needed.
+
+### Test validation
+
+```bash
+curl -X POST http://localhost:3000/posts \
+  -H "Content-Type: application/json" \
+  -d '{"title": "", "content": "test"}'
+```
+
+This will return a `400 Bad Request` because the title violates the `@minLength 1` constraint.
+
+<Callout type="warn">
+The `@Validate()` decorator requires the `@ambrosia/validator/preload` to be active in `bunfig.toml`. Without it, the decorator is a no-op and no validation occurs.
+</Callout>
+
+## Step 5: Add Configuration
+
+Hardcoding the port and other values is fragile. Let's use `@ambrosia/config` for type-safe environment configuration.
+
+```bash
+bun add @ambrosia/config
+```
+
+Create a config schema in `src/config/app.config.ts`:
+
+```ts
+import { defineConfig } from '@ambrosia/config';
+
+export const AppConfig = defineConfig({
+  port: { env: 'PORT', type: 'int', default: 3000 },
+  nodeEnv: { env: 'NODE_ENV', type: 'string', default: 'development' },
+  logLevel: { env: 'LOG_LEVEL', type: 'string', default: 'info' },
+});
+```
+
+Create a `.env` file in the project root:
+
+```
+PORT=3000
+NODE_ENV=development
+LOG_LEVEL=info
+```
+
+Update `app.pack.ts` to import the config module:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import { ConfigModule } from '@ambrosia/config';
+import { AppConfig } from './config/app.config.ts';
+import { PostsPack } from './posts/posts.pack.ts';
+
+export const AppPack = definePack({
+  imports: [
+    ConfigModule.forRoot({
+      schema: AppConfig,
+      envPath: '.env',
+      validate: true,
+    }),
+    PostsPack,
+  ],
+});
+```
+
+Now use `ConfigService` in `main.ts`:
+
+```ts
+import 'reflect-metadata';
+import { Container } from '@ambrosia/core';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { ConfigService } from '@ambrosia/config';
+import { AppPack } from './app.pack.ts';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+});
+
+// Access config after app is created (packs are processed)
+const config = app.getContainer().resolve(ConfigService);
+const port = config.get<number>('port') ?? 3000;
+
+await app.listen(port);
+```
+
+<Callout type="info">
+`defineConfig` provides a schema with environment variable names, types, and defaults. At bootstrap, `ConfigModule.forRoot()` parses all env vars **once** into a frozen map. After that, `ConfigService.get<T>(key)` is a zero-cost `Map.get()`.
+</Callout>
+
+## Step 6: Add Events
+
+Let's emit an event when a post is created so other parts of the system can react without tight coupling.
+
+```bash
+bun add @ambrosia/events
+```
+
+Create the event class in `src/posts/events/post-created.event.ts`:
+
+```ts
+export class PostCreatedEvent {
+  constructor(
+    public readonly postId: string,
+    public readonly title: string,
+  ) {}
+}
+```
+
+Create a listener in `src/posts/listeners/post-created.listener.ts`:
+
+```ts
+import { Injectable } from '@ambrosia/core';
+import { OnEvent } from '@ambrosia/events';
+import { PostCreatedEvent } from '../events/post-created.event.ts';
+
+@Injectable()
+export class PostCreatedListener {
+  @OnEvent(PostCreatedEvent)
+  onPostCreated(event: PostCreatedEvent) {
+    console.log(`[PostCreatedListener] New post: "${event.title}" (${event.postId})`);
+  }
+}
+```
+
+Update the service to emit the event:
+
+```ts
+import { Injectable } from '@ambrosia/core';
+import { EventBus } from '@ambrosia/events';
+import { PostCreatedEvent } from './events/post-created.event.ts';
+
+export interface Post {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: Date;
+}
+
+@Injectable()
+export class PostsService {
+  private posts: Post[] = [];
+
+  constructor(private eventBus: EventBus) {}
+
+  findAll(): Post[] {
+    return this.posts;
+  }
+
+  findOne(id: string): Post | undefined {
+    return this.posts.find(p => p.id === id);
+  }
+
+  create(title: string, content: string): Post {
+    const post: Post = {
+      id: crypto.randomUUID(),
+      title,
+      content,
+      createdAt: new Date(),
+    };
+    this.posts.push(post);
+
+    // Emit event -- listeners react without the service knowing about them
+    this.eventBus.emit(new PostCreatedEvent(post.id, post.title));
+
+    return post;
+  }
+
+  update(id: string, title: string, content: string): Post | undefined {
+    const post = this.findOne(id);
+    if (!post) return undefined;
+    post.title = title;
+    post.content = content;
+    return post;
+  }
+
+  delete(id: string): boolean {
+    const index = this.posts.findIndex(p => p.id === id);
+    if (index === -1) return false;
+    this.posts.splice(index, 1);
+    return true;
+  }
+}
+```
+
+Update the posts pack to include the event module and listener:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import type { HttpPackDefinition } from '@ambrosia/http';
+import { EventBusModule } from '@ambrosia/events';
+import { PostsController } from './posts.controller.ts';
+import { PostsService } from './posts.service.ts';
+import { PostCreatedListener } from './listeners/post-created.listener.ts';
+
+export const PostsPack: HttpPackDefinition = {
+  ...definePack({
+    imports: [EventBusModule.forRoot()],
+    providers: [PostsService, PostCreatedListener],
+    exports: [PostsService],
+  }),
+  controllers: [PostsController],
+};
+```
+
+### Test events
+
+```bash
+bun run dev
+```
+
+```bash
+curl -X POST http://localhost:3000/posts \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Event-Driven Post", "content": "This triggers an event!"}'
+```
+
+Check the server console -- you should see:
+
+```
+[PostCreatedListener] New post: "Event-Driven Post" (550e8400-...)
+```
+
+The listener fires automatically. The `PostsService` does not know about the listener -- they are decoupled through the event bus.
+
+## Final Project Structure
+
+After completing all steps, your project looks like this:
+
+```
+my-api/
+  src/
+    config/
+      app.config.ts             # Config schema
+    posts/
+      dto/
+        create-post.dto.ts      # Validation DTO
+      events/
+        post-created.event.ts   # Event class
+      listeners/
+        post-created.listener.ts # Event listener
+      posts.controller.ts       # HTTP controller
+      posts.service.ts          # Business logic
+      posts.pack.ts             # Feature pack
+    app.pack.ts                 # Root pack
+    main.ts                     # Entry point
+  bunfig.toml
+  package.json
+  tsconfig.json
+  .env
+```
+
+## Summary
+
+In this tutorial you learned:
+
+1. **Controllers** handle HTTP requests with `@Controller` and `@Http.Get/Post/Put/Delete`
+2. **Services** contain business logic and are injected via constructor parameters
+3. **Packs** group related code into encapsulated modules with `definePack`
+4. **Validation** uses compile-time DTOs with `@Validate()` -- no runtime schema libraries
+5. **Config** provides type-safe environment variables with `ConfigModule.forRoot()`
+6. **Events** enable decoupled communication with `EventBus` and `@OnEvent`
+
+<Callout type="info">
+Next: Learn more about [Packs](/docs/getting-started/packs) -- how to structure large applications with imports, exports, and encapsulation.
+</Callout>

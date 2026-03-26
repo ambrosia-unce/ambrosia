@@ -1,0 +1,173 @@
+---
+title: "Parsers"
+description: "All env variable parser types with examples"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Parsers
+
+`@ambrosia/config` includes 6 built-in parsers for converting string env variable values into typed data.
+
+## string
+
+Returns the value as-is, without conversion.
+
+```bash title=".env"
+APP_NAME=my-app
+SECRET_KEY=abc123def456ghi789
+```
+
+```ts
+const Config = defineConfig({
+  appName: { env: 'APP_NAME', type: 'string', default: 'app' },
+  secretKey: { env: 'SECRET_KEY', required: true },
+  // type: 'string' is the default, can be omitted
+  implicitString: { env: 'APP_NAME' },
+});
+```
+
+## int
+
+Parses an integer via `Number.parseInt(value, 10)`. Throws an error if the value is not a valid integer.
+
+```bash title=".env"
+PORT=3000
+MAX_CONNECTIONS=100
+```
+
+```ts
+const Config = defineConfig({
+  port: { env: 'PORT', type: 'int', default: 3000 },
+  maxConnections: { env: 'MAX_CONNECTIONS', type: 'int', default: 10 },
+});
+// PORT=3000 → 3000 (number)
+// PORT=abc  → ConfigParseError: Value is not a valid integer
+```
+
+## float
+
+Parses a floating-point number via `Number.parseFloat(value)`. Throws an error if the value is not a valid number.
+
+```bash title=".env"
+TIMEOUT=1.5
+RATE_LIMIT=0.75
+```
+
+```ts
+const Config = defineConfig({
+  timeout: { env: 'TIMEOUT', type: 'float', default: 5.0 },
+  rateLimit: { env: 'RATE_LIMIT', type: 'float', default: 1.0 },
+});
+// TIMEOUT=1.5 → 1.5 (number)
+// TIMEOUT=abc → ConfigParseError: Value is not a valid number
+```
+
+## bool
+
+Converts a string value to `boolean`. Truthy values: `'true'`, `'1'`, `'yes'` (case-insensitive). All other values are `false`.
+
+```bash title=".env"
+DEBUG=true
+VERBOSE=1
+CACHE_ENABLED=yes
+FEATURE_FLAG=false
+```
+
+```ts
+const Config = defineConfig({
+  debug: { env: 'DEBUG', type: 'bool', default: false },
+  verbose: { env: 'VERBOSE', type: 'bool', default: false },
+  cacheEnabled: { env: 'CACHE_ENABLED', type: 'bool', default: true },
+});
+// DEBUG=true   → true
+// VERBOSE=1    → true
+// VERBOSE=yes  → true
+// VERBOSE=0    → false
+// VERBOSE=no   → false
+```
+
+## array
+
+Splits a string by a separator (default `','`) and trims whitespace from each element. The separator can be customized via the `separator` field.
+
+```bash title=".env"
+DB_HOSTS=host1,host2,host3
+CORS_ORIGINS=https://app.com, https://admin.com
+TAGS=api;v2;production
+```
+
+```ts
+const Config = defineConfig({
+  dbHosts: { env: 'DB_HOSTS', type: 'array' },
+  corsOrigins: { env: 'CORS_ORIGINS', type: 'array' },
+  tags: { env: 'TAGS', type: 'array', separator: ';' },
+});
+// DB_HOSTS=host1,host2,host3       → ['host1', 'host2', 'host3']
+// CORS_ORIGINS=https://app.com, https://admin.com → ['https://app.com', 'https://admin.com']
+// TAGS=api;v2;production           → ['api', 'v2', 'production']
+```
+
+<Callout type="info">
+  Whitespace around elements is automatically trimmed. `"a, b, c"` and `"a,b,c"` produce the same result.
+</Callout>
+
+## json
+
+Parses a string as JSON via `JSON.parse()`. Throws an error if the value is not valid JSON.
+
+```bash title=".env"
+REDIS_CONFIG={"host":"localhost","port":6379}
+FEATURES=["auth","cache","logging"]
+```
+
+```ts
+const Config = defineConfig({
+  redis: { env: 'REDIS_CONFIG', type: 'json' },
+  features: { env: 'FEATURES', type: 'json', default: [] },
+});
+// REDIS_CONFIG={"host":"localhost","port":6379} → { host: 'localhost', port: 6379 }
+// FEATURES=["auth","cache"]                     → ['auth', 'cache']
+// REDIS_CONFIG=invalid                          → ConfigParseError: Value is not valid JSON
+```
+
+<Callout type="warn">
+  For JSON values in `.env` files, make sure the string doesn't contain line breaks. Complex JSON objects are better stored in separate configuration files.
+</Callout>
+
+## Parse Errors
+
+On a parse error, a `ConfigParseError` is thrown with detailed information:
+
+```
+[Config] Failed to parse "port" as int: Value is not a valid integer (raw: "abc")
+```
+
+Each error contains:
+- `key` -- the configuration key name
+- `rawValue` -- the original string value
+- `expectedType` -- the expected type
+- `message` -- error description
+
+All parse errors are collected at startup and thrown as a single message, so you can fix all issues in one go.
+
+## Custom Parsing
+
+For non-standard types, use the `json` parser or post-processing via `ConfigService`:
+
+```ts
+const Config = defineConfig({
+  // Parse as JSON, then process in the service
+  dbConfig: { env: 'DB_CONFIG', type: 'json' },
+});
+
+@Injectable()
+class DatabaseService {
+  private readonly connectionString: string;
+
+  constructor(private config: ConfigService) {
+    const dbConfig = this.config.getOrThrow<{ host: string; port: number; name: string }>('dbConfig');
+    this.connectionString = `postgres://${dbConfig.host}:${dbConfig.port}/${dbConfig.name}`;
+  }
+}
+```

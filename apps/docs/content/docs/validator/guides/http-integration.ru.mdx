@@ -1,0 +1,552 @@
+---
+title: "Интеграция с HTTP"
+description: "Использование @ambrosia/validator с @ambrosia/http"
+---
+
+# Интеграция с HTTP
+
+@ambrosia/validator отлично интегрируется с @ambrosia/http для валидации входящих запросов.
+
+## Базовое использование
+
+### С assert()
+
+```typescript
+import { Controller, Http, Body, Param } from '@ambrosia/http';
+import { assert } from '@ambrosia/validator';
+import type { Email } from '@ambrosia/validator/types';
+
+interface CreateUserDto {
+  name: string;
+  email: Email;
+  age: number;
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    // Валидация с автоматическим типом
+    const dto = assert<CreateUserDto>(body);
+
+    // dto полностью типизирован!
+    console.log(dto.email); // типа Email
+
+    return this.userService.create(dto);
+  }
+}
+```
+
+### С validate()
+
+```typescript
+import { validate, ValidationError } from '@ambrosia/validator';
+
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    const result = validate<CreateUserDto>(body);
+
+    if (!result.success) {
+      // ValidationError автоматически преобразуется в HTTP 422
+      throw new ValidationError('Validation failed', result.errors);
+    }
+
+    return this.userService.create(result.data);
+  }
+}
+```
+
+### С is() type guard
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    if (!is<CreateUserDto>(body)) {
+      throw new BadRequestException('Invalid request body');
+    }
+
+    // body типизирован как CreateUserDto
+    return this.userService.create(body);
+  }
+}
+```
+
+## Валидация параметров маршрута
+
+```typescript
+import type { UUID } from '@ambrosia/validator/types';
+
+interface GetUserParams {
+  id: UUID;
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  async findOne(@Param('id') id: unknown) {
+    // Валидация UUID
+    const params = assert<GetUserParams>({ id });
+
+    return this.userService.findById(params.id);
+  }
+}
+```
+
+## Валидация Query параметров
+
+```typescript
+import type { PositiveInt } from '@ambrosia/validator/types';
+
+interface PaginationQuery {
+  /**
+   * @integer
+   * @minimum 1
+   */
+  page: PositiveInt;
+
+  /**
+   * @integer
+   * @minimum 1
+   * @maximum 100
+   */
+  limit: PositiveInt;
+
+  search?: string;
+}
+
+@Controller('/products')
+export class ProductController {
+  @Http.Get('/')
+  async list(@Query() query: unknown) {
+    const pagination = assert<PaginationQuery>(query);
+
+    return this.productService.findAll({
+      page: pagination.page,
+      limit: pagination.limit,
+      search: pagination.search,
+    });
+  }
+}
+```
+
+## Обработка ошибок валидации
+
+ValidationError автоматически возвращает HTTP 422:
+
+```typescript
+// ValidationError выбрасывается assert()
+try {
+  const dto = assert<CreateUserDto>(body);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    // Будет преобразован в HTTP 422 Unprocessable Entity
+    // Response:
+    // {
+    //   "statusCode": 422,
+    //   "message": "Validation failed",
+    //   "errors": [
+    //     {
+    //       "path": "email",
+    //       "message": "must be a valid email",
+    //       "value": "invalid-email"
+    //     }
+    //   ]
+    // }
+    throw error;
+  }
+}
+```
+
+### Кастомный exception filter
+
+Для полного контроля создайте свой exception filter:
+
+```typescript
+import { ExceptionFilter, Catch, ExecutionContext } from '@ambrosia/http';
+import { ValidationError } from '@ambrosia/validator';
+
+@Catch(ValidationError)
+export class ValidationExceptionFilter implements ExceptionFilter {
+  catch(exception: ValidationError, context: ExecutionContext) {
+    const httpContext = context.switchToHttp();
+
+    httpContext.response.status(422).json({
+      success: false,
+      message: 'Validation failed',
+      errors: exception.errors.map(err => ({
+        field: err.path,
+        message: err.message,
+        receivedValue: err.value,
+      })),
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+```
+
+Зарегистрируйте в контроллере:
+
+```typescript
+import { UseFilters } from '@ambrosia/http';
+
+@Controller('/users')
+@UseFilters(ValidationExceptionFilter)
+export class UserController {
+  // ...
+}
+```
+
+## Валидация вложенных объектов
+
+```typescript
+import type { Email, PhoneNumber } from '@ambrosia/validator/types';
+
+interface AddressDto {
+  /**
+   * @minLength 5
+   */
+  street: string;
+
+  /**
+   * @pattern ^\d{5}$
+   */
+  zipCode: string;
+
+  city: string;
+}
+
+interface CreateCompanyDto {
+  /**
+   * @minLength 2
+   * @maxLength 100
+   */
+  name: string;
+
+  email: Email;
+  phone: PhoneNumber;
+  address: AddressDto;
+}
+
+@Controller('/companies')
+export class CompanyController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    // Валидирует всю структуру включая вложенный address
+    const dto = assert<CreateCompanyDto>(body);
+
+    return this.companyService.create(dto);
+  }
+}
+```
+
+## Валидация массивов
+
+```typescript
+import type { UUID } from '@ambrosia/validator/types';
+
+interface BatchDeleteDto {
+  /**
+   * @minItems 1
+   * @maxItems 100
+   * @uniqueItems
+   */
+  ids: UUID[];
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Delete('/batch')
+  async deleteMany(@Body() body: unknown) {
+    const dto = assert<BatchDeleteDto>(body);
+
+    // dto.ids гарантированно содержит 1-100 уникальных UUID
+    return this.userService.deleteMany(dto.ids);
+  }
+}
+```
+
+## PATCH запросы (частичное обновление)
+
+```typescript
+import type { Email } from '@ambrosia/validator/types';
+
+interface UpdateUserDto {
+  /**
+   * @minLength 2
+   */
+  name?: string;
+
+  email?: Email;
+
+  /**
+   * @minimum 18
+   */
+  age?: number;
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Patch('/:id')
+  async update(
+    @Param('id') id: string,
+    @Body() body: unknown
+  ) {
+    // Валидирует, что если поля присутствуют, они валидны
+    const dto = assert<UpdateUserDto>(body);
+
+    // Проверка что хотя бы одно поле передано
+    if (!dto.name && !dto.email && !dto.age) {
+      throw new BadRequestException('At least one field required');
+    }
+
+    return this.userService.update(id, dto);
+  }
+}
+```
+
+## Использование с Guards
+
+```typescript
+import { UseGuards } from '@ambrosia/http';
+import { AuthGuard } from '../guards/auth.guard';
+
+@Controller('/admin/users')
+@UseGuards(AuthGuard)
+export class AdminUserController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    // Guards выполняются ДО валидации
+    // Сначала проверяется аутентификация, затем валидация
+    const dto = assert<CreateUserDto>(body);
+
+    return this.userService.create(dto);
+  }
+}
+```
+
+## Использование с Interceptors
+
+```typescript
+import { UseInterceptors } from '@ambrosia/http';
+import { LoggingInterceptor } from '../interceptors/logging.interceptor';
+
+@Controller('/users')
+@UseInterceptors(LoggingInterceptor)
+export class UserController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    const dto = assert<CreateUserDto>(body);
+
+    // Interceptor логирует запрос и ответ
+    return this.userService.create(dto);
+  }
+}
+```
+
+## Response DTO (сериализация)
+
+Валидатор можно использовать не только для входящих данных:
+
+```typescript
+interface UserResponseDto {
+  id: string;
+  name: string;
+  email: Email;
+  createdAt: string;
+  // НЕТ password или других чувствительных полей!
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  async findOne(@Param('id') id: string) {
+    const user = await this.userService.findById(id);
+
+    // Убедитесь что ответ соответствует DTO
+    return assert<UserResponseDto>({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt.toISOString(),
+    });
+  }
+}
+```
+
+## Комбинированный пример
+
+Реальный REST API контроллер:
+
+```typescript
+import {
+  Controller,
+  Http,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  UseFilters,
+  Status
+} from '@ambrosia/http';
+import { assert } from '@ambrosia/validator';
+import type { Email, UUID, PositiveInt } from '@ambrosia/validator/types';
+import { AuthGuard } from '../guards/auth.guard';
+import { ValidationExceptionFilter } from '../filters/validation.filter';
+
+interface CreateUserDto {
+  /**
+   * @minLength 2
+   * @maxLength 50
+   */
+  name: string;
+
+  email: Email;
+
+  /**
+   * @minLength 8
+   * @pattern ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$
+   */
+  password: string;
+}
+
+interface UpdateUserDto {
+  name?: string;
+  email?: Email;
+}
+
+interface ListUsersQuery {
+  page?: PositiveInt;
+  limit?: PositiveInt;
+  search?: string;
+}
+
+@Controller('/api/users')
+@UseFilters(ValidationExceptionFilter)
+export class UserController {
+  constructor(private userService: UserService) {}
+
+  @Http.Get('/')
+  async list(@Query() query: unknown) {
+    const { page = 1, limit = 10, search } = assert<ListUsersQuery>(query);
+    return this.userService.findAll({ page, limit, search });
+  }
+
+  @Http.Get('/:id')
+  async findOne(@Param('id') id: unknown) {
+    const params = assert<{ id: UUID }>({ id });
+    const user = await this.userService.findById(params.id);
+    if (!user) throw new NotFoundException();
+    return user;
+  }
+
+  @Http.Post('/')
+  @Status(201)
+  async create(@Body() body: unknown) {
+    const dto = assert<CreateUserDto>(body);
+    return this.userService.create(dto);
+  }
+
+  @Http.Patch('/:id')
+  @UseGuards(AuthGuard)
+  async update(
+    @Param('id') id: unknown,
+    @Body() body: unknown
+  ) {
+    const params = assert<{ id: UUID }>({ id });
+    const dto = assert<UpdateUserDto>(body);
+    return this.userService.update(params.id, dto);
+  }
+
+  @Http.Delete('/:id')
+  @UseGuards(AuthGuard)
+  @Status(204)
+  async remove(@Param('id') id: unknown) {
+    const params = assert<{ id: UUID }>({ id });
+    await this.userService.remove(params.id);
+  }
+}
+```
+
+## Тестирование
+
+```typescript
+import { describe, test, expect } from 'bun:test';
+import { ValidationError } from '@ambrosia/validator';
+
+describe('UserController', () => {
+  test('create user - validates email', async () => {
+    const controller = new UserController(mockUserService);
+
+    await expect(
+      controller.create({
+        name: 'Alice',
+        email: 'invalid-email',
+        password: 'Password123',
+      })
+    ).rejects.toThrow(ValidationError);
+  });
+
+  test('create user - success', async () => {
+    const controller = new UserController(mockUserService);
+
+    const result = await controller.create({
+      name: 'Alice',
+      email: 'alice@example.com',
+      password: 'Password123',
+    });
+
+    expect(result.email).toBe('alice@example.com');
+  });
+});
+```
+
+## Производительность
+
+Поскольку валидация компилируется в inline код:
+
+- ✅ Нет overhead на создание объектов схемы
+- ✅ Нет рефлексии или динамического вызова
+- ✅ Оптимизированные проверки
+- ✅ Валидация происходит за O(n) где n - количество полей
+
+## Best Practices
+
+1. **Всегда типизируйте @Body() как unknown**
+   ```typescript
+   @Http.Post('/')
+   create(@Body() body: unknown) { // ✅ unknown
+     const dto = assert<CreateUserDto>(body);
+   }
+   ```
+
+2. **Используйте branded types для специальных форматов**
+   ```typescript
+   interface Dto {
+     email: Email; // ✅ вместо string с @format email
+   }
+   ```
+
+3. **Валидируйте параметры маршрута**
+   ```typescript
+   @Http.Get('/:id')
+   findOne(@Param('id') id: unknown) { // ✅
+     const params = assert<{ id: UUID }>({ id });
+   }
+   ```
+
+4. **Создавайте отдельные DTO для Create/Update**
+   ```typescript
+   interface CreateUserDto { /* все поля обязательны */ }
+   interface UpdateUserDto { /* поля optional */ }
+   ```
+
+5. **Используйте exception filters для единообразных ошибок**
+   ```typescript
+   @UseFilters(ValidationExceptionFilter)
+   @Controller('/users')
+   export class UserController { }
+   ```

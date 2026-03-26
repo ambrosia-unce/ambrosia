@@ -1,0 +1,471 @@
+---
+title: "Scopes"
+description: "Master SINGLETON, TRANSIENT, and REQUEST scopes for lifecycle management"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Scopes
+
+Scopes control the lifetime and caching behavior of service instances. @ambrosia/core supports three scope types: SINGLETON, TRANSIENT, and REQUEST.
+
+## Overview
+
+| Scope | Instances | Caching | Use Case |
+|-------|-----------|---------|----------|
+| **SINGLETON** | One per container | Cached | Shared services, DB, config |
+| **TRANSIENT** | New every time | Never cached | Stateful services, commands |
+| **REQUEST** | One per request | Cached within scope | HTTP requests, transactions |
+
+## SINGLETON Scope
+
+**One instance per container** - the same instance is returned every time.
+
+### Basic Usage
+
+```typescript
+import { Injectable, Scope } from '@ambrosia/core';
+
+@Injectable({ scope: Scope.SINGLETON }) // Default
+class DatabaseService {
+  private connections = 0;
+
+  connect() {
+    this.connections++;
+    console.log(`Total connections: ${this.connections}`);
+  }
+}
+
+const db1 = container.resolve(DatabaseService);
+const db2 = container.resolve(DatabaseService);
+
+console.log(db1 === db2); // true (same instance)
+db1.connect(); // Total connections: 1
+db2.connect(); // Total connections: 2 (shared state!)
+```
+
+<Callout type="info">
+  **SINGLETON is the default scope** - you can omit `{ scope: Scope.SINGLETON }`.
+</Callout>
+
+### When to Use
+
+Good use cases:
+- Database connections
+- Configuration services
+- Logging services
+- Caches
+- API clients
+- Stateless services
+
+Avoid for:
+- Request-specific data
+- User sessions
+- Temporary state
+
+### Performance
+
+SINGLETON scope provides the best performance:
+
+- **First resolution:** ~1-2ms (creates instance)
+- **Subsequent resolutions:** ~0.01-0.05ms (cache lookup)
+
+```typescript
+// Benchmark results
+Singleton (cached): 1,005,257 ops/sec (0.995us)
+```
+
+## TRANSIENT Scope
+
+**New instance every time** - no caching, always creates a fresh instance.
+
+### Basic Usage
+
+```typescript
+import { Injectable, Scope } from '@ambrosia/core';
+
+@Injectable({ scope: Scope.TRANSIENT })
+class RequestHandler {
+  private id = Math.random();
+  private data: any = {};
+
+  setData(key: string, value: any) {
+    this.data[key] = value;
+  }
+
+  getData(key: string) {
+    return this.data[key];
+  }
+
+  getId() {
+    return this.id;
+  }
+}
+
+const handler1 = container.resolve(RequestHandler);
+const handler2 = container.resolve(RequestHandler);
+
+console.log(handler1 === handler2); // false (different instances)
+console.log(handler1.getId() !== handler2.getId()); // true
+
+handler1.setData('user', 'Alice');
+console.log(handler2.getData('user')); // undefined (separate state)
+```
+
+### When to Use
+
+Good use cases:
+- Command objects
+- Request handlers (if not using REQUEST scope)
+- Stateful operations
+- Disposable objects
+- Services that must not share state
+
+Avoid for:
+- Heavy objects (DB connections, etc.)
+- Services needed multiple times in one operation
+- Caches or registries
+
+### Performance
+
+TRANSIENT scope has overhead from creating new instances:
+
+```typescript
+// Benchmark results
+Transient: ~300,000-500,000 ops/sec
+```
+
+<Callout type="warn">
+  **TRANSIENT creates new instances every time**, including all dependencies. This can be expensive for complex dependency trees.
+</Callout>
+
+### Dependency Resolution
+
+When a TRANSIENT service has dependencies:
+
+```typescript
+@Injectable() // SINGLETON
+class DatabaseService {}
+
+@Injectable({ scope: Scope.TRANSIENT })
+class UserRepository {
+  constructor(private db: DatabaseService) {} // SINGLETON injected
+}
+
+const repo1 = container.resolve(UserRepository);
+const repo2 = container.resolve(UserRepository);
+
+console.log(repo1 === repo2); // false (different UserRepository instances)
+console.log(repo1['db'] === repo2['db']); // true (same DatabaseService instance)
+```
+
+**Rule:** Dependencies are resolved according to their own scope, not their parent's scope.
+
+## REQUEST Scope
+
+**One instance per request scope** - uses AsyncLocalStorage to maintain scope across async boundaries.
+
+### Basic Usage
+
+```typescript
+import { Injectable, Scope } from '@ambrosia/core';
+
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {
+  userId?: string;
+  requestId?: string;
+  startTime = Date.now();
+
+  getElapsedTime() {
+    return Date.now() - this.startTime;
+  }
+}
+
+@Injectable()
+class UserService {
+  constructor(private context: RequestContext) {}
+
+  getCurrentUser() {
+    return { id: this.context.userId };
+  }
+}
+
+// Create a request scope
+await container.createRequestScope(async () => {
+  // All resolutions in this scope share the same RequestContext
+  const context = container.resolve(RequestContext);
+  context.userId = '123';
+  context.requestId = crypto.randomUUID();
+
+  const userService = container.resolve(UserService);
+  const user = userService.getCurrentUser();
+
+  console.log(user); // { id: '123' }
+  console.log(context.getElapsedTime()); // Time since scope start
+});
+```
+
+### HTTP Server Example
+
+```typescript
+import { Hono } from 'hono';
+import { Container, Injectable, Scope } from '@ambrosia/core';
+
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {
+  userId?: string;
+  requestId = crypto.randomUUID();
+}
+
+@Injectable()
+class UserService {
+  constructor(private context: RequestContext) {}
+
+  getCurrentUser() {
+    return { id: this.context.userId, requestId: this.context.requestId };
+  }
+}
+
+const app = new Hono();
+const container = new Container({ mode: 'production' });
+
+app.use('*', async (c, next) => {
+  // Create a request scope for this HTTP request
+  await container.createRequestScope(async () => {
+    const context = container.resolve(RequestContext);
+    context.userId = c.req.header('x-user-id');
+
+    // Store container in context for route handlers
+    c.set('container', container);
+    await next();
+  });
+});
+
+app.get('/user', (c) => {
+  const container = c.get('container') as Container;
+  const userService = container.resolve(UserService);
+  return c.json(userService.getCurrentUser());
+});
+```
+
+### When to Use
+
+Good use cases:
+- HTTP request context
+- User sessions
+- Request-scoped transactions
+- Correlation IDs
+- Request-specific caching
+
+Avoid for:
+- Global services
+- Services without request context
+- Long-running operations
+
+### AsyncLocalStorage
+
+The REQUEST scope uses Node.js/Bun AsyncLocalStorage to maintain context across async operations:
+
+```typescript
+@Injectable({ scope: Scope.REQUEST })
+class TransactionContext {
+  private transaction?: DatabaseTransaction;
+
+  async begin() {
+    this.transaction = await db.beginTransaction();
+  }
+
+  async commit() {
+    await this.transaction?.commit();
+  }
+}
+
+await container.createRequestScope(async () => {
+  const tx = container.resolve(TransactionContext);
+  await tx.begin();
+
+  // Context is preserved across async boundaries
+  await Promise.all([
+    updateUser(userId),
+    updateOrders(userId),
+  ]);
+
+  await tx.commit();
+});
+```
+
+<Callout type="success">
+  **AsyncLocalStorage preserves context** across `await`, `setTimeout`, `Promise.then()`, and other async operations.
+</Callout>
+
+## Scope Hierarchies
+
+When combining different scopes:
+
+```typescript
+@Injectable({ scope: Scope.SINGLETON })
+class ConfigService {}
+
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {
+  constructor(private config: ConfigService) {} // SINGLETON injected
+}
+
+@Injectable({ scope: Scope.TRANSIENT })
+class RequestHandler {
+  constructor(
+    private context: RequestContext, // REQUEST injected
+    private config: ConfigService    // SINGLETON injected
+  ) {}
+}
+```
+
+**Resolution rules:**
+1. SINGLETON dependencies are shared globally
+2. REQUEST dependencies are shared within the request scope
+3. TRANSIENT dependencies are never shared
+
+## Clearing Scopes
+
+### Clear Singleton Cache
+
+Remove all cached singleton instances:
+
+```typescript
+import { Scope } from '@ambrosia/core';
+
+container.clearScope(Scope.SINGLETON);
+
+// The next resolution will create new instances
+const service = container.resolve(UserService);
+```
+
+<Callout type="warn">
+  **Clearing the SINGLETON scope destroys all singleton instances.** Use this carefully, typically only in tests or during hot reload.
+</Callout>
+
+### Clear Request Scope
+
+Request scopes are automatically cleaned up when `createRequestScope` completes:
+
+```typescript
+await container.createRequestScope(async () => {
+  // REQUEST-scoped instances created
+  const context = container.resolve(RequestContext);
+
+  // ... do work ...
+}); // Scope automatically cleaned up here
+```
+
+## Scope Best Practices
+
+### 1. Choose the Right Scope
+
+<Tabs items={['SINGLETON', 'TRANSIENT', 'REQUEST']}>
+  <Tab value="SINGLETON">
+    ```typescript
+    // Stateless services
+    @Injectable()
+    class EmailService {
+      async send(to: string, body: string) {
+        // No instance state
+      }
+    }
+
+    // Configuration
+    @Injectable()
+    class ConfigService {
+      private readonly config = loadConfig();
+    }
+
+    // Connections
+    @Injectable()
+    class DatabaseService {
+      private connection = createConnection();
+    }
+    ```
+  </Tab>
+  <Tab value="TRANSIENT">
+    ```typescript
+    // Stateful commands
+    @Injectable({ scope: Scope.TRANSIENT })
+    class CreateUserCommand {
+      private userData: UserData;
+
+      setData(data: UserData) {
+        this.userData = data;
+      }
+
+      execute() {
+        // Create user with this.userData
+      }
+    }
+
+    // Request handlers
+    @Injectable({ scope: Scope.TRANSIENT })
+    class RequestHandler {
+      private headers = new Map();
+    }
+    ```
+  </Tab>
+  <Tab value="REQUEST">
+    ```typescript
+    // Request context
+    @Injectable({ scope: Scope.REQUEST })
+    class RequestContext {
+      userId?: string;
+      requestId?: string;
+    }
+
+    // Request-scoped transactions
+    @Injectable({ scope: Scope.REQUEST })
+    class TransactionContext {
+      private tx?: Transaction;
+    }
+
+    // Request-scoped cache
+    @Injectable({ scope: Scope.REQUEST })
+    class RequestCache {
+      private cache = new Map();
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### 2. Avoid Scope Mismatch
+
+Bad - SINGLETON depends on REQUEST:
+```typescript
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {}
+
+@Injectable({ scope: Scope.SINGLETON })
+class UserService {
+  // Singleton captures a REQUEST-scoped dependency
+  constructor(private context: RequestContext) {}
+}
+```
+
+**Problem:** The singleton captures the first RequestContext and never updates.
+
+Good - Inject the Container:
+```typescript
+@Injectable({ scope: Scope.SINGLETON })
+class UserService {
+  constructor(private container: Container) {}
+
+  getCurrentUser() {
+    // Resolve on every call
+    const context = this.container.resolve(RequestContext);
+    return context.userId;
+  }
+}
+```
+
+## Next Steps
+
+- [Circular Dependencies](/docs/core/guides/circular-dependencies) - Handling circular references
+- [Plugins](/docs/core/guides/plugins) - Extend the container with lifecycle hooks
+- [API Reference: Scopes](/docs/core/api-reference/scopes) - Full scope API
+- [Examples: HTTP Server](/docs/core/examples/http-server) - Real-world REQUEST scope usage

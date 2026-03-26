@@ -1,0 +1,186 @@
+---
+title: "Introduction"
+description: "Universal high-performance DI container for TypeScript"
+---
+
+import {Card, Cards} from 'fumadocs-ui/components/card';
+
+# @ambrosia/core
+
+**@ambrosia/core** is a universal high-performance DI container (Dependency Injection) for TypeScript and Bun runtime. It provides powerful dependency management with minimal overhead and maximum flexibility.
+
+## Key Features
+
+<Cards>
+    <Card
+        title="High Performance"
+        description="Optimized for production with throughput of 1M+ operations per second. Production mode with smart caching and optimized lookups."
+    />
+    <Card
+        title="Plugin System"
+        description="Extensible architecture with lifecycle hooks. Create custom plugins for logging, telemetry, validation, and more."
+    />
+    <Card
+        title="Multiple Scopes"
+        description="SINGLETON, TRANSIENT, and REQUEST scopes with AsyncLocalStorage support for request-scoped dependencies."
+    />
+    <Card
+        title="Circular Dependencies"
+        description="Automatic detection and resolution of circular dependencies with detailed error messages."
+    />
+    <Card
+        title="Auto-Registration"
+        description="Automatic discovery and registration of classes using decorators. No manual provider configuration required."
+    />
+    <Card
+        title="No HTTP Dependencies"
+        description="Pure DI container without any HTTP-specific code. Perfect for CLI apps, desktop apps, microservices, and anything else."
+    />
+</Cards>
+
+## Benchmark Results
+
+- **Singleton (cached):** 1,005,257 ops/sec (0.995us)
+- **Simple service (production):** 867,814 ops/sec (1.152us)
+- **Complex service (production):** 443,715 ops/sec (2.254us)
+
+Production mode is 7.4% faster for simple services and 22.8% faster for complex services compared to development mode.
+
+## Quick Example
+
+```typescript
+import { Injectable, Container } from '@ambrosia/core';
+
+@Injectable()
+class DatabaseService {
+  connect() {
+    console.log('Connected to database');
+  }
+}
+
+@Injectable()
+class UserService {
+  constructor(private db: DatabaseService) {}
+
+  getUser(id: string) {
+    this.db.connect();
+    return { id, name: 'John Doe' };
+  }
+}
+
+// Create container
+const container = new Container({ mode: 'production' });
+
+// Automatically resolve dependencies
+const userService = container.resolve(UserService);
+userService.getUser('123');
+```
+
+## Getting Started
+
+<Cards>
+    <Card
+        title="Installation"
+        description="Install @ambrosia/core and set up your project"
+        href="/docs/core/getting-started/installation"
+    />
+    <Card
+        title="Quick Start"
+        description="Create your first DI container in 5 minutes"
+        href="/docs/core/getting-started/quick-start"
+    />
+    <Card
+        title="Core Concepts"
+        description="Understand the fundamental principles of dependency injection"
+        href="/docs/core/getting-started/concepts"
+    />
+</Cards>
+
+## Guides
+
+<Cards>
+    <Card
+        title="Basic Usage"
+        description="Learn the basics of using @ambrosia/core"
+        href="/docs/core/guides/basic-usage"
+    />
+    <Card
+        title="Scopes"
+        description="Master SINGLETON, TRANSIENT, and REQUEST scopes"
+        href="/docs/core/guides/scopes"
+    />
+    <Card
+        title="Circular Dependencies"
+        description="Safely handle circular dependencies"
+        href="/docs/core/guides/circular-dependencies"
+    />
+    <Card
+        title="Plugins"
+        description="Extend functionality with the plugin system"
+        href="/docs/core/guides/plugins"
+    />
+</Cards>
+
+## API Reference
+
+<Cards>
+    <Card
+        title="Container"
+        description="The Container class and its methods"
+        href="/docs/core/api-reference/container"
+    />
+    <Card
+        title="Decorators"
+        description="@Injectable, @Inject, @Autowired, @Optional"
+        href="/docs/core/api-reference/decorators"
+    />
+    <Card
+        title="Scopes"
+        description="Scope enum and scope management"
+        href="/docs/core/api-reference/scopes"
+    />
+    <Card
+        title="Plugins"
+        description="Plugin interface and built-in plugins"
+        href="/docs/core/api-reference/plugins"
+    />
+</Cards>
+
+## Why @ambrosia/core?
+
+### Universal DI
+
+Unlike many DI containers that are tightly coupled to HTTP frameworks, **@ambrosia/core** is a pure DI container. Use it for:
+
+- **CLI applications** - Command-line tools with clean dependency management
+- **Desktop applications** - Electron, Tauri apps with proper architecture
+- **Microservices** - HTTP, gRPC, message queue consumers
+- **Worker threads** - Background tasks with dependency injection
+- **Testing** - Easy mocking and dependency substitution
+
+### Optimized for Bun
+
+Built specifically for Bun runtime with:
+
+- **AsyncLogger** - Non-blocking logging with `Bun.write()` and `queueMicrotask()`
+- **Fast startup** - Optimized provider lookup and metadata caching
+- **Zero overhead** - Production mode with minimal runtime checks
+- **Memory efficient** - Smart GC hints and cache management
+
+### Production Ready
+
+- **51/51 tests pass** - Full test coverage
+- **Benchmark suite** - 127+ performance tests in 6 suites
+- **Type safe** - Full TypeScript support in strict mode
+- **Battle tested** - Used in production microservices
+
+## Next Steps
+
+1. [Install @ambrosia/core](/docs/core/getting-started/installation)
+2. Follow the [Quick Start Guide](/docs/core/getting-started/quick-start)
+3. Explore the [API Reference](/docs/core/api-reference/container)
+4. Check out the [Examples](/docs/core/examples/http-server)
+
+## License
+
+MIT

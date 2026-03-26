@@ -1,0 +1,9 @@
+{
+  "title": "Примеры",
+  "pages": [
+    "http-server",
+    "cli-app",
+    "microservices",
+    "testing"
+  ]
+}

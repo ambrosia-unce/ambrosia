@@ -1,0 +1,697 @@
+---
+title: REST API пример
+description: Полный пример создания REST API с CRUD операциями
+---
+
+# REST API пример
+
+Полный пример создания REST API для управления постами блога с использованием всех возможностей Ambrosia HTTP.
+
+## Структура проекта
+
+```
+src/
+├── main.ts
+├── shared/
+│   ├── guards/
+│   │   ├── auth.guard.ts
+│   │   └── role.guard.ts
+│   ├── interceptors/
+│   │   ├── logging.interceptor.ts
+│   │   └── transform.interceptor.ts
+│   ├── filters/
+│   │   └── http-exception.filter.ts
+│   └── decorators/
+│       └── roles.decorator.ts
+├── modules/
+│   ├── auth/
+│   │   ├── auth.service.ts
+│   │   └── auth.controller.ts
+│   ├── users/
+│   │   ├── user.service.ts
+│   │   ├── user.controller.ts
+│   │   └── dto/
+│   │       ├── create-user.dto.ts
+│   │       └── update-user.dto.ts
+│   └── posts/
+│       ├── post.service.ts
+│       ├── post.controller.ts
+│       └── dto/
+│           ├── create-post.dto.ts
+│           └── update-post.dto.ts
+└── database/
+    └── database.service.ts
+```
+
+## Модели и DTO
+
+### Post Model
+
+```typescript
+// models/post.model.ts
+export interface Post {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  published: boolean;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### Create Post DTO
+
+```typescript
+// dto/create-post.dto.ts
+import { Type, Static } from '@sinclair/typebox';
+
+export class CreatePostDto {
+  static schema = Type.Object({
+    title: Type.String({ 
+      minLength: 1, 
+      maxLength: 200,
+      description: 'Заголовок поста'
+    }),
+    content: Type.String({ 
+      minLength: 10,
+      description: 'Содержимое поста'
+    }),
+    published: Type.Optional(Type.Boolean({
+      description: 'Опубликован ли пост'
+    })),
+    tags: Type.Array(Type.String(), {
+      minItems: 1,
+      maxItems: 10,
+      description: 'Теги поста'
+    })
+  });
+  
+  title!: string;
+  content!: string;
+  published?: boolean;
+  tags!: string[];
+}
+```
+
+### Update Post DTO
+
+```typescript
+// dto/update-post.dto.ts
+import { Type } from '@sinclair/typebox';
+
+export class UpdatePostDto {
+  static schema = Type.Object({
+    title: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
+    content: Type.Optional(Type.String({ minLength: 10 })),
+    published: Type.Optional(Type.Boolean()),
+    tags: Type.Optional(Type.Array(Type.String(), { minItems: 1, maxItems: 10 }))
+  });
+  
+  title?: string;
+  content?: string;
+  published?: boolean;
+  tags?: string[];
+}
+```
+
+## Сервисы
+
+### Database Service
+
+```typescript
+// database/database.service.ts
+import { Injectable } from '@ambrosia/core';
+import { Post } from '../models/post.model';
+
+@Injectable()
+export class DatabaseService {
+  private posts: Map<string, Post> = new Map();
+  
+  // Posts
+  async findAllPosts(): Promise<Post[]> {
+    return Array.from(this.posts.values());
+  }
+  
+  async findPostById(id: string): Promise<Post | undefined> {
+    return this.posts.get(id);
+  }
+  
+  async findPostsByAuthor(authorId: string): Promise<Post[]> {
+    return Array.from(this.posts.values())
+      .filter(post => post.authorId === authorId);
+  }
+  
+  async createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>): Promise<Post> {
+    const post: Post = {
+      id: crypto.randomUUID(),
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.posts.set(post.id, post);
+    return post;
+  }
+  
+  async updatePost(id: string, data: Partial<Post>): Promise<Post | undefined> {
+    const post = this.posts.get(id);
+    
+    if (!post) {
+      return undefined;
+    }
+    
+    const updated = {
+      ...post,
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    this.posts.set(id, updated);
+    return updated;
+  }
+  
+  async deletePost(id: string): Promise<boolean> {
+    return this.posts.delete(id);
+  }
+}
+```
+
+### Post Service
+
+```typescript
+// modules/posts/post.service.ts
+import { Injectable } from '@ambrosia/core';
+import { DatabaseService } from '../../database/database.service';
+import { Post } from '../../models/post.model';
+import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
+
+@Injectable()
+export class PostService {
+  constructor(private db: DatabaseService) {}
+  
+  async findAll(published?: boolean): Promise<Post[]> {
+    const posts = await this.db.findAllPosts();
+    
+    if (published !== undefined) {
+      return posts.filter(post => post.published === published);
+    }
+    
+    return posts;
+  }
+  
+  async findById(id: string): Promise<Post | undefined> {
+    return this.db.findPostById(id);
+  }
+  
+  async findByAuthor(authorId: string): Promise<Post[]> {
+    return this.db.findPostsByAuthor(authorId);
+  }
+  
+  async create(authorId: string, dto: CreatePostDto): Promise<Post> {
+    return this.db.createPost({
+      title: dto.title,
+      content: dto.content,
+      published: dto.published ?? false,
+      tags: dto.tags,
+      authorId
+    });
+  }
+  
+  async update(id: string, dto: UpdatePostDto): Promise<Post | undefined> {
+    return this.db.updatePost(id, dto);
+  }
+  
+  async delete(id: string): Promise<boolean> {
+    return this.db.deletePost(id);
+  }
+  
+  async isOwner(postId: string, userId: string): Promise<boolean> {
+    const post = await this.findById(postId);
+    return post?.authorId === userId;
+  }
+}
+```
+
+## Guards
+
+### Auth Guard
+
+```typescript
+// shared/guards/auth.guard.ts
+import { Injectable } from '@ambrosia/core';
+import { Guard, ExecutionContext, UnauthorizedException } from '@ambrosia/http';
+
+@Injectable()
+export class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const token = request.headers['authorization'];
+    
+    if (!token) {
+      throw new UnauthorizedException('Требуется авторизация');
+    }
+    
+    // Простая проверка токена (в реальности использовать JWT)
+    if (!token.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Неверный формат токена');
+    }
+    
+    // Извлечь userId из токена (упрощенно)
+    const userId = token.replace('Bearer ', '');
+    
+    // Прикрепить userId к request
+    request.user = { id: userId };
+    
+    return true;
+  }
+}
+```
+
+### Ownership Guard
+
+```typescript
+// shared/guards/ownership.guard.ts
+import { Injectable } from '@ambrosia/core';
+import { Guard, ExecutionContext, ForbiddenException } from '@ambrosia/http';
+import { PostService } from '../../modules/posts/post.service';
+
+@Injectable()
+export class OwnershipGuard implements Guard {
+  constructor(private postService: PostService) {}
+  
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const postId = request.params.id;
+    const userId = request.user?.id;
+    
+    if (!userId) {
+      throw new ForbiddenException('Пользователь не аутентифицирован');
+    }
+    
+    const isOwner = await this.postService.isOwner(postId, userId);
+    
+    if (!isOwner) {
+      throw new ForbiddenException('У вас нет прав для выполнения этого действия');
+    }
+    
+    return true;
+  }
+}
+```
+
+## Interceptors
+
+### Transform Interceptor
+
+```typescript
+// shared/interceptors/transform.interceptor.ts
+import { Injectable } from '@ambrosia/core';
+import { Interceptor, ExecutionContext, CallHandler } from '@ambrosia/http';
+
+@Injectable()
+export class TransformInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const result = await next.handle();
+    
+    // Обернуть результат в стандартный формат
+    return {
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+```
+
+### Logging Interceptor
+
+```typescript
+// shared/interceptors/logging.interceptor.ts
+import { Injectable } from '@ambrosia/core';
+import { Interceptor, ExecutionContext, CallHandler } from '@ambrosia/http';
+
+@Injectable()
+export class LoggingInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const { request } = context.switchToHttp();
+    const startTime = Date.now();
+    
+    console.log(`→ ${request.method} ${request.url}`);
+    
+    try {
+      const result = await next.handle();
+      const duration = Date.now() - startTime;
+      
+      console.log(`← ${request.method} ${request.url} - ${duration}ms`);
+      
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`✗ ${request.method} ${request.url} - ${duration}ms - ${error.message}`);
+      throw error;
+    }
+  }
+}
+```
+
+## Exception Filters
+
+```typescript
+// shared/filters/http-exception.filter.ts
+import { Injectable } from '@ambrosia/core';
+import { 
+  ExceptionFilter, 
+  ExceptionFilterArgs, 
+  HttpException 
+} from '@ambrosia/http';
+
+@Injectable()
+export class HttpExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { request } = context.switchToHttp();
+    
+    const status = exception instanceof HttpException 
+      ? exception.getStatus() 
+      : 500;
+      
+    const message = exception instanceof HttpException
+      ? exception.getMessage()
+      : 'Internal server error';
+      
+    const error = exception instanceof HttpException
+      ? exception.getError()
+      : 'InternalServerError';
+    
+    // Логирование
+    if (status >= 500) {
+      console.error('Server error:', {
+        error: message,
+        stack: exception.stack,
+        url: request.url,
+        method: request.method
+      });
+    }
+    
+    return {
+      success: false,
+      error: {
+        statusCode: status,
+        type: error,
+        message: process.env.NODE_ENV === 'production' && status === 500
+          ? 'Internal server error'
+          : message
+      },
+      timestamp: new Date().toISOString(),
+      path: request.url
+    };
+  }
+}
+```
+
+## Controller
+
+```typescript
+// modules/posts/post.controller.ts
+import { Injectable } from '@ambrosia/core';
+import {
+  Controller,
+  Http,
+  Param,
+  Query,
+  Body,
+  UseGuard,
+  UseInterceptor,
+  Status,
+  ParseIntPipe,
+  ParseBoolPipe,
+  NotFoundException
+} from '@ambrosia/http';
+import { PostService } from './post.service';
+import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
+import { AuthGuard } from '../../shared/guards/auth.guard';
+import { OwnershipGuard } from '../../shared/guards/ownership.guard';
+import { TransformInterceptor } from '../../shared/interceptors/transform.interceptor';
+
+@Injectable()
+@Controller('/posts')
+@UseInterceptor(TransformInterceptor)
+export class PostController {
+  constructor(private postService: PostService) {}
+  
+  /**
+   * Получить все посты
+   * GET /posts?published=true&page=1&limit=10
+   */
+  @Http.Get('/')
+  async findAll(
+    @Query('published', ParseBoolPipe) published?: boolean,
+    @Query('page', ParseIntPipe) page: number = 1,
+    @Query('limit', ParseIntPipe) limit: number = 10
+  ) {
+    const posts = await this.postService.findAll(published);
+    
+    // Пагинация
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginatedPosts = posts.slice(start, end);
+    
+    return {
+      posts: paginatedPosts,
+      pagination: {
+        page,
+        limit,
+        total: posts.length,
+        totalPages: Math.ceil(posts.length / limit)
+      }
+    };
+  }
+  
+  /**
+   * Получить пост по ID
+   * GET /posts/:id
+   */
+  @Http.Get('/:id')
+  async findOne(@Param('id') id: string) {
+    const post = await this.postService.findById(id);
+    
+    if (!post) {
+      throw new NotFoundException(`Пост ${id} не найден`);
+    }
+    
+    return post;
+  }
+  
+  /**
+   * Создать новый пост
+   * POST /posts
+   * Требуется авторизация
+   */
+  @Http.Post('/')
+  @Status(201)
+  @UseGuard(AuthGuard)
+  async create(
+    @Body() dto: CreatePostDto,
+    @Req() req: any
+  ) {
+    const authorId = req.user.id;
+    return this.postService.create(authorId, dto);
+  }
+  
+  /**
+   * Обновить пост
+   * PUT /posts/:id
+   * Требуется авторизация и владение постом
+   */
+  @Http.Put('/:id')
+  @UseGuard(AuthGuard, OwnershipGuard)
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdatePostDto
+  ) {
+    const post = await this.postService.update(id, dto);
+    
+    if (!post) {
+      throw new NotFoundException(`Пост ${id} не найден`);
+    }
+    
+    return post;
+  }
+  
+  /**
+   * Удалить пост
+   * DELETE /posts/:id
+   * Требуется авторизация и владение постом
+   */
+  @Http.Delete('/:id')
+  @UseGuard(AuthGuard, OwnershipGuard)
+  async remove(@Param('id') id: string) {
+    const deleted = await this.postService.delete(id);
+    
+    if (!deleted) {
+      throw new NotFoundException(`Пост ${id} не найден`);
+    }
+    
+    return { message: 'Пост успешно удален' };
+  }
+  
+  /**
+   * Получить посты пользователя
+   * GET /posts/author/:authorId
+   */
+  @Http.Get('/author/:authorId')
+  async findByAuthor(@Param('authorId') authorId: string) {
+    const posts = await this.postService.findByAuthor(authorId);
+    return posts;
+  }
+}
+```
+
+## Bootstrap
+
+```typescript
+// main.ts
+import { HttpApplication, ValidationPipe } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { LoggingInterceptor } from './shared/interceptors/logging.interceptor';
+import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
+
+async function bootstrap() {
+  const app = await HttpApplication.create({
+    provider: ElysiaProvider,
+    port: 3000,
+    prefix: '/api/v1',
+    
+    // Глобальные компоненты
+    globalInterceptors: [LoggingInterceptor],
+    globalPipes: [ValidationPipe],
+    globalFilters: [HttpExceptionFilter]
+  });
+  
+  await app.listen();
+  
+  console.log('🚀 REST API Server started');
+  console.log('📍 URL: http://localhost:3000/api/v1');
+  console.log('');
+  console.log('Endpoints:');
+  console.log('  GET    /api/v1/posts');
+  console.log('  GET    /api/v1/posts/:id');
+  console.log('  POST   /api/v1/posts');
+  console.log('  PUT    /api/v1/posts/:id');
+  console.log('  DELETE /api/v1/posts/:id');
+  console.log('  GET    /api/v1/posts/author/:authorId');
+}
+
+bootstrap().catch(console.error);
+```
+
+## Тестирование API
+
+### Создать пост
+
+```bash
+curl -X POST http://localhost:3000/api/v1/posts \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer user123" \
+  -d '{
+    "title": "Мой первый пост",
+    "content": "Это содержимое моего первого поста",
+    "published": true,
+    "tags": ["typescript", "nodejs"]
+  }'
+```
+
+**Ответ:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "Мой первый пост",
+    "content": "Это содержимое моего первого поста",
+    "authorId": "user123",
+    "published": true,
+    "tags": ["typescript", "nodejs"],
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  },
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+### Получить все посты
+
+```bash
+curl http://localhost:3000/api/v1/posts?published=true&page=1&limit=10
+```
+
+### Обновить пост
+
+```bash
+curl -X PUT http://localhost:3000/api/v1/posts/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer user123" \
+  -d '{
+    "title": "Обновленный заголовок",
+    "published": true
+  }'
+```
+
+### Удалить пост
+
+```bash
+curl -X DELETE http://localhost:3000/api/v1/posts/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer user123"
+```
+
+## Расширения
+
+### Добавить поиск
+
+```typescript
+@Http.Get('/search')
+async search(@Query('q') query: string) {
+  const posts = await this.postService.findAll();
+  
+  return posts.filter(post => 
+    post.title.toLowerCase().includes(query.toLowerCase()) ||
+    post.content.toLowerCase().includes(query.toLowerCase())
+  );
+}
+```
+
+### Добавить сортировку
+
+```typescript
+@Http.Get('/')
+async findAll(
+  @Query('sortBy') sortBy: 'title' | 'createdAt' = 'createdAt',
+  @Query('order') order: 'asc' | 'desc' = 'desc'
+) {
+  let posts = await this.postService.findAll();
+  
+  posts.sort((a, b) => {
+    const aVal = a[sortBy];
+    const bVal = b[sortBy];
+    
+    if (order === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
+  
+  return posts;
+}
+```
+
+## См. также
+
+- [Controllers](/docs/http/guides/controllers) - Руководство по контроллерам
+- [Authentication](/docs/http/examples/authentication) - Пример аутентификации
+- [Validation](/docs/http/guides/pipes) - Валидация данных

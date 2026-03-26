@@ -1,0 +1,173 @@
+---
+title: "Парсеры"
+description: "Все типы парсеров env-переменных с примерами"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Парсеры
+
+`@ambrosia/config` включает 6 встроенных парсеров для преобразования строковых значений env-переменных в типизированные данные.
+
+## string
+
+Возвращает значение как есть, без преобразования.
+
+```bash title=".env"
+APP_NAME=my-app
+SECRET_KEY=abc123def456ghi789
+```
+
+```ts
+const Config = defineConfig({
+  appName: { env: 'APP_NAME', type: 'string', default: 'app' },
+  secretKey: { env: 'SECRET_KEY', required: true },
+  // type: 'string' — значение по умолчанию, можно не указывать
+  implicitString: { env: 'APP_NAME' },
+});
+```
+
+## int
+
+Парсит целое число через `Number.parseInt(value, 10)`. Выбрасывает ошибку, если значение не является валидным целым числом.
+
+```bash title=".env"
+PORT=3000
+MAX_CONNECTIONS=100
+```
+
+```ts
+const Config = defineConfig({
+  port: { env: 'PORT', type: 'int', default: 3000 },
+  maxConnections: { env: 'MAX_CONNECTIONS', type: 'int', default: 10 },
+});
+// PORT=3000 → 3000 (number)
+// PORT=abc  → ConfigParseError: Value is not a valid integer
+```
+
+## float
+
+Парсит число с плавающей точкой через `Number.parseFloat(value)`. Выбрасывает ошибку, если значение не является валидным числом.
+
+```bash title=".env"
+TIMEOUT=1.5
+RATE_LIMIT=0.75
+```
+
+```ts
+const Config = defineConfig({
+  timeout: { env: 'TIMEOUT', type: 'float', default: 5.0 },
+  rateLimit: { env: 'RATE_LIMIT', type: 'float', default: 1.0 },
+});
+// TIMEOUT=1.5 → 1.5 (number)
+// TIMEOUT=abc → ConfigParseError: Value is not a valid number
+```
+
+## bool
+
+Преобразует строковое значение в `boolean`. Считает истинными: `'true'`, `'1'`, `'yes'` (регистронезависимо). Все остальные значения — `false`.
+
+```bash title=".env"
+DEBUG=true
+VERBOSE=1
+CACHE_ENABLED=yes
+FEATURE_FLAG=false
+```
+
+```ts
+const Config = defineConfig({
+  debug: { env: 'DEBUG', type: 'bool', default: false },
+  verbose: { env: 'VERBOSE', type: 'bool', default: false },
+  cacheEnabled: { env: 'CACHE_ENABLED', type: 'bool', default: true },
+});
+// DEBUG=true   → true
+// VERBOSE=1    → true
+// VERBOSE=yes  → true
+// VERBOSE=0    → false
+// VERBOSE=no   → false
+```
+
+## array
+
+Разбивает строку по разделителю (по умолчанию `','`) и убирает пробелы с краёв каждого элемента. Разделитель можно настроить через поле `separator`.
+
+```bash title=".env"
+DB_HOSTS=host1,host2,host3
+CORS_ORIGINS=https://app.com, https://admin.com
+TAGS=api;v2;production
+```
+
+```ts
+const Config = defineConfig({
+  dbHosts: { env: 'DB_HOSTS', type: 'array' },
+  corsOrigins: { env: 'CORS_ORIGINS', type: 'array' },
+  tags: { env: 'TAGS', type: 'array', separator: ';' },
+});
+// DB_HOSTS=host1,host2,host3       → ['host1', 'host2', 'host3']
+// CORS_ORIGINS=https://app.com, https://admin.com → ['https://app.com', 'https://admin.com']
+// TAGS=api;v2;production           → ['api', 'v2', 'production']
+```
+
+<Callout type="info">
+  Пробелы вокруг элементов автоматически удаляются. `"a, b, c"` и `"a,b,c"` дают одинаковый результат.
+</Callout>
+
+## json
+
+Парсит строку как JSON через `JSON.parse()`. Выбрасывает ошибку, если значение не является валидным JSON.
+
+```bash title=".env"
+REDIS_CONFIG={"host":"localhost","port":6379}
+FEATURES=["auth","cache","logging"]
+```
+
+```ts
+const Config = defineConfig({
+  redis: { env: 'REDIS_CONFIG', type: 'json' },
+  features: { env: 'FEATURES', type: 'json', default: [] },
+});
+// REDIS_CONFIG={"host":"localhost","port":6379} → { host: 'localhost', port: 6379 }
+// FEATURES=["auth","cache"]                     → ['auth', 'cache']
+// REDIS_CONFIG=invalid                          → ConfigParseError: Value is not valid JSON
+```
+
+<Callout type="warn">
+  Для JSON-значений в `.env` файлах убедитесь, что строка не содержит переводов строк. Сложные JSON-объекты лучше хранить в отдельных файлах конфигурации.
+</Callout>
+
+## Ошибки парсинга
+
+При ошибке парсинга выбрасывается `ConfigParseError` с подробной информацией:
+
+```
+[Config] Failed to parse "port" as int: Value is not a valid integer (raw: "abc")
+```
+
+Каждая ошибка содержит:
+- `key` — имя конфигурационного ключа
+- `rawValue` — исходное строковое значение
+- `expectedType` — ожидаемый тип
+- `message` — описание ошибки
+
+Все ошибки парсинга собираются при старте и выбрасываются единым сообщением, чтобы можно было исправить все проблемы за один раз.
+
+## Кастомный парсинг
+
+Для нестандартных типов используйте `json` парсер или пост-обработку через `ConfigService`:
+
+```ts
+const Config = defineConfig({
+  // Парсим как JSON, затем обрабатываем в сервисе
+  dbConfig: { env: 'DB_CONFIG', type: 'json' },
+});
+
+@Injectable()
+class DatabaseService {
+  private readonly connectionString: string;
+
+  constructor(private config: ConfigService) {
+    const dbConfig = this.config.getOrThrow<{ host: string; port: number; name: string }>('dbConfig');
+    this.connectionString = `postgres://${dbConfig.host}:${dbConfig.port}/${dbConfig.name}`;
+  }
+}
+```

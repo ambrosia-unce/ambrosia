@@ -1,0 +1,273 @@
+---
+title: "Introduction"
+description: "High-performance HTTP framework with DI for TypeScript"
+---
+
+import {Card, Cards} from 'fumadocs-ui/components/card';
+
+# @ambrosia/http
+
+**@ambrosia/http** is a modern high-performance HTTP framework for TypeScript with a powerful Dependency Injection system. Built on top of [@ambrosia/core](/docs/core) and provides an abstraction over popular HTTP libraries (Elysia.js, Hono).
+
+## Key Features
+
+<Cards>
+    <Card
+        title="High Performance"
+        description="Zero-overhead abstraction with direct passthrough to the native provider. Preserves all Elysia.js optimizations."
+    />
+    <Card
+        title="NestJS-style Architecture"
+        description="Familiar lifecycle: Middleware -> Guards -> Interceptors -> Pipes -> Handler -> Filters. Full pattern compatibility."
+    />
+    <Card
+        title="Provider-Agnostic"
+        description="Single API for different HTTP libraries. Switch between Elysia and Hono without changing application code."
+    />
+    <Card
+        title="TypeBox Validation"
+        description="Automatic DTO validation with TypeBox schemas. Detailed error messages out of the box."
+    />
+    <Card
+        title="Auto-Registration"
+        description="Controllers are registered automatically via decorators. No manual route configuration required."
+    />
+    <Card
+        title="26+ Decorators"
+        description="Complete set of decorators for controllers, methods, parameters, and lifecycle components."
+    />
+</Cards>
+
+## Lifecycle Architecture
+
+```
+Incoming Request
+    |
+Middleware (@UseMiddleware)
+    |
+Guards (@UseGuard)
+    |
+Interceptors (before)
+    |
+Pipes (validation/transform)
+    |
+Route Handler
+    |
+Interceptors (after)
+    |
+Exception Filters
+    |
+Response
+```
+
+## Quick Example
+
+```typescript
+import { HttpApplication, Controller, Http, Body, UseGuard, Status } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { Type } from '@sinclair/typebox';
+
+// DTO with TypeBox schema
+class CreateUserDto {
+  static schema = Type.Object({
+    name: Type.String({ minLength: 1 }),
+    email: Type.String({ format: 'email' }),
+    age: Type.Number({ minimum: 0 })
+  });
+
+  name!: string;
+  email!: string;
+  age!: number;
+}
+
+// Controller with auto-registration
+@Controller('/users')
+@UseGuard(AuthGuard)
+export class UserController {
+  constructor(private userService: UserService) {}
+
+  @Http.Get('/')
+  async list() {
+    return this.userService.findAll();
+  }
+
+  @Http.Post('/')
+  @Status(201)
+  async create(@Body() dto: CreateUserDto) {
+    // dto is automatically validated via ValidationPipe
+    return this.userService.create(dto);
+  }
+}
+
+// Start the application
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalGuards: [AuthGuard],
+  globalPipes: [ValidationPipe],
+  port: 3000
+});
+
+await app.listen();
+```
+
+## Getting Started
+
+<Cards>
+    <Card
+        title="Installation"
+        description="Install @ambrosia/http and set up your project"
+        href="/docs/http/getting-started/installation"
+    />
+    <Card
+        title="Quick Start"
+        description="Create your first HTTP server in 5 minutes"
+        href="/docs/http/getting-started/quick-start"
+    />
+    <Card
+        title="Core Concepts"
+        description="Understand the architecture and request lifecycle"
+        href="/docs/http/getting-started/concepts"
+    />
+</Cards>
+
+## Guides
+
+<Cards>
+    <Card
+        title="Controllers"
+        description="Creating controllers and handling routes"
+        href="/docs/http/guides/controllers"
+    />
+    <Card
+        title="Guards"
+        description="Protecting routes with guards"
+        href="/docs/http/guides/guards"
+    />
+    <Card
+        title="Interceptors"
+        description="Transforming requests and responses"
+        href="/docs/http/guides/interceptors"
+    />
+    <Card
+        title="Pipes"
+        description="Validating and transforming data"
+        href="/docs/http/guides/pipes"
+    />
+    <Card
+        title="Exception Filters"
+        description="Handling errors and exceptions"
+        href="/docs/http/guides/exception-filters"
+    />
+    <Card
+        title="Middleware"
+        description="HTTP middleware for request processing"
+        href="/docs/http/guides/middleware"
+    />
+</Cards>
+
+## API Reference
+
+<Cards>
+    <Card
+        title="Decorators"
+        description="@Controller, @UseGuard, @Body, and more"
+        href="/docs/http/api-reference/decorators"
+    />
+    <Card
+        title="HttpApplication"
+        description="The HttpApplication class and its methods"
+        href="/docs/http/api-reference/http-application"
+    />
+    <Card
+        title="Exceptions"
+        description="HttpException and built-in exceptions"
+        href="/docs/http/api-reference/exceptions"
+    />
+    <Card
+        title="Providers"
+        description="HttpProvider interface and implementations"
+        href="/docs/http/api-reference/providers"
+    />
+</Cards>
+
+## Why @ambrosia/http?
+
+### Performance Without Compromise
+
+- **Zero-overhead abstraction** - Direct passthrough to native provider
+- **WeakMap caching** - All metadata operations are cached
+- **Handler pre-compilation** - Lifecycle components compiled once
+- **Parameter optimization** - Specialized resolvers with fixed-length arrays
+
+### Familiar Architecture
+
+If you're familiar with NestJS, you'll feel right at home:
+
+- **Same decorators** - @Controller, @Get, @UseGuard, @Body
+- **Same lifecycle** - Middleware -> Guards -> Interceptors -> Pipes -> Handler
+- **Same patterns** - Guards, Interceptors, Pipes, Exception Filters
+- **But lighter** - No modules, no complex configuration
+
+### Provider Flexibility
+
+One codebase - different HTTP libraries:
+
+```typescript
+// Elysia.js
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+});
+
+// Hono (in the future)
+const app = await HttpApplication.create({
+  provider: HonoProvider,
+});
+```
+
+## Core Components
+
+### Decorators (26 total)
+
+**Controller:**
+- `@Controller(path)` - Marks a class as a controller
+
+**HTTP Methods:**
+- `Http.Get()`, `Http.Post()`, `Http.Put()`, `Http.Delete()`, `Http.Patch()`, `Http.Options()`, `Http.Head()`
+
+**Lifecycle:**
+- `@UseGuard()`, `@UseInterceptor()`, `@UsePipe()`, `@UseMiddleware()`, `@UseFilter()`
+
+**Response:**
+- `@Status(code)` - Sets the HTTP status
+
+**Parameters (11 types):**
+- `@Body()`, `@Query()`, `@Param()`, `@Headers()`, `@Header()`
+- `@Req()`, `@Res()`, `@Session()`, `@Cookie()`, `@Ip()`
+- `@UploadedFile()`, `@UploadedFiles()`
+
+### Built-in Exceptions
+
+- `BadRequestException` (400)
+- `UnauthorizedException` (401)
+- `ForbiddenException` (403)
+- `NotFoundException` (404)
+- `ConflictException` (409)
+- `UnprocessableEntityException` (422)
+- `InternalServerErrorException` (500)
+
+### Built-in Pipes
+
+- `ValidationPipe` - Automatic validation with TypeBox
+- `ParseIntPipe` - Convert string to number
+- `ParseBoolPipe` - Convert string to boolean
+
+## Next Steps
+
+1. [Install @ambrosia/http](/docs/http/getting-started/installation)
+2. Follow the [Quick Start Guide](/docs/http/getting-started/quick-start)
+3. Learn about [Controllers](/docs/http/guides/controllers)
+4. Check out the [Examples](/docs/http/examples/rest-api)
+
+## License
+
+MIT

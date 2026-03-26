@@ -1,0 +1,70 @@
+---
+title: "Введение"
+description: "Типобезопасная конфигурация окружения для Ambrosia с нулевыми накладными расходами"
+---
+
+import {Card, Cards} from 'fumadocs-ui/components/card';
+
+# @ambrosia/config
+
+**@ambrosia/config** — модуль типобезопасной конфигурации для Ambrosia Framework. Все переменные окружения парсятся **один раз** при старте приложения в замороженный объект. После инициализации — нулевые накладные расходы, O(1) доступ через Map.
+
+## Ключевые возможности
+
+<Cards>
+    <Card
+        title="Нулевые накладные расходы"
+        description="Все env-переменные парсятся один раз при старте. Никаких Proxy, геттеров или ленивых вычислений — прямой доступ к свойствам после инициализации."
+    />
+    <Card
+        title="Схема конфигурации"
+        description="Декларативное определение конфигурации через defineConfig() с типизацией, значениями по умолчанию и валидацией."
+    />
+    <Card
+        title="6 встроенных парсеров"
+        description="string, int, float, bool, array, json — автоматический парсинг env-переменных в нужный тип данных."
+    />
+    <Card
+        title="Fail-fast валидация"
+        description="Валидация всех обязательных полей при старте. Приложение не запустится с невалидной конфигурацией."
+    />
+</Cards>
+
+## Быстрый старт
+
+```ts
+import { defineConfig, ConfigModule, ConfigService } from '@ambrosia/config';
+import { definePack, Injectable, Inject } from '@ambrosia/core';
+
+// 1. Определяем схему
+const AppConfig = defineConfig({
+  port: { env: 'PORT', type: 'int', default: 3000 },
+  debug: { env: 'DEBUG', type: 'bool', default: false },
+  secret: { env: 'JWT_SECRET', required: true },
+});
+
+// 2. Регистрируем модуль
+const AppPack = definePack({
+  imports: [
+    ConfigModule.forRoot({ schema: AppConfig, validate: true }),
+  ],
+});
+
+// 3. Инжектим ConfigService
+@Injectable()
+class MyService {
+  constructor(private config: ConfigService) {
+    const port = this.config.get<number>('port');       // 3000
+    const secret = this.config.getOrThrow('secret');    // throws если не задан
+  }
+}
+```
+
+## Архитектура
+
+Модуль следует принципу **parse once, read many**:
+
+1. При вызове `ConfigModule.forRoot()` все env-переменные парсятся согласно схеме
+2. Результат сохраняется в `Map<string, unknown>` и замораживается
+3. `ConfigService` предоставляет O(1) доступ через `get()` / `getOrThrow()`
+4. Невалидная конфигурация вызывает ошибку **до** старта приложения

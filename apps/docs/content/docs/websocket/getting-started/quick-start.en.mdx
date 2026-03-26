@@ -1,0 +1,111 @@
+---
+title: "Quick Start"
+description: "Creating your first WebSocket gateway"
+---
+
+# Quick Start
+
+Let's build a simple chat in 5 minutes.
+
+## 1. Service
+
+```typescript title="chat.service.ts"
+import { Injectable } from "@ambrosia/core";
+
+@Injectable()
+export class ChatService {
+  private messages: Array<{ from: string; text: string; ts: number }> = [];
+
+  addMessage(from: string, text: string) {
+    const msg = { from, text, ts: Date.now() };
+    this.messages.push(msg);
+    return msg;
+  }
+
+  getHistory() {
+    return this.messages.slice(-50);
+  }
+}
+```
+
+## 2. Gateway
+
+```typescript title="chat.gateway.ts"
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  OnConnection,
+  OnDisconnection,
+} from "@ambrosia/websocket";
+import type { WsClient } from "@ambrosia/websocket";
+import { ChatService } from "./chat.service";
+
+@WebSocketGateway("/chat")
+export class ChatGateway {
+  constructor(private chatService: ChatService) {}
+
+  @OnConnection()
+  onConnect(client: WsClient) {
+    console.log(`+ ${client.id}`);
+    // Send history to the new client
+    const history = this.chatService.getHistory();
+    client.send("history", history);
+  }
+
+  @OnDisconnection()
+  onDisconnect(client: WsClient) {
+    console.log(`- ${client.id}`);
+  }
+
+  @SubscribeMessage("sendMessage")
+  onMessage(client: WsClient, data: { text: string }) {
+    const msg = this.chatService.addMessage(client.id, data.text);
+    // Return a response — automatically sent to the client
+    return { event: "newMessage", data: msg };
+  }
+}
+```
+
+## 3. Client (browser)
+
+```javascript title="client.js"
+const ws = new WebSocket("ws://localhost:3000/chat");
+
+ws.onopen = () => {
+  // Send a message
+  ws.send(JSON.stringify({
+    event: "sendMessage",
+    data: { text: "Hello!" }
+  }));
+};
+
+ws.onmessage = (event) => {
+  const { event: eventName, data } = JSON.parse(event.data);
+
+  if (eventName === "newMessage") {
+    console.log(`${data.from}: ${data.text}`);
+  }
+
+  if (eventName === "history") {
+    console.log("Chat history:", data);
+  }
+};
+```
+
+## 4. Message Protocol
+
+All messages are transmitted as JSON in the following format:
+
+```json
+{ "event": "eventName", "data": { ... } }
+```
+
+- **Client to Server:** `{ "event": "sendMessage", "data": { "text": "Hello" } }`
+- **Server to Client:** `{ "event": "newMessage", "data": { "from": "ws-1", "text": "Hello" } }`
+
+The `@SubscribeMessage("sendMessage")` handler receives `data` from the message. If the method returns `{ event, data }`, the response is automatically sent to the client.
+
+## Next Steps
+
+- [In-depth gateway guide](/docs/websocket/guides/gateways)
+- [Testing WebSocket](/docs/websocket/guides/testing)

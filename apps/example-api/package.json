@@ -1,0 +1,20 @@
+{
+  "name": "example-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/main.ts",
+    "start": "bun run src/main.ts"
+  },
+  "dependencies": {
+    "@ambrosia/core": "workspace:*",
+    "@ambrosia/http": "workspace:*",
+    "@ambrosia/http-elysia": "workspace:*",
+    "@ambrosia/config": "workspace:*",
+    "@ambrosia/events": "workspace:*",
+    "@ambrosia/devtools": "workspace:*",
+    "reflect-metadata": "^0.2.0",
+    "elysia": "^1.0.0"
+  }
+}

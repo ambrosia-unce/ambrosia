@@ -1,0 +1,221 @@
+---
+title: "ambrosia add"
+description: "Команда добавления паков из Pack Registry в проект"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia add
+
+Загружает pack из registry и внедряет его исходный код в проект. Автоматически разрешает зависимости между паками и устанавливает npm-пакеты.
+
+## Использование
+
+```bash
+ambrosia add <pack...> [--registry <name>]
+```
+
+## Аргументы
+
+| Аргумент | Описание |
+|---|---|
+| `<pack...>` | Одно или несколько имён паков для установки |
+| `--registry <name>` | Имя registry из `ambrosia.json` (по умолчанию `"default"`) |
+
+## Примеры
+
+```bash
+# Один pack
+ambrosia add jwt-auth
+
+# Несколько паков
+ambrosia add jwt-auth redis-cache config-pack
+
+# Из конкретного registry
+ambrosia add internal-auth --registry corp
+```
+
+## Что делает
+
+### 1. Чтение конфигурации
+
+CLI читает `ambrosia.json` из текущей директории. Если файл не найден:
+
+```
+✗  No ambrosia.json found. Run "ambrosia init" to create one.
+```
+
+### 2. Разрешение зависимостей
+
+CLI фетчит каждый запрошенный pack из registry и рекурсивно загружает `registryDependencies`:
+
+```
+$ ambrosia add rbac-pack
+
+◆  ambrosia add
+│
+◒  Resolving dependencies...
+◇  Resolved 2 pack(s)           ← rbac-pack + jwt-auth (зависимость)
+```
+
+Разрешение работает depth-first — зависимости устанавливаются раньше зависимых паков. Дедупликация гарантирует, что каждый pack устанавливается один раз.
+
+### 3. Проверка конфликтов
+
+Если pack уже установлен, CLI спрашивает:
+
+```
+◆  Pack(s) already installed: jwt-auth. Overwrite?
+│  ○ Yes / ● No
+```
+
+При выборе «Overwrite» файлы будут перезаписаны. Ваши локальные изменения будут потеряны.
+
+### 4. Запись файлов
+
+Файлы из `files[]` записываются в `{packsDir}/{packName}/`:
+
+```
+◒  Installing packs...
+◇  Installed 2 pack(s)
+```
+
+Результат:
+
+```
+src/packs/
+├── jwt-auth/
+│   ├── index.ts
+│   ├── jwt-auth.pack.ts
+│   ├── jwt-auth.service.ts
+│   ├── jwt-auth.guard.ts
+│   └── types.ts
+└── rbac-pack/
+    ├── index.ts
+    ├── rbac.pack.ts
+    ├── rbac.guard.ts
+    └── types.ts
+```
+
+### 5. Установка npm-зависимостей
+
+CLI собирает все `dependencies`, `devDependencies` и `ambrosiaDependencies` из установленных паков и выполняет:
+
+```bash
+bun add jose@^5.0.0 @ambrosia/core@latest @ambrosia/http@latest
+```
+
+```
+◒  Installing npm dependencies...
+◇  Dependencies installed
+```
+
+### 6. Обновление ambrosia.json
+
+```json title="ambrosia.json"
+{
+  "packs": {
+    "jwt-auth": {
+      "version": "0.2.1",
+      "registry": "default",
+      "installedAt": "2026-02-19T12:00:00.000Z",
+      "files": [
+        "src/packs/jwt-auth/index.ts",
+        "src/packs/jwt-auth/jwt-auth.pack.ts",
+        "src/packs/jwt-auth/jwt-auth.service.ts",
+        "src/packs/jwt-auth/jwt-auth.guard.ts",
+        "src/packs/jwt-auth/types.ts"
+      ]
+    },
+    "rbac-pack": {
+      "version": "0.1.0",
+      "registry": "default",
+      "installedAt": "2026-02-19T12:00:00.000Z",
+      "files": [
+        "src/packs/rbac-pack/index.ts",
+        "src/packs/rbac-pack/rbac.pack.ts",
+        "src/packs/rbac-pack/rbac.guard.ts",
+        "src/packs/rbac-pack/types.ts"
+      ]
+    }
+  }
+}
+```
+
+### 7. Инструкция по подключению
+
+После установки CLI выводит пример использования:
+
+```
+│  Usage
+│
+│  Add to your packs array:
+│
+│    import { JwtAuthPack } from "./src/packs/jwt-auth";
+│    import { RbacPack } from "./src/packs/rbac-pack";
+│
+│  packs: [
+│    JwtAuthPack.forRoot({ /* config */ }),
+│    RbacPack.forRoot({ /* config */ }),
+│  ]
+│
+└  Done!
+```
+
+## Использование с custom registry
+
+```bash
+# Из корпоративного registry
+ambrosia add internal-auth --registry corp
+```
+
+Registry `"corp"` должен быть определён в `ambrosia.json`:
+
+```json
+{
+  "registries": {
+    "default": "https://registry.ambrosia.dev",
+    "corp": "https://packs.mycompany.com"
+  }
+}
+```
+
+## Ошибки
+
+### Pack не найден
+
+```
+✗  Pack "unknown-pack" not found in registry at https://registry.ambrosia.dev
+```
+
+Проверьте имя пака и доступность registry.
+
+### Циклическая зависимость
+
+```
+✗  Circular registry dependency detected: pack-a → pack-b → pack-a
+```
+
+Паки не могут зависеть друг от друга циклически. Используйте DI-уровневые `lazyImports` для runtime-циклов.
+
+### Registry недоступен
+
+```
+✗  Failed to fetch pack "jwt-auth": 500
+```
+
+Проверьте сетевое подключение и доступность URL registry.
+
+### Неизвестный registry
+
+```
+✗  Unknown registry "unknown". Available: default, corp
+```
+
+Добавьте registry в `ambrosia.json` → `registries`.
+
+## Подробнее
+
+- [Обзор Pack Registry](/docs/cli/registry/overview)
+- [Конфигурация ambrosia.json](/docs/cli/getting-started/configuration)
+- [Custom Registry](/docs/cli/registry/custom-registry)

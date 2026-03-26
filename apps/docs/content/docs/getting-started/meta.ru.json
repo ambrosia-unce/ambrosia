@@ -1,0 +1,11 @@
+{
+  "title": "Быстрый старт",
+  "description": "Создайте свой первый API на фреймворке Ambrosia",
+  "pages": [
+    "installation",
+    "first-api",
+    "packs",
+    "deployment"
+  ],
+  "root": true
+}

@@ -1,0 +1,178 @@
+---
+title: "Обработка ошибок"
+description: "Красивые, информативные ошибки с кодами, подсказками и контекстом"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Обработка ошибок
+
+Ambrosia предоставляет систему структурированных ошибок с кодами, подсказками и ссылками на документацию. Когда что-то идёт не так, вы видите **что** сломалось, **где** произошла ошибка и **как** её исправить.
+
+## Формат ошибки в терминале
+
+```
+┌─ AMB001: Provider not found ──────────────────────────────────
+│
+│  Provider not found: Could not resolve token "UserService"
+│  in pack "AppPack".
+│
+│  Pack: AppPack
+│
+│  Hint: Make sure the class is listed in the `providers` array
+│        of a pack that is imported, or add the @Injectable()
+│        decorator.
+│
+│  Docs: https://ambrosia.dev/docs/core/errors/AMB001
+│
+└───────────────────────────────────────────────────────────────
+```
+
+Ошибки раскрашены ANSI-цветами: код — cyan, ошибка — красный, подсказка — жёлтый, ссылка — dim. Переменная окружения `NO_COLOR` отключает цвета.
+
+## Каталог кодов ошибок
+
+### DI-ошибки (AMB001–AMB099)
+
+| Код | Ошибка | Описание |
+|--------|--------|----------|
+| `AMB001` | Provider not found | Токен не зарегистрирован ни в одном паке |
+| `AMB002` | Circular dependency detected | Два провайдера зависят друг от друга |
+| `AMB003` | Missing @Injectable decorator | Класс используется как провайдер без декоратора |
+| `AMB004` | Missing @Inject decorator | Тип параметра конструктора не может быть выведен |
+| `AMB005` | Scope mismatch | Singleton зависит от request-scoped провайдера |
+| `AMB006` | Duplicate provider | Один токен зарегистрирован дважды в паке |
+| `AMB007` | Missing export | Провайдер не экспортирован из пака |
+
+### Ошибки паков (AMB100–AMB199)
+
+| Код | Ошибка | Описание |
+|--------|--------|----------|
+| `AMB100` | Pack import cycle | Обнаружен циклический импорт паков |
+| `AMB101` | Pack not found | Импортируемый пак не существует |
+| `AMB102` | Missing provider in pack | Указанный провайдер не найден |
+| `AMB103` | Pack onInit failed | Lifecycle-хук onInit выбросил ошибку |
+
+### HTTP-ошибки (AMB200–AMB299)
+
+| Код | Ошибка | Описание |
+|--------|--------|----------|
+| `AMB200` | Route conflict | Два обработчика на один method+path |
+| `AMB201` | Missing controller decorator | Класс без @Controller() используется как контроллер |
+| `AMB202` | Guard injection failed | Guard не может быть разрешён |
+| `AMB203` | Invalid parameter decorator | Неизвестный источник параметра |
+| `AMB204` | Handler timeout | Обработчик запроса превысил таймаут |
+
+### Ошибки конфигурации (AMB300–AMB399)
+
+| Код | Ошибка | Описание |
+|--------|--------|----------|
+| `AMB300` | Missing required env var | Отсутствует обязательная переменная окружения |
+| `AMB301` | Invalid env value | Значение не может быть приведено к ожидаемому типу |
+| `AMB302` | Config schema invalid | Ошибка в определении схемы конфигурации |
+
+### Ошибки событий (AMB400–AMB499)
+
+| Код | Ошибка | Описание |
+|--------|--------|----------|
+| `AMB400` | Event handler not injectable | Класс с @OnEvent не декорирован @Injectable() |
+| `AMB401` | EventBus not initialized | emit() вызван до обработки паков |
+
+## Использование
+
+### Бросание ошибок с `createError`
+
+```typescript
+import { createError, AMB001 } from '@ambrosia/core';
+
+throw createError(AMB001, 'Token "UserService" not found in pack "AppPack"', {
+  token: 'UserService',
+  pack: 'AppPack',
+});
+```
+
+### Форматированный вывод
+
+```typescript
+import { formatError, printError, AmbrosiaError } from '@ambrosia/core';
+
+const error = new AmbrosiaError(
+  'AMB001',
+  'Provider not found: Token "UserService"',
+  'Add @Injectable() to UserService',
+  { token: 'UserService' },
+);
+
+// Получить строку
+const formatted = formatError(error);
+
+// Вывести в stderr
+printError(error);
+```
+
+### Создание собственных ошибок
+
+```typescript
+import { AmbrosiaError } from '@ambrosia/core';
+
+class MyPluginError extends AmbrosiaError {
+  constructor(detail: string) {
+    super(
+      'PLUG001',
+      `Plugin initialization failed: ${detail}`,
+      'Check plugin configuration and ensure all dependencies are available.',
+      { plugin: 'my-plugin' },
+    );
+    this.name = 'MyPluginError';
+  }
+}
+
+throw new MyPluginError('Redis connection refused');
+```
+
+### Перехват и обработка
+
+```typescript
+import { AmbrosiaError, formatError } from '@ambrosia/core';
+
+try {
+  const service = container.resolve(UserService);
+} catch (error) {
+  if (error instanceof AmbrosiaError) {
+    console.error(formatError(error));
+    // error.code    → 'AMB001'
+    // error.hint    → 'Make sure the class is listed...'
+    // error.context → { token: 'UserService' }
+    // error.docsUrl → 'https://ambrosia.dev/docs/core/errors/AMB001'
+  }
+}
+```
+
+<Callout type="info">
+`AmbrosiaError` наследует от стандартного `Error`, поэтому все существующие `catch`-блоки продолжат работать без изменений.
+</Callout>
+
+## Утилиты
+
+### `formatAnyError`
+
+Универсальная функция: если ошибка — `AmbrosiaError`, выводит красиво; иначе — просто `message`.
+
+```typescript
+import { formatAnyError } from '@ambrosia/core';
+
+try {
+  riskyOperation();
+} catch (error) {
+  console.error(formatAnyError(error));
+}
+```
+
+### Отключение цветов
+
+Установите переменную окружения `NO_COLOR` для отключения ANSI-цветов:
+
+```bash
+NO_COLOR=1 bun run dev
+```

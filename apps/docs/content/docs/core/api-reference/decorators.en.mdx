@@ -1,0 +1,311 @@
+---
+title: "Decorators"
+description: "Complete reference for DI system decorators in @ambrosia/core"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Decorators
+
+Decorators are the primary way to configure DI in Ambrosia. All decorators work through `reflect-metadata` and require `experimentalDecorators: true` + `emitDecoratorMetadata: true` in `tsconfig.json`.
+
+## @Injectable()
+
+Marks a class as available for injection. Automatically registers it in the global Registry.
+
+```typescript
+@Injectable(options?: InjectableOptions)
+```
+
+### Parameters
+
+```typescript
+interface InjectableOptions {
+  scope?: Scope; // default: Scope.SINGLETON
+}
+```
+
+### Usage
+
+```typescript
+import { Injectable, Scope } from "@ambrosia/core";
+
+// Singleton (default)
+@Injectable()
+class UserService {
+  getUsers() { return []; }
+}
+
+// With specified scope
+@Injectable({ scope: Scope.TRANSIENT })
+class RequestLogger {
+  log(msg: string) { console.log(msg); }
+}
+
+// Request scope
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {
+  userId?: string;
+}
+```
+
+<Callout type="warn">
+Without `@Injectable()`, the container cannot determine constructor dependencies. Calling `resolve()` on an unregistered class throws `ProviderNotFoundError`.
+</Callout>
+
+---
+
+## @Inject()
+
+Explicitly specifies the token for injection into a constructor parameter. Needed when TypeScript metadata is insufficient (interfaces, abstract classes, `InjectionToken`).
+
+```typescript
+@Inject(token: Token)
+```
+
+### When @Inject is Needed
+
+TypeScript `emitDecoratorMetadata` generates metadata only for concrete classes. For everything else, you need `@Inject()`:
+
+<Tabs items={['InjectionToken', 'Abstract Class', 'Interface via Token']}>
+<Tab value="InjectionToken">
+```typescript
+import { Injectable, Inject, InjectionToken } from "@ambrosia/core";
+
+const API_URL = new InjectionToken<string>("API_URL");
+const MAX_RETRIES = new InjectionToken<number>("MAX_RETRIES");
+
+@Injectable()
+class ApiClient {
+  constructor(
+    @Inject(API_URL) private url: string,
+    @Inject(MAX_RETRIES) private retries: number,
+  ) {}
+}
+```
+</Tab>
+<Tab value="Abstract Class">
+```typescript
+import { Injectable, Inject } from "@ambrosia/core";
+
+abstract class Logger {
+  abstract log(msg: string): void;
+}
+
+@Injectable()
+class UserService {
+  constructor(@Inject(Logger) private logger: Logger) {}
+}
+```
+</Tab>
+<Tab value="Interface via Token">
+```typescript
+import { Injectable, Inject, InjectionToken } from "@ambrosia/core";
+
+interface CacheConfig {
+  ttl: number;
+  maxSize: number;
+}
+
+const CACHE_CONFIG = new InjectionToken<CacheConfig>("CacheConfig");
+
+@Injectable()
+class CacheService {
+  constructor(@Inject(CACHE_CONFIG) private config: CacheConfig) {}
+}
+```
+</Tab>
+</Tabs>
+
+### When @Inject is Not Needed
+
+If the dependency is a concrete class with `@Injectable()`, TypeScript metadata is sufficient:
+
+```typescript
+@Injectable()
+class DatabaseService { /* ... */ }
+
+@Injectable()
+class UserRepository {
+  // @Inject not needed - DatabaseService determined via design:paramtypes
+  constructor(private db: DatabaseService) {}
+}
+```
+
+---
+
+## @Optional()
+
+Makes a dependency optional. If the provider is not found, `undefined` is returned instead of an error.
+
+```typescript
+@Optional()
+```
+
+### With Constructor Parameters
+
+```typescript
+import { Injectable, Inject, Optional, InjectionToken } from "@ambrosia/core";
+
+const METRICS = new InjectionToken<MetricsClient>("Metrics");
+
+@Injectable()
+class UserService {
+  constructor(
+    private db: DatabaseService,
+    @Inject(METRICS) @Optional() private metrics?: MetricsClient,
+  ) {}
+
+  getUser(id: string) {
+    this.metrics?.increment("user.get"); // Safe - may be undefined
+    return this.db.findUser(id);
+  }
+}
+```
+
+### Typical Scenarios
+
+- **Optional plugins** - the service works without them
+- **Feature flags** - dependency registered conditionally
+- **Fallback logic** - using an alternative when the main service is absent
+
+---
+
+## @Autowired()
+
+Injects a dependency into a class property (property injection). Executed **after** the constructor.
+
+```typescript
+@Autowired(token?: Token)
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `token` | `Token` (optional) | Token to resolve. If not specified, determined via `design:type` metadata |
+
+### Basic Usage
+
+```typescript
+import { Injectable, Autowired } from "@ambrosia/core";
+
+@Injectable()
+class OrderService {
+  // Token determined automatically via TypeScript metadata
+  @Autowired()
+  private userService!: UserService;
+
+  // Or with an explicit token
+  @Autowired(Logger)
+  private logger!: Logger;
+
+  createOrder(userId: string) {
+    const user = this.userService.getUser(userId);
+    this.logger.log(`Order created for ${user.name}`);
+  }
+}
+```
+
+### Breaking Circular Dependencies
+
+The main use of `@Autowired` is breaking constructor cycles:
+
+```typescript
+@Injectable()
+class ServiceA {
+  // Property injection instead of constructor
+  @Autowired()
+  private serviceB!: ServiceB;
+
+  doSomething() {
+    this.serviceB.help();
+  }
+}
+
+@Injectable()
+class ServiceB {
+  constructor(private serviceA: ServiceA) {} // Regular constructor injection
+
+  help() { /* ... */ }
+}
+```
+
+<Callout type="info">
+Property injection executes **after** instance caching. This is the key mechanism for breaking cycles - the dependency finds the partially initialized instance in the cache.
+</Callout>
+
+### Initialization Order
+
+```
+1. new Service(...params)       <- constructor
+2. scope cache                  <- instance cached
+3. @Autowired injection         <- property injection
+4. onInit()                     <- lifecycle hook
+```
+
+---
+
+## @Implements()
+
+Links a concrete class to an abstract one. Allows resolving abstract classes as tokens.
+
+```typescript
+@Implements(abstractClass: Abstract)
+```
+
+### Usage
+
+```typescript
+import { Injectable, Implements, Inject } from "@ambrosia/core";
+
+// Abstract class as "interface"
+abstract class Logger {
+  abstract log(message: string): void;
+  abstract error(message: string): void;
+}
+
+// Concrete implementation
+@Injectable()
+@Implements(Logger)
+class ConsoleLogger extends Logger {
+  log(message: string) {
+    console.log(`[LOG] ${message}`);
+  }
+  error(message: string) {
+    console.error(`[ERR] ${message}`);
+  }
+}
+
+// Injection via abstract class
+@Injectable()
+class UserService {
+  constructor(@Inject(Logger) private logger: Logger) {}
+}
+
+// resolve(Logger) returns ConsoleLogger
+const service = container.resolve(UserService);
+```
+
+### Why @Implements is Needed
+
+TypeScript interfaces are erased at compilation - they cannot be used as DI tokens. Abstract classes are preserved at runtime and can serve as tokens. `@Implements` automatically registers the mapping `AbstractClass -> ConcreteClass` in the global Registry.
+
+---
+
+## Combining Decorators
+
+Decorators can be freely combined:
+
+| Combination | Description | Example |
+|---|---|---|
+| `@Inject() + @Optional()` | Optional dependency by token | `@Inject(CACHE) @Optional() cache?: CacheService` |
+| `@Autowired() + @Optional()` | Optional property | `@Autowired(Logger) @Optional() logger?: Logger` |
+| `@Injectable() + @Implements()` | Registration + abstract class mapping | `@Injectable() @Implements(Logger) class ConsoleLogger` |
+
+## Next Steps
+
+- [Container API](/docs/core/api-reference/container) - Container methods
+- [Scopes](/docs/core/api-reference/scopes) - SINGLETON, TRANSIENT, REQUEST
+- [Circular Dependencies](/docs/core/guides/circular-dependencies) - Resolution strategies

@@ -1,0 +1,178 @@
+---
+title: "Error Handling"
+description: "Beautiful, informative errors with codes, hints, and context"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Error Handling
+
+Ambrosia provides a system of structured errors with codes, hints, and documentation links. When something goes wrong, you see **what** broke, **where** the error occurred, and **how** to fix it.
+
+## Terminal Error Format
+
+```
++- AMB001: Provider not found ------------------------------------+
+|                                                                  |
+|  Provider not found: Could not resolve token "UserService"       |
+|  in pack "AppPack".                                              |
+|                                                                  |
+|  Pack: AppPack                                                   |
+|                                                                  |
+|  Hint: Make sure the class is listed in the `providers` array    |
+|        of a pack that is imported, or add the @Injectable()      |
+|        decorator.                                                |
+|                                                                  |
+|  Docs: https://ambrosia.dev/docs/core/errors/AMB001              |
+|                                                                  |
++------------------------------------------------------------------+
+```
+
+Errors are colored with ANSI: code is cyan, error is red, hint is yellow, link is dim. The `NO_COLOR` environment variable disables colors.
+
+## Error Code Catalog
+
+### DI Errors (AMB001-AMB099)
+
+| Code | Error | Description |
+|------|-------|-------------|
+| `AMB001` | Provider not found | Token not registered in any pack |
+| `AMB002` | Circular dependency detected | Two providers depend on each other |
+| `AMB003` | Missing @Injectable decorator | Class used as provider without decorator |
+| `AMB004` | Missing @Inject decorator | Constructor parameter type cannot be inferred |
+| `AMB005` | Scope mismatch | Singleton depends on request-scoped provider |
+| `AMB006` | Duplicate provider | Same token registered twice in a pack |
+| `AMB007` | Missing export | Provider not exported from pack |
+
+### Pack Errors (AMB100-AMB199)
+
+| Code | Error | Description |
+|------|-------|-------------|
+| `AMB100` | Pack import cycle | Circular pack import detected |
+| `AMB101` | Pack not found | Imported pack does not exist |
+| `AMB102` | Missing provider in pack | Specified provider not found |
+| `AMB103` | Pack onInit failed | Lifecycle hook onInit threw an error |
+
+### HTTP Errors (AMB200-AMB299)
+
+| Code | Error | Description |
+|------|-------|-------------|
+| `AMB200` | Route conflict | Two handlers on the same method+path |
+| `AMB201` | Missing controller decorator | Class without @Controller() used as controller |
+| `AMB202` | Guard injection failed | Guard cannot be resolved |
+| `AMB203` | Invalid parameter decorator | Unknown parameter source |
+| `AMB204` | Handler timeout | Request handler exceeded timeout |
+
+### Config Errors (AMB300-AMB399)
+
+| Code | Error | Description |
+|------|-------|-------------|
+| `AMB300` | Missing required env var | Required environment variable is missing |
+| `AMB301` | Invalid env value | Value cannot be cast to expected type |
+| `AMB302` | Config schema invalid | Error in config schema definition |
+
+### Event Errors (AMB400-AMB499)
+
+| Code | Error | Description |
+|------|-------|-------------|
+| `AMB400` | Event handler not injectable | Class with @OnEvent not decorated with @Injectable() |
+| `AMB401` | EventBus not initialized | emit() called before packs are processed |
+
+## Usage
+
+### Throwing Errors with `createError`
+
+```typescript
+import { createError, AMB001 } from '@ambrosia/core';
+
+throw createError(AMB001, 'Token "UserService" not found in pack "AppPack"', {
+  token: 'UserService',
+  pack: 'AppPack',
+});
+```
+
+### Formatted Output
+
+```typescript
+import { formatError, printError, AmbrosiaError } from '@ambrosia/core';
+
+const error = new AmbrosiaError(
+  'AMB001',
+  'Provider not found: Token "UserService"',
+  'Add @Injectable() to UserService',
+  { token: 'UserService' },
+);
+
+// Get as string
+const formatted = formatError(error);
+
+// Print to stderr
+printError(error);
+```
+
+### Creating Custom Errors
+
+```typescript
+import { AmbrosiaError } from '@ambrosia/core';
+
+class MyPluginError extends AmbrosiaError {
+  constructor(detail: string) {
+    super(
+      'PLUG001',
+      `Plugin initialization failed: ${detail}`,
+      'Check plugin configuration and ensure all dependencies are available.',
+      { plugin: 'my-plugin' },
+    );
+    this.name = 'MyPluginError';
+  }
+}
+
+throw new MyPluginError('Redis connection refused');
+```
+
+### Catching and Handling
+
+```typescript
+import { AmbrosiaError, formatError } from '@ambrosia/core';
+
+try {
+  const service = container.resolve(UserService);
+} catch (error) {
+  if (error instanceof AmbrosiaError) {
+    console.error(formatError(error));
+    // error.code    -> 'AMB001'
+    // error.hint    -> 'Make sure the class is listed...'
+    // error.context -> { token: 'UserService' }
+    // error.docsUrl -> 'https://ambrosia.dev/docs/core/errors/AMB001'
+  }
+}
+```
+
+<Callout type="info">
+`AmbrosiaError` inherits from the standard `Error`, so all existing `catch` blocks will continue to work without changes.
+</Callout>
+
+## Utilities
+
+### `formatAnyError`
+
+A universal function: if the error is an `AmbrosiaError`, it outputs a formatted message; otherwise, just the `message`.
+
+```typescript
+import { formatAnyError } from '@ambrosia/core';
+
+try {
+  riskyOperation();
+} catch (error) {
+  console.error(formatAnyError(error));
+}
+```
+
+### Disabling Colors
+
+Set the `NO_COLOR` environment variable to disable ANSI colors:
+
+```bash
+NO_COLOR=1 bun run dev
+```

@@ -1,0 +1,359 @@
+---
+title: "Branded Types"
+description: "Specialized types with built-in validation"
+---
+
+# Branded Types
+
+Branded types are TypeScript types with an additional `__brand` marker that allow defining specific validation at the type level.
+
+## What is a Branded Type?
+
+```typescript
+type Email = string & { readonly __brand: "Email" };
+```
+
+It is still a `string`, but TypeScript and the validator understand that this is not just a string, but an email address requiring special validation.
+
+## Usage
+
+```typescript
+import { assert } from '@ambrosia/validator';
+import type { Email, UUID } from '@ambrosia/validator/types';
+
+interface User {
+  id: UUID;
+  email: Email;
+  name: string;
+}
+
+// Email and UUID are automatically validated!
+const user = assert<User>({
+  id: "550e8400-e29b-41d4-a716-446655440000",
+  email: "user@example.com",
+  name: "Alice"
+});
+```
+
+## Available Branded Types
+
+### String Formats
+
+#### Email
+```typescript
+type Email = string & { readonly __brand: "Email" };
+```
+Validation: RFC 5322 email format
+
+**Example:**
+```typescript
+interface ContactDto {
+  email: Email;
+}
+
+assert<ContactDto>({ email: "user@example.com" }); // ✅
+assert<ContactDto>({ email: "invalid-email" });     // ❌
+```
+
+#### URL
+```typescript
+type URL = string & { readonly __brand: "URL" };
+```
+Validation: valid HTTP/HTTPS URL
+
+**Example:**
+```typescript
+interface LinkDto {
+  url: URL;
+}
+
+assert<LinkDto>({ url: "https://example.com" }); // ✅
+assert<LinkDto>({ url: "not-a-url" });           // ❌
+```
+
+#### UUID
+```typescript
+type UUID = string & { readonly __brand: "UUID" };
+```
+Validation: UUID v4 format
+
+**Example:**
+```typescript
+interface EntityDto {
+  id: UUID;
+}
+
+assert<EntityDto>({
+  id: "550e8400-e29b-41d4-a716-446655440000"
+}); // ✅
+assert<EntityDto>({ id: "123" }); // ❌
+```
+
+### Numeric Types
+
+#### PositiveInt
+```typescript
+type PositiveInt = number & { readonly __brand: "PositiveInt" };
+```
+Validation: integer > 0
+
+**Example:**
+```typescript
+interface PageDto {
+  page: PositiveInt;
+  limit: PositiveInt;
+}
+
+assert<PageDto>({ page: 1, limit: 10 }); // ✅
+assert<PageDto>({ page: 0, limit: 10 }); // ❌
+assert<PageDto>({ page: 1.5, limit: 10 }); // ❌
+```
+
+#### NonNegativeInt
+```typescript
+type NonNegativeInt = number & { readonly __brand: "NonNegativeInt" };
+```
+Validation: integer >= 0
+
+#### PositiveFloat
+```typescript
+type PositiveFloat = number & { readonly __brand: "PositiveFloat" };
+```
+Validation: number > 0 (can be fractional)
+
+#### NonNegativeFloat
+```typescript
+type NonNegativeFloat = number & { readonly __brand: "NonNegativeFloat" };
+```
+Validation: number >= 0
+
+### Dates and Time
+
+#### DateString
+```typescript
+type DateString = string & { readonly __brand: "DateString" };
+```
+Validation: ISO 8601 date (YYYY-MM-DD)
+
+**Example:**
+```typescript
+interface EventDto {
+  date: DateString;
+}
+
+assert<EventDto>({ date: "2024-12-31" }); // ✅
+assert<EventDto>({ date: "31/12/2024" }); // ❌
+```
+
+#### DateTime
+```typescript
+type DateTime = string & { readonly __brand: "DateTime" };
+```
+Validation: ISO 8601 datetime (YYYY-MM-DDTHH:mm:ss.sssZ)
+
+**Example:**
+```typescript
+interface LogDto {
+  timestamp: DateTime;
+}
+
+assert<LogDto>({
+  timestamp: "2024-12-31T23:59:59.000Z"
+}); // ✅
+```
+
+#### Timestamp
+```typescript
+type Timestamp = number & { readonly __brand: "Timestamp" };
+```
+Validation: Unix timestamp (seconds since 1970)
+
+### Phone and IP
+
+#### PhoneNumber
+```typescript
+type PhoneNumber = string & { readonly __brand: "PhoneNumber" };
+```
+Validation: E.164 format (+[country][number])
+
+**Example:**
+```typescript
+interface ContactDto {
+  phone: PhoneNumber;
+}
+
+assert<ContactDto>({ phone: "+1234567890" }); // ✅
+assert<ContactDto>({ phone: "1234567890" });  // ❌
+```
+
+#### IPv4
+```typescript
+type IPv4 = string & { readonly __brand: "IPv4" };
+```
+Validation: IPv4 address (xxx.xxx.xxx.xxx)
+
+#### IPv6
+```typescript
+type IPv6 = string & { readonly __brand: "IPv6" };
+```
+Validation: IPv6 address
+
+### Colors and Encoding
+
+#### HexColor
+```typescript
+type HexColor = string & { readonly __brand: "HexColor" };
+```
+Validation: #RGB or #RRGGBB
+
+**Example:**
+```typescript
+interface ThemeDto {
+  primary: HexColor;
+}
+
+assert<ThemeDto>({ primary: "#ff0000" }); // ✅
+assert<ThemeDto>({ primary: "#f00" });    // ✅
+assert<ThemeDto>({ primary: "red" });     // ❌
+```
+
+#### Base64
+```typescript
+type Base64 = string & { readonly __brand: "Base64" };
+```
+Validation: valid base64 string
+
+#### JSON
+```typescript
+type JSON = string & { readonly __brand: "JSON" };
+```
+Validation: valid JSON string
+
+### Identifiers and Tokens
+
+#### Slug
+```typescript
+type Slug = string & { readonly __brand: "Slug" };
+```
+Validation: lowercase alphanumeric with hyphens (my-slug-123)
+
+**Example:**
+```typescript
+interface PostDto {
+  slug: Slug;
+}
+
+assert<PostDto>({ slug: "my-blog-post-2024" }); // ✅
+assert<PostDto>({ slug: "My Blog Post!" });     // ❌
+```
+
+#### JWT
+```typescript
+type JWT = string & { readonly __brand: "JWT" };
+```
+Validation: JWT format (xxx.yyy.zzz)
+
+#### CreditCard
+```typescript
+type CreditCard = string & { readonly __brand: "CreditCard" };
+```
+Validation: Luhn algorithm
+
+## Combining with Other Types
+
+### Optional Branded Types
+
+```typescript
+interface UserDto {
+  id: UUID;
+  email: Email;
+  phone?: PhoneNumber; // Optional branded type
+}
+```
+
+### Branded Types in Arrays
+
+```typescript
+interface BatchDto {
+  userIds: UUID[];
+  emails: Email[];
+}
+```
+
+### Branded Types with JSDoc
+
+```typescript
+interface CreateProductDto {
+  /**
+   * @minLength 3
+   * @maxLength 100
+   */
+  name: string;
+
+  /**
+   * @minimum 0.01
+   */
+  price: PositiveFloat;
+
+  imageUrl: URL;
+}
+```
+
+## Typing Return Values
+
+```typescript
+// Function returns a branded type
+function getUserEmail(id: string): Email {
+  const user = assert<User>(fetchUser(id));
+  return user.email; // Email type is preserved
+}
+
+// Can be used directly
+const email: Email = getUserEmail("123");
+```
+
+## Creating Your Own Branded Types
+
+You can create your own branded types:
+
+```typescript
+// In your project
+type Username = string & { readonly __brand: "Username" };
+
+interface RegisterDto {
+  username: Username;
+}
+
+// The validator will NOT apply special validation,
+// only check that it's a string.
+// For custom validation, use JSDoc constraints:
+
+interface RegisterDto {
+  /**
+   * @pattern ^[a-zA-Z0-9_]{3,20}$
+   */
+  username: Username;
+}
+```
+
+## Performance
+
+Branded types generate optimized inline code:
+
+```typescript
+// Source code:
+const user = assert<{ email: Email }>(data);
+
+// Generated code:
+const user = ((data) => {
+  if (typeof data !== "object" || data === null)
+    throw new ValidationError("must be an object");
+  if (typeof data.email !== "string")
+    throw new ValidationError("email must be string");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+    throw new ValidationError("email must be valid email");
+  return data;
+})(data);
+```
+
+No overhead for creating validator objects or schemas!

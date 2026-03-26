@@ -1,0 +1,320 @@
+---
+title: Тестирование (TestingHttpFactory)
+description: Тестирование HTTP-приложений с помощью TestingHttpFactory в Ambrosia
+---
+
+# Тестирование HTTP-приложений
+
+`TestingHttpFactory` позволяет тестировать HTTP-маршруты без запуска реального сервера. Запросы проходят через полный pipeline (middleware, guards, interceptors, pipes, handler, filters), но вместо сетевого вызова используется внутренняя маршрутизация.
+
+## Быстрый старт
+
+```typescript
+import { TestingHttpFactory } from '@ambrosia/http';
+import { expect, test, afterAll } from 'bun:test';
+
+const module = await TestingHttpFactory
+  .create({
+    controllers: [HealthController],
+  })
+  .compile();
+
+test('GET /health returns 200', async () => {
+  const res = await module.inject({
+    method: 'GET',
+    url: '/health',
+  });
+
+  expect(res.statusCode).toBe(200);
+  expect(res.body).toEqual({ ok: true });
+});
+
+afterAll(() => module.close());
+```
+
+## TestingHttpFactory API
+
+### create(options)
+
+Создаёт builder для тестового модуля. Принимает те же опции, что и `HttpApplication.create`, кроме `provider` (используется встроенный `MockHttpProvider`):
+
+```typescript
+const builder = TestingHttpFactory.create({
+  controllers: [UserController, PostController],
+  packs: [DatabasePack],
+  globalGuards: [AuthGuard],
+  globalPipes: [ValidationPipe],
+  prefix: '/api',
+});
+```
+
+### override(token, classOrValue)
+
+Заменяет провайдер в DI-контейнере классом или значением:
+
+```typescript
+const builder = TestingHttpFactory
+  .create({ controllers: [UserController] })
+  .override(UserService, MockUserService);
+```
+
+### overrideValue(token, value)
+
+Заменяет провайдер конкретным значением (удобно для мокирования):
+
+```typescript
+const mockDb = {
+  query: async (sql: string) => [{ id: 1, name: 'Test' }],
+};
+
+const builder = TestingHttpFactory
+  .create({ controllers: [UserController] })
+  .overrideValue(DatabaseService, mockDb)
+  .overrideValue('CONFIG', { debug: true });
+```
+
+### compile()
+
+Собирает тестовый модуль. Возвращает `Promise<TestingHttpModule>`:
+
+```typescript
+const module = await builder.compile();
+```
+
+## TestingHttpModule API
+
+### inject(request)
+
+Имитирует HTTP-запрос через полный pipeline:
+
+```typescript
+const res = await module.inject({
+  method: 'POST',
+  url: '/users',
+  body: { name: 'Alice', email: 'alice@example.com' },
+  headers: { 'Authorization': 'Bearer test-token' },
+  query: { notify: 'true' },
+});
+
+// res.statusCode — HTTP код ответа (число)
+// res.headers — заголовки ответа (Record<string, string>)
+// res.body — тело ответа (any)
+```
+
+### get(token)
+
+Получает экземпляр из DI-контейнера:
+
+```typescript
+const userService = module.get(UserService);
+```
+
+### getApp()
+
+Возвращает внутренний `HttpApplication`:
+
+```typescript
+const app = module.getApp();
+```
+
+### close()
+
+Завершает модуль и очищает ресурсы:
+
+```typescript
+await module.close();
+```
+
+## Примеры
+
+### CRUD-контроллер
+
+```typescript
+import { TestingHttpFactory } from '@ambrosia/http';
+import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+
+describe('UserController', () => {
+  let module: Awaited<ReturnType<ReturnType<typeof TestingHttpFactory.create>['compile']>>;
+
+  const mockUsers = [
+    { id: 1, name: 'Alice' },
+    { id: 2, name: 'Bob' },
+  ];
+
+  beforeAll(async () => {
+    module = await TestingHttpFactory
+      .create({ controllers: [UserController] })
+      .overrideValue(UserRepository, {
+        findAll: async () => mockUsers,
+        findById: async (id: number) => mockUsers.find(u => u.id === id),
+        create: async (data: any) => ({ id: 3, ...data }),
+      })
+      .compile();
+  });
+
+  afterAll(() => module.close());
+
+  test('GET /users', async () => {
+    const res = await module.inject({ method: 'GET', url: '/users' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveLength(2);
+  });
+
+  test('GET /users/:id', async () => {
+    const res = await module.inject({ method: 'GET', url: '/users/1' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.name).toBe('Alice');
+  });
+
+  test('POST /users', async () => {
+    const res = await module.inject({
+      method: 'POST',
+      url: '/users',
+      body: { name: 'Charlie' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.name).toBe('Charlie');
+  });
+});
+```
+
+### Тестирование Guards
+
+```typescript
+describe('AuthGuard', () => {
+  let module: any;
+
+  beforeAll(async () => {
+    module = await TestingHttpFactory
+      .create({
+        controllers: [ProtectedController],
+        globalGuards: [AuthGuard],
+      })
+      .overrideValue(TokenService, {
+        verify: (token: string) => token === 'valid-token' ? { userId: 1 } : null,
+      })
+      .compile();
+  });
+
+  afterAll(() => module.close());
+
+  test('rejects without token', async () => {
+    const res = await module.inject({ method: 'GET', url: '/protected' });
+    expect(res.statusCode).toBe(403);
+  });
+
+  test('allows with valid token', async () => {
+    const res = await module.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { authorization: 'Bearer valid-token' },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+});
+```
+
+### Тестирование с Packs
+
+```typescript
+const module = await TestingHttpFactory
+  .create({
+    packs: [UserPack, DatabasePack],
+  })
+  .overrideValue(DB_TOKEN, mockDatabase)
+  .compile();
+
+const res = await module.inject({ method: 'GET', url: '/users' });
+expect(res.statusCode).toBe(200);
+```
+
+### Тестирование Pipes и Validation
+
+```typescript
+test('validates body', async () => {
+  const res = await module.inject({
+    method: 'POST',
+    url: '/users',
+    body: { name: '' }, // невалидное имя
+  });
+  expect(res.statusCode).toBe(422);
+});
+
+test('parses params', async () => {
+  const res = await module.inject({
+    method: 'GET',
+    url: '/users/abc', // не число, ParseIntPipe должен отклонить
+  });
+  expect(res.statusCode).toBe(400);
+});
+```
+
+## Mock-хелперы
+
+Для unit-тестов отдельных компонентов (guards, interceptors, pipes) используйте хелперы для создания mock-контекстов:
+
+```typescript
+import { createMockHttpContext, createMockExecutionContext } from '@ambrosia/http';
+
+test('AuthGuard denies without token', async () => {
+  const guard = new AuthGuard(mockTokenService);
+  const context = createMockExecutionContext({
+    request: { headers: {} },
+  });
+
+  const result = await guard.canActivate(context);
+  expect(result).toBe(false);
+});
+
+test('AuthGuard allows with token', async () => {
+  const guard = new AuthGuard(mockTokenService);
+  const context = createMockExecutionContext({
+    request: { headers: { authorization: 'Bearer valid' } },
+  });
+
+  const result = await guard.canActivate(context);
+  expect(result).toBe(true);
+});
+```
+
+### createMockHttpContext(options?)
+
+Создаёт mock `HttpContext` с настраиваемыми request/response:
+
+```typescript
+const ctx = createMockHttpContext({
+  method: 'POST',
+  url: '/users',
+  headers: { 'content-type': 'application/json' },
+  body: { name: 'Alice' },
+  params: { id: '1' },
+  query: { page: '1' },
+});
+```
+
+### createMockExecutionContext(options?)
+
+Создаёт mock `ExecutionContext` для guards и interceptors:
+
+```typescript
+const ctx = createMockExecutionContext({
+  request: { method: 'GET', url: '/test', headers: {} },
+  controllerClass: TestController,
+  handlerName: 'getTest',
+});
+```
+
+## Best Practices
+
+1. **Изолируйте зависимости**: Используйте `overrideValue()` для замены внешних сервисов (БД, API, файловая система)
+2. **Очищайте ресурсы**: Всегда вызывайте `module.close()` в `afterAll`
+3. **Тестируйте pipeline**: `inject()` проходит через весь pipeline — используйте это для интеграционных тестов
+4. **Unit-тесты для компонентов**: Для изолированного тестирования guards/interceptors/pipes используйте mock-хелперы
+5. **Тестируйте ошибки**: Проверяйте что API корректно обрабатывает невалидные данные и ошибки
+
+## См. также
+
+- [Controllers](/docs/http/guides/controllers) - Создание контроллеров
+- [Guards](/docs/http/guides/guards) - Защита маршрутов
+- [Pipes](/docs/http/guides/pipes) - Валидация данных
+- [Packs](/docs/http/guides/packs) - Модульная структура

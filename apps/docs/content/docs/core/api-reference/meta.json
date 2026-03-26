@@ -1,0 +1,10 @@
+{
+  "title": "API Справочник",
+  "pages": [
+    "container",
+    "decorators",
+    "scopes",
+    "plugins",
+    "errors"
+  ]
+}

@@ -1,0 +1,107 @@
+---
+title: "Установка"
+description: "Установка и настройка @ambrosia/events"
+---
+
+# Установка
+
+## Установка пакета
+
+```bash
+bun add @ambrosia/events
+```
+
+`@ambrosia/events` зависит от `@ambrosia/core`, который должен быть уже установлен в проекте.
+
+## Настройка
+
+### 1. Подключите EventBusModule
+
+Импортируйте `EventBusModule.forRoot()` в корневой пак вашего приложения:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import { EventBusModule } from '@ambrosia/events';
+
+export const AppPack = definePack({
+  imports: [
+    EventBusModule.forRoot(),
+    // ... другие паки
+  ],
+  providers: [
+    // ... ваши сервисы и слушатели
+  ],
+});
+```
+
+### 2. Опции модуля
+
+`EventBusModule.forRoot()` принимает необязательный объект настроек:
+
+```ts
+EventBusModule.forRoot({
+  global: true, // default: true — EventBus доступен глобально
+})
+```
+
+| Опция    | Тип       | По умолчанию | Описание                                   |
+|----------|-----------|-------------|---------------------------------------------|
+| `global` | `boolean` | `true`      | Экспортировать EventBus для всех паков      |
+
+### 3. Определите событие
+
+События — это обычные TypeScript-классы. Конструктор класса используется как ключ:
+
+```ts
+class OrderPlacedEvent {
+  constructor(
+    public readonly orderId: string,
+    public readonly total: number,
+  ) {}
+}
+```
+
+### 4. Создайте слушатель
+
+Используйте декоратор `@OnEvent()` на методах `@Injectable()` класса:
+
+```ts
+import { Injectable } from '@ambrosia/core';
+import { OnEvent } from '@ambrosia/events';
+
+@Injectable()
+class NotificationService {
+  @OnEvent(OrderPlacedEvent)
+  onOrderPlaced(event: OrderPlacedEvent) {
+    console.log(`Заказ ${event.orderId} на сумму ${event.total}`);
+  }
+}
+```
+
+### 5. Emit событий
+
+Инжектируйте `EventBus` и вызывайте `emit()`:
+
+```ts
+import { Injectable } from '@ambrosia/core';
+import { EventBus } from '@ambrosia/events';
+
+@Injectable()
+class OrderService {
+  constructor(private bus: EventBus) {}
+
+  placeOrder(items: Item[]) {
+    const orderId = crypto.randomUUID();
+    const total = items.reduce((sum, i) => sum + i.price, 0);
+    // ... сохранение заказа ...
+    this.bus.emit(new OrderPlacedEvent(orderId, total));
+  }
+}
+```
+
+## Требования
+
+- **Bun** >= 1.3.6
+- **TypeScript** >= 5
+- `experimentalDecorators: true` и `emitDecoratorMetadata: true` в tsconfig.json
+- `reflect-metadata` импортирован в entry point приложения

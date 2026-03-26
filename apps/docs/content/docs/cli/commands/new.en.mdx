@@ -1,0 +1,119 @@
+---
+title: "ambrosia new"
+description: "Command for creating a new Ambrosia project with architecture selection"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia new
+
+Creates a new Ambrosia project with a pre-configured structure, dependencies, and ready-to-run code.
+
+## Usage
+
+```bash
+ambrosia new <name> [--arch <pattern>]
+```
+
+## Arguments
+
+| Argument | Description |
+|---|---|
+| `<name>` | Project name (a directory with this name will be created) |
+| `--arch <pattern>` | Architecture pattern (if not specified — interactive selection) |
+
+## Architecture Patterns
+
+| Pattern | Description |
+|---|---|
+| `modular` | **Recommended.** Feature-based modules. Each module contains a controller, service, and pack. |
+| `layered` | Flat layered architecture: controllers, services, entities. |
+| `clean` | Clean Architecture: domain, application, infrastructure, presentation. |
+| `cqrs` | CQRS: separated into commands and queries. |
+
+## Examples
+
+```bash
+# Interactive architecture selection
+ambrosia new my-app
+
+# Specify architecture directly
+ambrosia new my-app --arch modular
+ambrosia new my-app --arch clean
+
+# Create in a subdirectory
+ambrosia new ./apps/api
+```
+
+## What It Creates
+
+### Base Files (all architectures)
+
+```
+my-app/
+├── package.json          ← Ambrosia dependencies
+├── tsconfig.json         ← decorators + metadata
+├── biome.json            ← linter
+├── bunfig.toml           ← Bun configuration
+├── build.ts              ← build script
+├── .gitignore
+└── .env.example
+```
+
+### Modular Architecture (default)
+
+```
+my-app/
+├── src/
+│   ├── main.ts
+│   ├── modules/
+│   │   ├── health/
+│   │   │   ├── health.controller.ts
+│   │   │   ├── health.service.ts
+│   │   │   └── health.pack.ts
+│   │   └── user/
+│   │       ├── user.controller.ts
+│   │       ├── user.service.ts
+│   │       ├── user.pack.ts
+│   │       ├── dto/
+│   │       │   ├── create-user.dto.ts
+│   │       │   └── update-user.dto.ts
+│   │       └── entities/
+│   │           └── user.entity.ts
+│   └── common/
+│       ├── guards/auth.guard.ts
+│       ├── interceptors/logging.interceptor.ts
+│       ├── filters/http-exception.filter.ts
+│       └── middleware/cors.middleware.ts
+└── test/
+    └── app.test.ts
+```
+
+## Process
+
+1. Checks that the directory is free
+2. Prompts for architecture (if not passed via `--arch`)
+3. Generates files
+4. Runs `bun install`
+5. Initializes a git repository
+
+## After Creation
+
+```bash
+cd my-app
+bun run dev           # dev server with watch mode
+bun run start         # production server
+bun run build         # build
+bun run lint          # code linting (Biome)
+bun run test          # tests
+```
+
+<Callout type="info">
+  After creating a project, run `ambrosia init` to set up Pack Registry if you plan to use packs.
+</Callout>
+
+## See Also
+
+- [ambrosia init](/docs/cli/commands/init) — set up Pack Registry
+- [ambrosia add](/docs/cli/commands/add) — add packs
+- [ambrosia generate](/docs/cli/commands/generate) — generate resources

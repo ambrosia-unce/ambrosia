@@ -1,0 +1,171 @@
+---
+title: "Configuration"
+description: "Structure and setup of the ambrosia.json file — Pack Registry configuration for your project"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Configuration — ambrosia.json
+
+The `ambrosia.json` file is the project-level Pack Registry configuration. It defines where packs are installed, which registries are used, and which packs are already installed.
+
+<Callout type="info">
+  To create `ambrosia.json`, run [`ambrosia init`](/docs/cli/commands/init) in your project root.
+</Callout>
+
+## Full Schema
+
+```json title="ambrosia.json"
+{
+  "$schema": "https://registry.ambrosia.dev/schema/ambrosia.json",
+  "packsDir": "src/packs",
+  "registries": {
+    "default": "https://registry.ambrosia.dev",
+    "company": "https://packs.mycompany.com"
+  },
+  "packs": {
+    "jwt-auth": {
+      "version": "0.2.1",
+      "registry": "default",
+      "installedAt": "2026-02-19T12:00:00.000Z",
+      "files": [
+        "src/packs/jwt-auth/index.ts",
+        "src/packs/jwt-auth/jwt-auth.pack.ts",
+        "src/packs/jwt-auth/jwt-auth.service.ts",
+        "src/packs/jwt-auth/jwt-auth.guard.ts",
+        "src/packs/jwt-auth/types.ts"
+      ]
+    }
+  }
+}
+```
+
+## Fields
+
+### `$schema`
+
+JSON Schema URL for editor autocompletion.
+
+```json
+"$schema": "https://registry.ambrosia.dev/schema/ambrosia.json"
+```
+
+### `packsDir`
+
+Directory for installing packs, relative to the project root.
+
+| Value | Description |
+|---|---|
+| `"src/packs"` | **Default.** Dedicated directory for packs |
+| `"src/modules"` | Packs alongside other project modules |
+| `"src/lib/packs"` | Nested structure |
+
+When you run `ambrosia add jwt-auth`, files will be written to `{packsDir}/jwt-auth/`.
+
+### `registries`
+
+A map of registry URLs. The `"default"` key is required.
+
+```json
+"registries": {
+  "default": "https://registry.ambrosia.dev",
+  "company": "https://packs.internal.company.com",
+  "github": "https://raw.githubusercontent.com/my-org/packs/main"
+}
+```
+
+Usage:
+
+```bash
+# From the default registry
+ambrosia add jwt-auth
+
+# From a corporate registry
+ambrosia add my-pack --registry company
+```
+
+Learn more: [Custom Registry](/docs/cli/registry/custom-registry)
+
+### `packs`
+
+Records of installed packs. **Managed automatically by the CLI** — do not edit manually.
+
+Each entry contains:
+
+| Field | Type | Description |
+|---|---|---|
+| `version` | `string` | Semver version of the installed pack |
+| `registry` | `string` | Which registry it was installed from |
+| `installedAt` | `string` | ISO timestamp of installation time |
+| `files` | `string[]` | List of files relative to the project root |
+
+<Callout type="warn">
+  The `packs` section is used by the CLI to track installed packs and detect conflicts during reinstallation. Manual editing may lead to incorrect behavior.
+</Callout>
+
+## Minimal Configuration
+
+The simplest working configuration:
+
+```json title="ambrosia.json"
+{
+  "packsDir": "src/packs",
+  "registries": {
+    "default": "https://registry.ambrosia.dev"
+  },
+  "packs": {}
+}
+```
+
+## Common Configurations
+
+### Standard Project
+
+```json title="ambrosia.json"
+{
+  "$schema": "https://registry.ambrosia.dev/schema/ambrosia.json",
+  "packsDir": "src/packs",
+  "registries": {
+    "default": "https://registry.ambrosia.dev"
+  },
+  "packs": {}
+}
+```
+
+### Corporate Project with Private Registry
+
+```json title="ambrosia.json"
+{
+  "$schema": "https://registry.ambrosia.dev/schema/ambrosia.json",
+  "packsDir": "src/packs",
+  "registries": {
+    "default": "https://registry.ambrosia.dev",
+    "corp": "https://packs.corp.internal"
+  },
+  "packs": {}
+}
+```
+
+### Monorepo (app inside apps/)
+
+```json title="apps/api/ambrosia.json"
+{
+  "packsDir": "src/packs",
+  "registries": {
+    "default": "https://registry.ambrosia.dev"
+  },
+  "packs": {}
+}
+```
+
+## Git
+
+The `ambrosia.json` file **should be committed** to your repository. It describes which packs are installed in the project and lets other developers see the full picture.
+
+The `src/packs/` directory is also committed — packs are part of your project's source code.
+
+## Next Steps
+
+1. Explore the [Pack Registry overview](/docs/cli/registry/overview)
+2. Learn about the [Registry Item format](/docs/cli/registry/registry-item)
+3. Try [`ambrosia add`](/docs/cli/commands/add)

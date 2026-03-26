@@ -1,0 +1,608 @@
+---
+title: Exceptions
+description: Built-in HTTP exceptions in Ambrosia HTTP
+---
+
+# Exceptions
+
+Ambrosia HTTP provides a full set of built-in HTTP exceptions for handling various error situations.
+
+## HttpException
+
+Base class for all HTTP exceptions.
+
+```typescript
+class HttpException extends Error {
+  constructor(
+    message: string,
+    status: number,
+    error?: string
+  )
+
+  getStatus(): number
+  getMessage(): string
+  getError(): string
+  getResponse(): HttpExceptionResponse
+}
+```
+
+**Example:**
+
+```typescript
+throw new HttpException('Custom error', 418, 'I am a teapot');
+```
+
+## Built-in Exceptions
+
+### BadRequestException (400)
+
+Used when the request contains invalid data or parameters.
+
+```typescript
+class BadRequestException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Usage examples:**
+
+```typescript
+// Basic usage
+throw new BadRequestException('Invalid data format');
+
+// With custom error
+throw new BadRequestException(
+  'The age value must be a positive number',
+  'ValidationError'
+);
+
+// In a controller
+@Http.Post('/')
+async create(@Body() dto: CreateUserDto) {
+  if (!dto.email.includes('@')) {
+    throw new BadRequestException('Invalid email format');
+  }
+  return this.userService.create(dto);
+}
+```
+
+### UnauthorizedException (401)
+
+Used when authentication is required but not provided or invalid.
+
+```typescript
+class UnauthorizedException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Usage examples:**
+
+```typescript
+// In a Guard
+@Injectable()
+export class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const token = request.headers['authorization'];
+
+    if (!token) {
+      throw new UnauthorizedException('Authorization required');
+    }
+
+    if (!this.isValidToken(token)) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    return true;
+  }
+}
+
+// In a controller
+@Http.Post('/login')
+async login(@Body() credentials: LoginDto) {
+  const user = await this.authService.validateUser(credentials);
+
+  if (!user) {
+    throw new UnauthorizedException('Invalid email or password');
+  }
+
+  return this.authService.login(user);
+}
+```
+
+### ForbiddenException (403)
+
+Used when the user is authenticated but does not have access to the resource.
+
+```typescript
+class ForbiddenException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Usage examples:**
+
+```typescript
+// Access control check
+@Http.Delete('/:id')
+async delete(@Param('id') id: string, @Req() req: IHttpRequest) {
+  const post = await this.postService.findById(id);
+
+  if (post.authorId !== req.user.id) {
+    throw new ForbiddenException('You do not have permission to delete this post');
+  }
+
+  return this.postService.delete(id);
+}
+
+// In a Guard
+@Injectable()
+export class RoleGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const requiredRoles = context.getMetadata<string[]>('roles');
+    const { request } = context.switchToHttp();
+
+    if (!requiredRoles.includes(request.user.role)) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    return true;
+  }
+}
+```
+
+### NotFoundException (404)
+
+Used when the requested resource is not found.
+
+```typescript
+class NotFoundException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Usage examples:**
+
+```typescript
+// Basic usage
+@Http.Get('/:id')
+async getOne(@Param('id') id: string) {
+  const user = await this.userService.findById(id);
+
+  if (!user) {
+    throw new NotFoundException(`User ${id} not found`);
+  }
+
+  return user;
+}
+
+// With details
+@Http.Get('/:userId/posts/:postId')
+async getPost(
+  @Param('userId') userId: string,
+  @Param('postId') postId: string
+) {
+  const post = await this.postService.findByUserAndId(userId, postId);
+
+  if (!post) {
+    throw new NotFoundException(
+      `Post ${postId} not found for user ${userId}`,
+      'PostNotFound'
+    );
+  }
+
+  return post;
+}
+```
+
+### MethodNotAllowedException (405)
+
+Used when the HTTP method is not supported for a given endpoint.
+
+```typescript
+class MethodNotAllowedException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Usage example:**
+
+```typescript
+@Http.Post('/')
+async create(@Body() dto: any) {
+  if (this.isReadOnly()) {
+    throw new MethodNotAllowedException('API is in read-only mode');
+  }
+  return this.service.create(dto);
+}
+```
+
+### ConflictException (409)
+
+Used when the request conflicts with the current state of the resource.
+
+```typescript
+class ConflictException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Usage examples:**
+
+```typescript
+// Duplicate email
+@Http.Post('/register')
+async register(@Body() dto: RegisterDto) {
+  const exists = await this.userService.existsByEmail(dto.email);
+
+  if (exists) {
+    throw new ConflictException('Email already in use');
+  }
+
+  return this.userService.create(dto);
+}
+
+// Duplicate username
+@Http.Post('/users')
+async create(@Body() dto: CreateUserDto) {
+  const existingUser = await this.userService.findByUsername(dto.username);
+
+  if (existingUser) {
+    throw new ConflictException(
+      `User with username "${dto.username}" already exists`,
+      'DuplicateUsername'
+    );
+  }
+
+  return this.userService.create(dto);
+}
+
+// Version conflict (optimistic locking)
+@Http.Put('/:id')
+async update(
+  @Param('id') id: string,
+  @Body() dto: UpdateDto,
+  @Header('if-match') etag: string
+) {
+  const current = await this.service.findById(id);
+
+  if (current.version !== etag) {
+    throw new ConflictException(
+      'Resource has been modified. Please refresh and try again',
+      'OptimisticLockError'
+    );
+  }
+
+  return this.service.update(id, dto);
+}
+```
+
+### UnprocessableEntityException (422)
+
+Used when the request is syntactically correct but contains semantic errors (typically validation errors).
+
+```typescript
+class UnprocessableEntityException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Usage examples:**
+
+```typescript
+// Business logic error
+@Http.Post('/transfer')
+async transfer(@Body() dto: TransferDto) {
+  const account = await this.accountService.findById(dto.fromAccountId);
+
+  if (account.balance < dto.amount) {
+    throw new UnprocessableEntityException('Insufficient funds');
+  }
+
+  return this.accountService.transfer(dto);
+}
+
+// ValidationError automatically uses this status
+class ValidationError extends UnprocessableEntityException {
+  constructor(message: string, public readonly errors: ValidationErrorDetail[]) {
+    super(message, 'Validation Failed');
+  }
+}
+```
+
+### InternalServerErrorException (500)
+
+Used for general server errors.
+
+```typescript
+class InternalServerErrorException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Usage examples:**
+
+```typescript
+// General server error
+@Http.Get('/report')
+async generateReport() {
+  try {
+    return await this.reportService.generate();
+  } catch (error) {
+    console.error('Report generation failed:', error);
+    throw new InternalServerErrorException('Failed to generate report');
+  }
+}
+
+// In an Exception Filter
+@Injectable()
+export class DatabaseExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception } = args;
+
+    if (this.isDatabaseError(exception)) {
+      throw new InternalServerErrorException(
+        'Database error. Please try again later',
+        'DatabaseError'
+      );
+    }
+
+    throw exception;
+  }
+}
+```
+
+## ValidationError
+
+A special exception for validation errors with details.
+
+```typescript
+class ValidationError extends UnprocessableEntityException {
+  constructor(
+    message: string,
+    public readonly errors: ValidationErrorDetail[]
+  )
+}
+
+interface ValidationErrorDetail {
+  path: string;
+  message: string;
+  value?: any;
+}
+```
+
+**Example:**
+
+```typescript
+import { ValidationError } from '@ambrosia/http';
+
+throw new ValidationError('Validation failed', [
+  {
+    path: '/email',
+    message: 'Expected string to match email format',
+    value: 'invalid-email'
+  },
+  {
+    path: '/age',
+    message: 'Expected number to be greater or equal to 0',
+    value: -5
+  }
+]);
+```
+
+ValidationPipe automatically throws ValidationError on validation failures.
+
+## Custom Exceptions
+
+Create domain-specific exceptions:
+
+```typescript
+// Payment system exceptions
+export class PaymentException extends HttpException {
+  constructor(
+    message: string,
+    public readonly paymentId: string,
+    public readonly provider: string
+  ) {
+    super(message, 402); // Payment Required
+    this.name = 'PaymentException';
+  }
+}
+
+export class InsufficientFundsException extends PaymentException {
+  constructor(paymentId: string, required: number, available: number) {
+    super(
+      `Insufficient funds. Required: ${required}, available: ${available}`,
+      paymentId,
+      'internal'
+    );
+    this.name = 'InsufficientFundsException';
+  }
+}
+
+// Usage
+@Http.Post('/payment')
+async processPayment(@Body() dto: PaymentDto) {
+  const balance = await this.walletService.getBalance(dto.userId);
+
+  if (balance < dto.amount) {
+    throw new InsufficientFundsException(
+      dto.paymentId,
+      dto.amount,
+      balance
+    );
+  }
+
+  return this.paymentService.process(dto);
+}
+```
+
+## Response Format
+
+By default, exceptions are returned in the following format:
+
+```typescript
+{
+  "statusCode": 404,
+  "error": "Not Found",
+  "message": "User 123 not found",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "path": "/users/123"
+}
+```
+
+For ValidationError:
+
+```typescript
+{
+  "statusCode": 422,
+  "error": "Unprocessable Entity",
+  "message": "Validation failed",
+  "errors": [
+    {
+      "path": "/email",
+      "message": "Expected string to match 'email'",
+      "value": "invalid"
+    }
+  ],
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "path": "/users"
+}
+```
+
+## HTTP Status Codes
+
+```typescript
+export enum HttpStatus {
+  OK = 200,
+  CREATED = 201,
+  ACCEPTED = 202,
+  NO_CONTENT = 204,
+
+  MOVED_PERMANENTLY = 301,
+  FOUND = 302,
+  NOT_MODIFIED = 304,
+
+  BAD_REQUEST = 400,
+  UNAUTHORIZED = 401,
+  PAYMENT_REQUIRED = 402,
+  FORBIDDEN = 403,
+  NOT_FOUND = 404,
+  METHOD_NOT_ALLOWED = 405,
+  CONFLICT = 409,
+  UNPROCESSABLE_ENTITY = 422,
+  TOO_MANY_REQUESTS = 429,
+
+  INTERNAL_SERVER_ERROR = 500,
+  NOT_IMPLEMENTED = 501,
+  BAD_GATEWAY = 502,
+  SERVICE_UNAVAILABLE = 503,
+  GATEWAY_TIMEOUT = 504
+}
+```
+
+**Usage example:**
+
+```typescript
+import { HttpStatus, HttpException } from '@ambrosia/http';
+
+throw new HttpException(
+  'Custom error',
+  HttpStatus.TOO_MANY_REQUESTS
+);
+```
+
+## Best Practices
+
+1. **Use specific exceptions**: Throw a specific exception instead of a generic HttpException
+2. **Informative messages**: Provide clear error messages
+3. **Hide internal details**: Don't expose implementation details in production
+4. **Log server errors**: Always log 5xx errors for debugging
+5. **Use error codes**: Add machine-readable error codes for API clients
+6. **Document errors**: Document possible exceptions in API documentation
+
+## Usage Patterns
+
+### Centralized Error Handling
+
+```typescript
+// error.service.ts
+@Injectable()
+export class ErrorService {
+  notFound(resource: string, id: string | number): never {
+    throw new NotFoundException(`${resource} ${id} not found`);
+  }
+
+  forbidden(action: string, resource: string): never {
+    throw new ForbiddenException(`No permission to ${action} ${resource}`);
+  }
+
+  conflict(resource: string, field: string, value: any): never {
+    throw new ConflictException(
+      `${resource} with ${field}="${value}" already exists`
+    );
+  }
+}
+
+// Usage
+@Injectable()
+export class UserController {
+  constructor(
+    private userService: UserService,
+    private errors: ErrorService
+  ) {}
+
+  @Http.Get('/:id')
+  async getOne(@Param('id') id: string) {
+    const user = await this.userService.findById(id);
+
+    if (!user) {
+      this.errors.notFound('User', id);
+    }
+
+    return user;
+  }
+}
+```
+
+### Type-safe error handling
+
+```typescript
+type Result<T, E = Error> =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
+@Injectable()
+export class SafeUserService {
+  async findById(id: string): Promise<Result<User, 'NOT_FOUND'>> {
+    const user = await this.repository.findById(id);
+
+    if (!user) {
+      return { ok: false, error: 'NOT_FOUND' };
+    }
+
+    return { ok: true, value: user };
+  }
+}
+
+// In the controller
+@Http.Get('/:id')
+async getOne(@Param('id') id: string) {
+  const result = await this.userService.findById(id);
+
+  if (!result.ok) {
+    if (result.error === 'NOT_FOUND') {
+      throw new NotFoundException(`User ${id} not found`);
+    }
+  }
+
+  return result.value;
+}
+```
+
+## See Also
+
+- [Exception Filters](/docs/http/guides/exception-filters) - Exception handling
+- [Pipes](/docs/http/guides/pipes) - Data validation
+- [Guards](/docs/http/guides/guards) - Access control

@@ -1,0 +1,14 @@
+{
+  "title": "Команды",
+  "pages": [
+    "init",
+    "add",
+    "search",
+    "list",
+    "update",
+    "remove",
+    "build",
+    "new",
+    "generate"
+  ]
+}

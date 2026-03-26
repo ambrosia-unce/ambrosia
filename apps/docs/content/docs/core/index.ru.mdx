@@ -1,0 +1,186 @@
+---
+title: "Введение"
+description: "Универсальный высокопроизводительный DI-контейнер для TypeScript"
+---
+
+import {Card, Cards} from 'fumadocs-ui/components/card';
+
+# @ambrosia/core
+
+**@ambrosia/core** — это универсальный высокопроизводительный DI-контейнер (Dependency Injection) для TypeScript и Bun runtime. Обеспечивает мощное управление зависимостями с минимальными накладными расходами и максимальной гибкостью.
+
+## Ключевые возможности
+
+<Cards>
+    <Card
+        title="🚀 Высокая производительность"
+        description="Оптимизирован для production с пропускной способностью 1M+ операций в секунду. Production режим с умным кэшированием и оптимизированным поиском."
+    />
+    <Card
+        title="🔌 Система плагинов"
+        description="Расширяемая архитектура с lifecycle hooks. Создавайте собственные плагины для логирования, телеметрии, валидации и многого другого."
+    />
+    <Card
+        title="🎯 Несколько областей видимости"
+        description="SINGLETON, TRANSIENT и REQUEST области видимости с поддержкой AsyncLocalStorage для зависимостей с областью видимости запроса."
+    />
+    <Card
+        title="🔄 Циклические зависимости"
+        description="Автоматическое обнаружение и разрешение циклических зависимостей с подробными сообщениями об ошибках."
+    />
+    <Card
+        title="📦 Автоматическая регистрация"
+        description="Автоматическое обнаружение и регистрация классов с использованием декораторов. Не требуется ручная настройка провайдеров."
+    />
+    <Card
+        title="🧪 Без HTTP зависимостей"
+        description="Чистый DI-контейнер без HTTP-специфичного кода. Идеально подходит для CLI-приложений, desktop-приложений, микросервисов и всего остального."
+    />
+</Cards>
+
+## Результаты бенчмарков
+
+- **Singleton (кэшированный):** 1,005,257 операций/сек (0.995μs)
+- **Простой сервис (production):** 867,814 операций/сек (1.152μs)
+- **Сложный сервис (production):** 443,715 операций/сек (2.254μs)
+
+Production режим на 7.4% быстрее для простых сервисов и на 22.8% быстрее для сложных сервисов по сравнению с development режимом.
+
+## Быстрый пример
+
+```typescript
+import { Injectable, Container } from '@ambrosia/core';
+
+@Injectable()
+class DatabaseService {
+  connect() {
+    console.log('Подключено к базе данных');
+  }
+}
+
+@Injectable()
+class UserService {
+  constructor(private db: DatabaseService) {}
+  
+  getUser(id: string) {
+    this.db.connect();
+    return { id, name: 'Иван Иванов' };
+  }
+}
+
+// Создаём контейнер
+const container = new Container({ mode: 'production' });
+
+// Автоматически разрешаем зависимости
+const userService = container.resolve(UserService);
+userService.getUser('123');
+```
+
+## Начало работы
+
+<Cards>
+    <Card
+        title="Установка"
+        description="Установите @ambrosia/core и настройте ваш проект"
+        href="/docs/core/getting-started/installation"
+    />
+    <Card
+        title="Быстрый старт"
+        description="Создайте ваш первый DI-контейнер за 5 минут"
+        href="/docs/core/getting-started/quick-start"
+    />
+    <Card
+        title="Основные концепции"
+        description="Поймите фундаментальные принципы dependency injection"
+        href="/docs/core/getting-started/concepts"
+    />
+</Cards>
+
+## Руководства
+
+<Cards>
+    <Card
+        title="Базовое использование"
+        description="Изучите основы использования @ambrosia/core"
+        href="/docs/core/guides/basic-usage"
+    />
+    <Card
+        title="Области видимости"
+        description="Освойте SINGLETON, TRANSIENT и REQUEST области видимости"
+        href="/docs/core/guides/scopes"
+    />
+    <Card
+        title="Циклические зависимости"
+        description="Безопасная обработка циклических зависимостей"
+        href="/docs/core/guides/circular-dependencies"
+    />
+    <Card
+        title="Плагины"
+        description="Расширьте функциональность с помощью системы плагинов"
+        href="/docs/core/guides/plugins"
+    />
+</Cards>
+
+## API Справочник
+
+<Cards>
+    <Card
+        title="Container"
+        description="Класс Container и его методы"
+        href="/docs/core/api-reference/container"
+    />
+    <Card
+        title="Декораторы"
+        description="@Injectable, @Inject, @Autowired, @Optional"
+        href="/docs/core/api-reference/decorators"
+    />
+    <Card
+        title="Области видимости"
+        description="Enum Scope и управление областями видимости"
+        href="/docs/core/api-reference/scopes"
+    />
+    <Card
+        title="Плагины"
+        description="Интерфейс Plugin и встроенные плагины"
+        href="/docs/core/api-reference/plugins"
+    />
+</Cards>
+
+## Почему @ambrosia/core?
+
+### Универсальный DI
+
+В отличие от многих DI-контейнеров, которые тесно связаны с HTTP-фреймворками, **@ambrosia/core** — это чистый DI-контейнер. Используйте его для:
+
+- **CLI-приложений** - Инструменты командной строки с чистым управлением зависимостями
+- **Desktop-приложений** - Electron, Tauri приложения с правильной архитектурой
+- **Микросервисов** - HTTP, gRPC, потребители очередей сообщений
+- **Worker потоков** - Фоновые задачи с dependency injection
+- **Тестирования** - Простое mock-объектов и подмена зависимостей
+
+### Оптимизирован для Bun
+
+Создан специально для Bun runtime с:
+
+- **AsyncLogger** - Неблокирующее логирование с `Bun.write()` и `queueMicrotask()`
+- **Быстрый запуск** - Оптимизированный поиск провайдеров и кэширование метаданных
+- **Нулевые накладные расходы** - Production режим с минимальными runtime проверками
+- **Эффективная память** - Умные подсказки GC и управление кэшем
+
+### Production Ready
+
+- **51/51 тестов проходят** - Полное покрытие тестами
+- **Набор бенчмарков** - 127+ тестов производительности в 6 наборах
+- **Type safe** - Полная поддержка TypeScript в strict режиме
+- **Battle tested** - Используется в production микросервисах
+
+## Следующие шаги
+
+1. [Установите @ambrosia/core](/docs/core/getting-started/installation)
+2. Следуйте [Руководству быстрого старта](/docs/core/getting-started/quick-start)
+3. Изучите [API Справочник](/docs/core/api-reference/container)
+4. Посмотрите [Примеры](/docs/core/examples/http-server)
+
+## Лицензия
+
+MIT

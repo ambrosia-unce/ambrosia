@@ -1,0 +1,608 @@
+---
+title: Исключения
+description: Встроенные HTTP исключения в Ambrosia HTTP
+---
+
+# Исключения
+
+Ambrosia HTTP предоставляет полный набор встроенных HTTP исключений для обработки различных ошибочных ситуаций.
+
+## HttpException
+
+Базовый класс для всех HTTP исключений.
+
+```typescript
+class HttpException extends Error {
+  constructor(
+    message: string,
+    status: number,
+    error?: string
+  )
+  
+  getStatus(): number
+  getMessage(): string
+  getError(): string
+  getResponse(): HttpExceptionResponse
+}
+```
+
+**Пример:**
+
+```typescript
+throw new HttpException('Custom error', 418, 'I am a teapot');
+```
+
+## Встроенные исключения
+
+### BadRequestException (400)
+
+Используется когда запрос содержит неверные данные или параметры.
+
+```typescript
+class BadRequestException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Примеры использования:**
+
+```typescript
+// Базовое использование
+throw new BadRequestException('Неверный формат данных');
+
+// С кастомным error
+throw new BadRequestException(
+  'Значение age должно быть положительным числом',
+  'ValidationError'
+);
+
+// В контроллере
+@Http.Post('/')
+async create(@Body() dto: CreateUserDto) {
+  if (!dto.email.includes('@')) {
+    throw new BadRequestException('Неверный формат email');
+  }
+  return this.userService.create(dto);
+}
+```
+
+### UnauthorizedException (401)
+
+Используется когда требуется аутентификация, но она не предоставлена или недействительна.
+
+```typescript
+class UnauthorizedException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Примеры использования:**
+
+```typescript
+// В Guard
+@Injectable()
+export class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const token = request.headers['authorization'];
+    
+    if (!token) {
+      throw new UnauthorizedException('Требуется авторизация');
+    }
+    
+    if (!this.isValidToken(token)) {
+      throw new UnauthorizedException('Недействительный токен');
+    }
+    
+    return true;
+  }
+}
+
+// В контроллере
+@Http.Post('/login')
+async login(@Body() credentials: LoginDto) {
+  const user = await this.authService.validateUser(credentials);
+  
+  if (!user) {
+    throw new UnauthorizedException('Неверный email или пароль');
+  }
+  
+  return this.authService.login(user);
+}
+```
+
+### ForbiddenException (403)
+
+Используется когда пользователь аутентифицирован, но не имеет прав доступа к ресурсу.
+
+```typescript
+class ForbiddenException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Примеры использования:**
+
+```typescript
+// Проверка прав доступа
+@Http.Delete('/:id')
+async delete(@Param('id') id: string, @Req() req: IHttpRequest) {
+  const post = await this.postService.findById(id);
+  
+  if (post.authorId !== req.user.id) {
+    throw new ForbiddenException('У вас нет прав для удаления этого поста');
+  }
+  
+  return this.postService.delete(id);
+}
+
+// В Guard
+@Injectable()
+export class RoleGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const requiredRoles = context.getMetadata<string[]>('roles');
+    const { request } = context.switchToHttp();
+    
+    if (!requiredRoles.includes(request.user.role)) {
+      throw new ForbiddenException('Недостаточно прав доступа');
+    }
+    
+    return true;
+  }
+}
+```
+
+### NotFoundException (404)
+
+Используется когда запрашиваемый ресурс не найден.
+
+```typescript
+class NotFoundException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Примеры использования:**
+
+```typescript
+// Базовое использование
+@Http.Get('/:id')
+async getOne(@Param('id') id: string) {
+  const user = await this.userService.findById(id);
+  
+  if (!user) {
+    throw new NotFoundException(`Пользователь ${id} не найден`);
+  }
+  
+  return user;
+}
+
+// С деталями
+@Http.Get('/:userId/posts/:postId')
+async getPost(
+  @Param('userId') userId: string,
+  @Param('postId') postId: string
+) {
+  const post = await this.postService.findByUserAndId(userId, postId);
+  
+  if (!post) {
+    throw new NotFoundException(
+      `Пост ${postId} не найден у пользователя ${userId}`,
+      'PostNotFound'
+    );
+  }
+  
+  return post;
+}
+```
+
+### MethodNotAllowedException (405)
+
+Используется когда HTTP метод не поддерживается для данного endpoint.
+
+```typescript
+class MethodNotAllowedException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Пример использования:**
+
+```typescript
+@Http.Post('/')
+async create(@Body() dto: any) {
+  if (this.isReadOnly()) {
+    throw new MethodNotAllowedException('API находится в режиме только для чтения');
+  }
+  return this.service.create(dto);
+}
+```
+
+### ConflictException (409)
+
+Используется когда запрос конфликтует с текущим состоянием ресурса.
+
+```typescript
+class ConflictException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Примеры использования:**
+
+```typescript
+// Дубликат email
+@Http.Post('/register')
+async register(@Body() dto: RegisterDto) {
+  const exists = await this.userService.existsByEmail(dto.email);
+  
+  if (exists) {
+    throw new ConflictException('Email уже используется');
+  }
+  
+  return this.userService.create(dto);
+}
+
+// Дубликат username
+@Http.Post('/users')
+async create(@Body() dto: CreateUserDto) {
+  const existingUser = await this.userService.findByUsername(dto.username);
+  
+  if (existingUser) {
+    throw new ConflictException(
+      `Пользователь с username "${dto.username}" уже существует`,
+      'DuplicateUsername'
+    );
+  }
+  
+  return this.userService.create(dto);
+}
+
+// Конфликт версий (optimistic locking)
+@Http.Put('/:id')
+async update(
+  @Param('id') id: string,
+  @Body() dto: UpdateDto,
+  @Header('if-match') etag: string
+) {
+  const current = await this.service.findById(id);
+  
+  if (current.version !== etag) {
+    throw new ConflictException(
+      'Ресурс был изменен. Обновите и попробуйте снова',
+      'OptimisticLockError'
+    );
+  }
+  
+  return this.service.update(id, dto);
+}
+```
+
+### UnprocessableEntityException (422)
+
+Используется когда запрос синтаксически корректен, но содержит семантические ошибки (обычно ошибки валидации).
+
+```typescript
+class UnprocessableEntityException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Примеры использования:**
+
+```typescript
+// Ошибка бизнес-логики
+@Http.Post('/transfer')
+async transfer(@Body() dto: TransferDto) {
+  const account = await this.accountService.findById(dto.fromAccountId);
+  
+  if (account.balance < dto.amount) {
+    throw new UnprocessableEntityException('Недостаточно средств на счете');
+  }
+  
+  return this.accountService.transfer(dto);
+}
+
+// ValidationError автоматически использует этот статус
+class ValidationError extends UnprocessableEntityException {
+  constructor(message: string, public readonly errors: ValidationErrorDetail[]) {
+    super(message, 'Validation Failed');
+  }
+}
+```
+
+### InternalServerErrorException (500)
+
+Используется для общих серверных ошибок.
+
+```typescript
+class InternalServerErrorException extends HttpException {
+  constructor(message?: string, error?: string)
+}
+```
+
+**Примеры использования:**
+
+```typescript
+// Общая серверная ошибка
+@Http.Get('/report')
+async generateReport() {
+  try {
+    return await this.reportService.generate();
+  } catch (error) {
+    console.error('Report generation failed:', error);
+    throw new InternalServerErrorException('Не удалось создать отчет');
+  }
+}
+
+// В Exception Filter
+@Injectable()
+export class DatabaseExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception } = args;
+    
+    if (this.isDatabaseError(exception)) {
+      throw new InternalServerErrorException(
+        'Ошибка базы данных. Попробуйте позже',
+        'DatabaseError'
+      );
+    }
+    
+    throw exception;
+  }
+}
+```
+
+## ValidationError
+
+Специальное исключение для ошибок валидации с деталями.
+
+```typescript
+class ValidationError extends UnprocessableEntityException {
+  constructor(
+    message: string,
+    public readonly errors: ValidationErrorDetail[]
+  )
+}
+
+interface ValidationErrorDetail {
+  path: string;
+  message: string;
+  value?: any;
+}
+```
+
+**Пример:**
+
+```typescript
+import { ValidationError } from '@ambrosia/http';
+
+throw new ValidationError('Validation failed', [
+  {
+    path: '/email',
+    message: 'Expected string to match email format',
+    value: 'invalid-email'
+  },
+  {
+    path: '/age',
+    message: 'Expected number to be greater or equal to 0',
+    value: -5
+  }
+]);
+```
+
+ValidationPipe автоматически выбрасывает ValidationError при ошибках валидации.
+
+## Кастомные исключения
+
+Создавайте специфичные исключения для вашего домена:
+
+```typescript
+// Исключения для платежной системы
+export class PaymentException extends HttpException {
+  constructor(
+    message: string,
+    public readonly paymentId: string,
+    public readonly provider: string
+  ) {
+    super(message, 402); // Payment Required
+    this.name = 'PaymentException';
+  }
+}
+
+export class InsufficientFundsException extends PaymentException {
+  constructor(paymentId: string, required: number, available: number) {
+    super(
+      `Недостаточно средств. Требуется: ${required}, доступно: ${available}`,
+      paymentId,
+      'internal'
+    );
+    this.name = 'InsufficientFundsException';
+  }
+}
+
+// Использование
+@Http.Post('/payment')
+async processPayment(@Body() dto: PaymentDto) {
+  const balance = await this.walletService.getBalance(dto.userId);
+  
+  if (balance < dto.amount) {
+    throw new InsufficientFundsException(
+      dto.paymentId,
+      dto.amount,
+      balance
+    );
+  }
+  
+  return this.paymentService.process(dto);
+}
+```
+
+## Формат ответа
+
+По умолчанию, исключения возвращаются в следующем формате:
+
+```typescript
+{
+  "statusCode": 404,
+  "error": "Not Found",
+  "message": "Пользователь 123 не найден",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "path": "/users/123"
+}
+```
+
+Для ValidationError:
+
+```typescript
+{
+  "statusCode": 422,
+  "error": "Unprocessable Entity",
+  "message": "Validation failed",
+  "errors": [
+    {
+      "path": "/email",
+      "message": "Expected string to match 'email'",
+      "value": "invalid"
+    }
+  ],
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "path": "/users"
+}
+```
+
+## HTTP Status Codes
+
+```typescript
+export enum HttpStatus {
+  OK = 200,
+  CREATED = 201,
+  ACCEPTED = 202,
+  NO_CONTENT = 204,
+  
+  MOVED_PERMANENTLY = 301,
+  FOUND = 302,
+  NOT_MODIFIED = 304,
+  
+  BAD_REQUEST = 400,
+  UNAUTHORIZED = 401,
+  PAYMENT_REQUIRED = 402,
+  FORBIDDEN = 403,
+  NOT_FOUND = 404,
+  METHOD_NOT_ALLOWED = 405,
+  CONFLICT = 409,
+  UNPROCESSABLE_ENTITY = 422,
+  TOO_MANY_REQUESTS = 429,
+  
+  INTERNAL_SERVER_ERROR = 500,
+  NOT_IMPLEMENTED = 501,
+  BAD_GATEWAY = 502,
+  SERVICE_UNAVAILABLE = 503,
+  GATEWAY_TIMEOUT = 504
+}
+```
+
+**Пример использования:**
+
+```typescript
+import { HttpStatus, HttpException } from '@ambrosia/http';
+
+throw new HttpException(
+  'Custom error',
+  HttpStatus.TOO_MANY_REQUESTS
+);
+```
+
+## Best Practices
+
+1. **Используйте конкретные исключения**: Выбрасывайте конкретное исключение вместо общего HttpException
+2. **Информативные сообщения**: Предоставляйте понятные сообщения об ошибках
+3. **Скрывайте внутренние детали**: Не раскрывайте детали реализации в production
+4. **Логируйте серверные ошибки**: Всегда логируйте 5xx ошибки для отладки
+5. **Используйте error коды**: Добавляйте machine-readable error коды для API клиентов
+6. **Документируйте ошибки**: Документируйте возможные исключения в API документации
+
+## Примеры паттернов
+
+### Централизованная обработка
+
+```typescript
+// error.service.ts
+@Injectable()
+export class ErrorService {
+  notFound(resource: string, id: string | number): never {
+    throw new NotFoundException(`${resource} ${id} не найден`);
+  }
+  
+  forbidden(action: string, resource: string): never {
+    throw new ForbiddenException(`Нет прав для ${action} ${resource}`);
+  }
+  
+  conflict(resource: string, field: string, value: any): never {
+    throw new ConflictException(
+      `${resource} с ${field}="${value}" уже существует`
+    );
+  }
+}
+
+// Использование
+@Injectable()
+export class UserController {
+  constructor(
+    private userService: UserService,
+    private errors: ErrorService
+  ) {}
+  
+  @Http.Get('/:id')
+  async getOne(@Param('id') id: string) {
+    const user = await this.userService.findById(id);
+    
+    if (!user) {
+      this.errors.notFound('User', id);
+    }
+    
+    return user;
+  }
+}
+```
+
+### Type-safe error handling
+
+```typescript
+type Result<T, E = Error> = 
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
+@Injectable()
+export class SafeUserService {
+  async findById(id: string): Promise<Result<User, 'NOT_FOUND'>> {
+    const user = await this.repository.findById(id);
+    
+    if (!user) {
+      return { ok: false, error: 'NOT_FOUND' };
+    }
+    
+    return { ok: true, value: user };
+  }
+}
+
+// В контроллере
+@Http.Get('/:id')
+async getOne(@Param('id') id: string) {
+  const result = await this.userService.findById(id);
+  
+  if (!result.ok) {
+    if (result.error === 'NOT_FOUND') {
+      throw new NotFoundException(`Пользователь ${id} не найден`);
+    }
+  }
+  
+  return result.value;
+}
+```
+
+## См. также
+
+- [Exception Filters](/docs/http/guides/exception-filters) - Обработка исключений
+- [Pipes](/docs/http/guides/pipes) - Валидация данных
+- [Guards](/docs/http/guides/guards) - Проверка доступа

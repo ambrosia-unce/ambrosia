@@ -1,0 +1,359 @@
+---
+title: "Branded Types"
+description: "Специализированные типы с встроенной валидацией"
+---
+
+# Branded Types
+
+Branded types - это типы TypeScript с дополнительным маркером `__brand`, которые позволяют задавать специфическую валидацию на уровне типов.
+
+## Что такое Branded Type?
+
+```typescript
+type Email = string & { readonly __brand: "Email" };
+```
+
+Это все еще `string`, но TypeScript и validator понимают, что это не просто строка, а email адрес, требующий специальной валидации.
+
+## Использование
+
+```typescript
+import { assert } from '@ambrosia/validator';
+import type { Email, UUID } from '@ambrosia/validator/types';
+
+interface User {
+  id: UUID;
+  email: Email;
+  name: string;
+}
+
+// Email и UUID автоматически валидируются!
+const user = assert<User>({
+  id: "550e8400-e29b-41d4-a716-446655440000",
+  email: "user@example.com",
+  name: "Alice"
+});
+```
+
+## Доступные Branded Types
+
+### Строковые форматы
+
+#### Email
+```typescript
+type Email = string & { readonly __brand: "Email" };
+```
+Валидация: RFC 5322 email format
+
+**Пример:**
+```typescript
+interface ContactDto {
+  email: Email;
+}
+
+assert<ContactDto>({ email: "user@example.com" }); // ✅
+assert<ContactDto>({ email: "invalid-email" });     // ❌
+```
+
+#### URL
+```typescript
+type URL = string & { readonly __brand: "URL" };
+```
+Валидация: valid HTTP/HTTPS URL
+
+**Пример:**
+```typescript
+interface LinkDto {
+  url: URL;
+}
+
+assert<LinkDto>({ url: "https://example.com" }); // ✅
+assert<LinkDto>({ url: "not-a-url" });           // ❌
+```
+
+#### UUID
+```typescript
+type UUID = string & { readonly __brand: "UUID" };
+```
+Валидация: UUID v4 format
+
+**Пример:**
+```typescript
+interface EntityDto {
+  id: UUID;
+}
+
+assert<EntityDto>({
+  id: "550e8400-e29b-41d4-a716-446655440000"
+}); // ✅
+assert<EntityDto>({ id: "123" }); // ❌
+```
+
+### Числовые типы
+
+#### PositiveInt
+```typescript
+type PositiveInt = number & { readonly __brand: "PositiveInt" };
+```
+Валидация: целое число > 0
+
+**Пример:**
+```typescript
+interface PageDto {
+  page: PositiveInt;
+  limit: PositiveInt;
+}
+
+assert<PageDto>({ page: 1, limit: 10 }); // ✅
+assert<PageDto>({ page: 0, limit: 10 }); // ❌
+assert<PageDto>({ page: 1.5, limit: 10 }); // ❌
+```
+
+#### NonNegativeInt
+```typescript
+type NonNegativeInt = number & { readonly __brand: "NonNegativeInt" };
+```
+Валидация: целое число >= 0
+
+#### PositiveFloat
+```typescript
+type PositiveFloat = number & { readonly __brand: "PositiveFloat" };
+```
+Валидация: число > 0 (может быть дробным)
+
+#### NonNegativeFloat
+```typescript
+type NonNegativeFloat = number & { readonly __brand: "NonNegativeFloat" };
+```
+Валидация: число >= 0
+
+### Даты и время
+
+#### DateString
+```typescript
+type DateString = string & { readonly __brand: "DateString" };
+```
+Валидация: ISO 8601 date (YYYY-MM-DD)
+
+**Пример:**
+```typescript
+interface EventDto {
+  date: DateString;
+}
+
+assert<EventDto>({ date: "2024-12-31" }); // ✅
+assert<EventDto>({ date: "31/12/2024" }); // ❌
+```
+
+#### DateTime
+```typescript
+type DateTime = string & { readonly __brand: "DateTime" };
+```
+Валидация: ISO 8601 datetime (YYYY-MM-DDTHH:mm:ss.sssZ)
+
+**Пример:**
+```typescript
+interface LogDto {
+  timestamp: DateTime;
+}
+
+assert<LogDto>({
+  timestamp: "2024-12-31T23:59:59.000Z"
+}); // ✅
+```
+
+#### Timestamp
+```typescript
+type Timestamp = number & { readonly __brand: "Timestamp" };
+```
+Валидация: Unix timestamp (секунды с 1970)
+
+### Телефон и IP
+
+#### PhoneNumber
+```typescript
+type PhoneNumber = string & { readonly __brand: "PhoneNumber" };
+```
+Валидация: E.164 format (+[country][number])
+
+**Пример:**
+```typescript
+interface ContactDto {
+  phone: PhoneNumber;
+}
+
+assert<ContactDto>({ phone: "+1234567890" }); // ✅
+assert<ContactDto>({ phone: "1234567890" });  // ❌
+```
+
+#### IPv4
+```typescript
+type IPv4 = string & { readonly __brand: "IPv4" };
+```
+Валидация: IPv4 address (xxx.xxx.xxx.xxx)
+
+#### IPv6
+```typescript
+type IPv6 = string & { readonly __brand: "IPv6" };
+```
+Валидация: IPv6 address
+
+### Цвета и кодирование
+
+#### HexColor
+```typescript
+type HexColor = string & { readonly __brand: "HexColor" };
+```
+Валидация: #RGB or #RRGGBB
+
+**Пример:**
+```typescript
+interface ThemeDto {
+  primary: HexColor;
+}
+
+assert<ThemeDto>({ primary: "#ff0000" }); // ✅
+assert<ThemeDto>({ primary: "#f00" });    // ✅
+assert<ThemeDto>({ primary: "red" });     // ❌
+```
+
+#### Base64
+```typescript
+type Base64 = string & { readonly __brand: "Base64" };
+```
+Валидация: valid base64 string
+
+#### JSON
+```typescript
+type JSON = string & { readonly __brand: "JSON" };
+```
+Валидация: valid JSON string
+
+### Идентификаторы и токены
+
+#### Slug
+```typescript
+type Slug = string & { readonly __brand: "Slug" };
+```
+Валидация: lowercase alphanumeric with hyphens (my-slug-123)
+
+**Пример:**
+```typescript
+interface PostDto {
+  slug: Slug;
+}
+
+assert<PostDto>({ slug: "my-blog-post-2024" }); // ✅
+assert<PostDto>({ slug: "My Blog Post!" });     // ❌
+```
+
+#### JWT
+```typescript
+type JWT = string & { readonly __brand: "JWT" };
+```
+Валидация: JWT format (xxx.yyy.zzz)
+
+#### CreditCard
+```typescript
+type CreditCard = string & { readonly __brand: "CreditCard" };
+```
+Валидация: Luhn algorithm
+
+## Комбинирование с другими типами
+
+### Optional Branded Types
+
+```typescript
+interface UserDto {
+  id: UUID;
+  email: Email;
+  phone?: PhoneNumber; // Опциональный branded type
+}
+```
+
+### Branded Types в массивах
+
+```typescript
+interface BatchDto {
+  userIds: UUID[];
+  emails: Email[];
+}
+```
+
+### Branded Types с JSDoc
+
+```typescript
+interface CreateProductDto {
+  /**
+   * @minLength 3
+   * @maxLength 100
+   */
+  name: string;
+
+  /**
+   * @minimum 0.01
+   */
+  price: PositiveFloat;
+
+  imageUrl: URL;
+}
+```
+
+## Типизация возвращаемых значений
+
+```typescript
+// Функция возвращает branded type
+function getUserEmail(id: string): Email {
+  const user = assert<User>(fetchUser(id));
+  return user.email; // Email тип сохраняется
+}
+
+// Можно использовать напрямую
+const email: Email = getUserEmail("123");
+```
+
+## Создание собственных Branded Types
+
+Вы можете создавать свои branded types:
+
+```typescript
+// В вашем проекте
+type Username = string & { readonly __brand: "Username" };
+
+interface RegisterDto {
+  username: Username;
+}
+
+// Validator НЕ будет применять специальную валидацию,
+// только проверку что это string.
+// Для кастомной валидации используйте JSDoc constraints:
+
+interface RegisterDto {
+  /**
+   * @pattern ^[a-zA-Z0-9_]{3,20}$
+   */
+  username: Username;
+}
+```
+
+## Производительность
+
+Branded types генерируют оптимизированный inline код:
+
+```typescript
+// Исходный код:
+const user = assert<{ email: Email }>(data);
+
+// Сгенерированный код:
+const user = ((data) => {
+  if (typeof data !== "object" || data === null)
+    throw new ValidationError("must be an object");
+  if (typeof data.email !== "string")
+    throw new ValidationError("email must be string");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+    throw new ValidationError("email must be valid email");
+  return data;
+})(data);
+```
+
+Нет overhead на создание объектов валидатора или схем!

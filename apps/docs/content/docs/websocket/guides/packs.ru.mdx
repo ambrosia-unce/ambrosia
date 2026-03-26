@@ -1,0 +1,51 @@
+---
+title: "WebSocket паки"
+description: "Компоновка WebSocket модулей через pack систему"
+---
+
+# WebSocket паки
+
+WebSocket гейтвеи интегрируются в pack систему через `WsPackDefinition`.
+
+## WsPackDefinition
+
+Расширяет стандартный `PackDefinition` полем `gateways`:
+
+```typescript title="chat.pack.ts"
+import { type WsPackDefinition } from "@ambrosia/websocket";
+import { ChatGateway } from "./chat.gateway";
+import { ChatService } from "./chat.service";
+
+export const ChatPack: WsPackDefinition = {
+  name: "chat",
+  providers: [ChatService],
+  gateways: [ChatGateway],
+  exports: [ChatService],
+};
+```
+
+## Использование
+
+```typescript title="main.ts"
+const wsApp = await WsApplication.create({
+  provider: wsProvider,
+  container: httpApp.getContainer(),
+  packs: [ChatPack, NotificationPack],
+});
+```
+
+## Shared DI контейнер
+
+Передавая `container` от HTTP приложения, WebSocket гейтвеи получают доступ к тем же сервисам:
+
+```typescript
+// HTTP и WS делят один контейнер
+const httpApp = await HttpApplication.create({ ... });
+const wsApp = await WsApplication.create({
+  provider: wsProvider,
+  container: httpApp.getContainer(), // Общий контейнер
+  packs: [ChatPack],
+});
+
+// ChatGateway может инжектировать UserService из HTTP паков
+```

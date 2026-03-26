@@ -1,0 +1,416 @@
+---
+title: HttpApplication
+description: Главный класс приложения Ambrosia HTTP
+---
+
+# HttpApplication
+
+`HttpApplication` - это главный класс для создания HTTP приложений на основе Ambrosia.
+
+## Создание приложения
+
+### HttpApplication.create()
+
+Создает и инициализирует HTTP приложение.
+
+```typescript
+static async create<T extends HttpProvider>(
+  options: HttpApplicationOptions<T>
+): Promise<HttpApplication<T>>
+```
+
+**Параметры:**
+
+```typescript
+interface HttpApplicationOptions<TProvider extends HttpProvider = any> {
+  // HTTP Provider (Elysia, Hono и т.д.)
+  provider: new () => TProvider;
+  
+  // DI Container (опционально, создается автоматически)
+  container?: Container;
+  
+  // Исключить определенные контроллеры из регистрации
+  excludeControllers?: Constructor[];
+  
+  // Глобальные lifecycle компоненты
+  globalMiddleware?: Constructor<Middleware>[];
+  globalGuards?: Constructor<Guard>[];
+  globalInterceptors?: Constructor<Interceptor>[];
+  globalPipes?: Constructor<Pipe>[];
+  globalFilters?: Constructor<ExceptionFilter>[];
+  
+  // Настройки сервера
+  port?: number;
+  prefix?: string; // Глобальный префикс для всех маршрутов
+}
+```
+
+**Возвращает:** `Promise<HttpApplication<T>>`
+
+**Пример:**
+
+```typescript
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  port: 3000,
+  prefix: '/api/v1',
+  globalGuards: [AuthGuard],
+  globalInterceptors: [LoggingInterceptor],
+  globalPipes: [ValidationPipe],
+  globalFilters: [GlobalExceptionFilter]
+});
+```
+
+## Методы экземпляра
+
+### listen()
+
+Запускает HTTP сервер на указанном порту.
+
+```typescript
+async listen(port?: number): Promise<void>
+```
+
+**Параметры:**
+- `port` - порт для прослушивания (опционально, использует порт из options или 3000 по умолчанию)
+
+**Пример:**
+
+```typescript
+await app.listen(3000);
+console.log('Server running on http://localhost:3000');
+```
+
+### getNativeApp()
+
+Возвращает нативное приложение provider'а (Elysia, Hono и т.д.).
+
+```typescript
+getNativeApp(): any
+```
+
+**Пример:**
+
+```typescript
+const elysiaApp = app.getNativeApp();
+
+// Использовать нативные методы Elysia
+elysiaApp.get('/native-route', (c) => {
+  return { message: 'Native route' };
+});
+```
+
+### getContainer()
+
+Возвращает DI Container.
+
+```typescript
+getContainer(): Container
+```
+
+**Пример:**
+
+```typescript
+const container = app.getContainer();
+
+// Зарегистрировать сервис вручную
+container.register(CustomService);
+
+// Resolve сервис
+const service = container.resolve(CustomService);
+```
+
+### getProvider()
+
+Возвращает экземпляр HTTP provider'а.
+
+```typescript
+getProvider(): TProvider
+```
+
+**Пример:**
+
+```typescript
+const provider = app.getProvider();
+console.log(provider.name); // "elysia"
+```
+
+## Полный пример
+
+```typescript
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { 
+  ValidationPipe, 
+  LoggingInterceptor,
+  AuthGuard 
+} from './shared';
+
+async function bootstrap() {
+  // Создать приложение
+  const app = await HttpApplication.create({
+    provider: ElysiaProvider,
+    port: 3000,
+    prefix: '/api',
+    
+    // Глобальные компоненты
+    globalMiddleware: [CorsMiddleware, LoggerMiddleware],
+    globalGuards: [AuthGuard],
+    globalInterceptors: [LoggingInterceptor, TransformInterceptor],
+    globalPipes: [ValidationPipe],
+    globalFilters: [GlobalExceptionFilter],
+    
+    // Исключить тестовые контроллеры
+    excludeControllers: [TestController, MockController]
+  });
+  
+  // Получить container для ручной регистрации
+  const container = app.getContainer();
+  container.register(DatabaseService, { lifecycle: 'SINGLETON' });
+  
+  // Получить нативное приложение для продвинутой настройки
+  const nativeApp = app.getNativeApp();
+  nativeApp.onError((error) => {
+    console.error('Native error handler:', error);
+  });
+  
+  // Запустить сервер
+  await app.listen();
+  
+  console.log('🚀 Application started');
+  console.log(`📍 URL: http://localhost:3000/api`);
+}
+
+bootstrap().catch(console.error);
+```
+
+## Автоматическая регистрация контроллеров
+
+`HttpApplication` автоматически регистрирует все контроллеры, помеченные декоратором `@Controller()`:
+
+```typescript
+// user.controller.ts
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')
+  async list() {
+    return [];
+  }
+}
+
+// post.controller.ts
+@Controller('/posts')
+export class PostController {
+  @Http.Get('/')
+  async list() {
+    return [];
+  }
+}
+
+// main.ts
+const app = await HttpApplication.create({
+  provider: ElysiaProvider
+});
+
+// UserController и PostController автоматически зарегистрированы
+await app.listen(3000);
+```
+
+## Исключение контроллеров
+
+Используйте `excludeControllers` для исключения определенных контроллеров:
+
+```typescript
+@Controller('/test')
+export class TestController {
+  @Http.Get('/')
+  async test() {
+    return { test: true };
+  }
+}
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  excludeControllers: [TestController] // TestController не будет зарегистрирован
+});
+```
+
+## Глобальный префикс
+
+Добавьте префикс ко всем маршрутам:
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  prefix: '/api/v1'
+});
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')
+  async list() {}
+  // Маршрут: GET /api/v1/users/
+}
+```
+
+## Глобальные компоненты
+
+### Middleware
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalMiddleware: [
+    LoggerMiddleware,
+    CorsMiddleware,
+    CompressionMiddleware
+  ]
+});
+```
+
+Глобальные middleware выполняются для всех запросов перед controller middleware.
+
+### Guards
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalGuards: [AuthGuard]
+});
+```
+
+Глобальные guards выполняются для всех маршрутов перед controller guards.
+
+### Interceptors
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalInterceptors: [
+    LoggingInterceptor,
+    TransformInterceptor
+  ]
+});
+```
+
+Глобальные interceptors выполняются для всех маршрутов.
+
+### Pipes
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalPipes: [ValidationPipe, TrimPipe]
+});
+```
+
+Глобальные pipes применяются ко всем параметрам всех маршрутов.
+
+### Exception Filters
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalFilters: [GlobalExceptionFilter]
+});
+```
+
+По умолчанию используется `DefaultExceptionFilter`, если не указаны globalFilters.
+
+## Кастомный Container
+
+Можно передать существующий DI Container:
+
+```typescript
+import { Container } from '@ambrosia/core';
+
+const container = new Container();
+
+// Предварительная регистрация сервисов
+container.register(DatabaseService, { lifecycle: 'SINGLETON' });
+container.register(CacheService, { lifecycle: 'SINGLETON' });
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  container // Использовать существующий container
+});
+```
+
+## Производительность
+
+`HttpApplication` оптимизирован для производительности:
+
+1. **Handler Pre-compilation**: Lifecycle компоненты собираются один раз при инициализации
+2. **Parameter Resolver Compilation**: Генерируется оптимизированная функция для извлечения параметров
+3. **WeakMap Caching**: Все metadata операции кэшируются
+4. **Direct Provider Passthrough**: Минимальный overhead над нативным provider
+5. **Controller Caching**: SINGLETON контроллеры кэшируются после первого resolve
+
+## Environment Configuration
+
+Используйте переменные окружения для конфигурации:
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  port: parseInt(process.env.PORT || '3000'),
+  prefix: process.env.API_PREFIX || '/api',
+  
+  // Условные глобальные компоненты
+  globalInterceptors: process.env.NODE_ENV === 'development' 
+    ? [LoggingInterceptor] 
+    : []
+});
+```
+
+## Graceful Shutdown
+
+```typescript
+async function bootstrap() {
+  const app = await HttpApplication.create({
+    provider: ElysiaProvider,
+    port: 3000
+  });
+  
+  await app.listen();
+  
+  // Обработка сигналов завершения
+  process.on('SIGTERM', async () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    // Закрыть соединения с БД, освободить ресурсы и т.д.
+    process.exit(0);
+  });
+  
+  process.on('SIGINT', async () => {
+    console.log('SIGINT received, shutting down gracefully');
+    process.exit(0);
+  });
+}
+
+bootstrap();
+```
+
+## TypeScript типы
+
+`HttpApplication` полностью типизирован с Generics:
+
+```typescript
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import type { Elysia } from 'elysia';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider
+});
+
+// TypeScript знает тип нативного приложения
+const nativeApp: Elysia = app.getNativeApp();
+```
+
+## См. также
+
+- [Quick Start](/docs/http/getting-started/quick-start) - Создание первого приложения
+- [Providers](/docs/http/api/providers) - HTTP Providers
+- [Controllers](/docs/http/guides/controllers) - Работа с контроллерами

@@ -1,0 +1,471 @@
+---
+title: "JSDoc Constraints"
+description: "Additional validation constraints via JSDoc tags"
+---
+
+# JSDoc Constraints
+
+JSDoc constraints allow you to add additional validation rules through JSDoc comments, without changing the TypeScript types themselves.
+
+## Basics
+
+```typescript
+interface CreateProductDto {
+  /**
+   * @minLength 3
+   * @maxLength 100
+   */
+  name: string;
+
+  /**
+   * @minimum 0
+   */
+  price: number;
+}
+```
+
+## Available Tags
+
+### String Constraints
+
+#### @minLength
+Minimum string length
+
+```typescript
+interface UserDto {
+  /**
+   * @minLength 3
+   */
+  username: string;
+}
+
+assert<UserDto>({ username: "ab" });    // ❌ Too short
+assert<UserDto>({ username: "alice" }); // ✅
+```
+
+#### @maxLength
+Maximum string length
+
+```typescript
+interface UserDto {
+  /**
+   * @maxLength 50
+   */
+  name: string;
+}
+```
+
+#### @pattern
+Regular expression
+
+```typescript
+interface UsernameDto {
+  /**
+   * @pattern ^[a-zA-Z0-9_]+$
+   */
+  username: string;
+}
+
+assert<UsernameDto>({ username: "user_123" }); // ✅
+assert<UsernameDto>({ username: "user@123" }); // ❌
+```
+
+**Important:** The pattern is specified without slashes `/pattern/` -- just the pattern itself.
+
+#### @format
+Predefined string format
+
+```typescript
+interface ContactDto {
+  /**
+   * @format email
+   */
+  email: string;
+
+  /**
+   * @format url
+   */
+  website: string;
+
+  /**
+   * @format uuid
+   */
+  id: string;
+}
+```
+
+Available formats:
+- `email` - email address
+- `url` - HTTP/HTTPS URL
+- `uuid` - UUID v4
+- `date` - ISO 8601 date (YYYY-MM-DD)
+- `datetime` - ISO 8601 datetime
+- `phone` - E.164 phone number
+- `ipv4` - IPv4 address
+- `ipv6` - IPv6 address
+- `hex-color` - hex color (#RGB or #RRGGBB)
+- `base64` - base64 string
+- `json` - valid JSON
+
+### Numeric Constraints
+
+#### @minimum
+Minimum value (inclusive)
+
+```typescript
+interface AgeDto {
+  /**
+   * @minimum 18
+   */
+  age: number;
+}
+
+assert<AgeDto>({ age: 17 }); // ❌
+assert<AgeDto>({ age: 18 }); // ✅
+```
+
+#### @maximum
+Maximum value (inclusive)
+
+```typescript
+interface ScoreDto {
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  score: number;
+}
+```
+
+#### @exclusiveMinimum
+Minimum value (exclusive)
+
+```typescript
+interface PriceDto {
+  /**
+   * @exclusiveMinimum 0
+   */
+  price: number;
+}
+
+assert<PriceDto>({ price: 0 });   // ❌
+assert<PriceDto>({ price: 0.01 }); // ✅
+```
+
+#### @exclusiveMaximum
+Maximum value (exclusive)
+
+```typescript
+interface DiscountDto {
+  /**
+   * @exclusiveMaximum 1
+   */
+  discount: number;
+}
+```
+
+#### @multipleOf
+Number divisibility
+
+```typescript
+interface QuantityDto {
+  /**
+   * @multipleOf 5
+   */
+  quantity: number;
+}
+
+assert<QuantityDto>({ quantity: 10 }); // ✅
+assert<QuantityDto>({ quantity: 7 });  // ❌
+```
+
+#### @integer
+Integer number
+
+```typescript
+interface PageDto {
+  /**
+   * @integer
+   * @minimum 1
+   */
+  page: number;
+}
+
+assert<PageDto>({ page: 1 });   // ✅
+assert<PageDto>({ page: 1.5 }); // ❌
+```
+
+### Arrays
+
+#### @minItems
+Minimum number of elements
+
+```typescript
+interface TeamDto {
+  /**
+   * @minItems 1
+   */
+  members: string[];
+}
+
+assert<TeamDto>({ members: [] });        // ❌
+assert<TeamDto>({ members: ["Alice"] }); // ✅
+```
+
+#### @maxItems
+Maximum number of elements
+
+```typescript
+interface TagsDto {
+  /**
+   * @maxItems 10
+   */
+  tags: string[];
+}
+```
+
+#### @uniqueItems
+Unique array elements
+
+```typescript
+interface UniqueIdsDto {
+  /**
+   * @uniqueItems
+   */
+  ids: number[];
+}
+
+assert<UniqueIdsDto>({ ids: [1, 2, 3] });    // ✅
+assert<UniqueIdsDto>({ ids: [1, 2, 2, 3] }); // ❌
+```
+
+### Objects
+
+#### @required
+Required fields (for optional properties)
+
+```typescript
+interface ConfigDto {
+  /**
+   * @required
+   */
+  apiKey?: string; // Formally optional, but JSDoc requires it
+}
+```
+
+**Note:** It's usually better to use TypeScript `!` for this, but @required can be useful for dynamic validation.
+
+## Combining Constraints
+
+Multiple JSDoc tags can be combined:
+
+```typescript
+interface CreatePostDto {
+  /**
+   * Post title
+   * @minLength 10
+   * @maxLength 200
+   * @pattern ^[a-zA-Zа-яА-Я0-9\s\-,!?\.]+$
+   */
+  title: string;
+
+  /**
+   * Post content
+   * @minLength 100
+   * @maxLength 10000
+   */
+  content: string;
+
+  /**
+   * Tags (maximum 5, unique)
+   * @maxItems 5
+   * @uniqueItems
+   */
+  tags: string[];
+
+  /**
+   * Rating from 1 to 5
+   * @integer
+   * @minimum 1
+   * @maximum 5
+   */
+  rating: number;
+}
+```
+
+## JSDoc + Branded Types
+
+Combining JSDoc constraints and branded types:
+
+```typescript
+import type { Email, PositiveInt } from '@ambrosia/validator/types';
+
+interface CreateUserDto {
+  /**
+   * @minLength 3
+   * @maxLength 50
+   * @pattern ^[a-zA-Z0-9_]+$
+   */
+  username: string;
+
+  email: Email; // Already includes email validation
+
+  /**
+   * @minimum 18
+   * @maximum 120
+   */
+  age: PositiveInt; // Combination of branded type and JSDoc
+}
+```
+
+## Nested Object Validation
+
+JSDoc constraints work at all nesting levels:
+
+```typescript
+interface CreateOrderDto {
+  /**
+   * @minItems 1
+   */
+  items: {
+    /**
+     * @format uuid
+     */
+    productId: string;
+
+    /**
+     * @integer
+     * @minimum 1
+     */
+    quantity: number;
+  }[];
+
+  shippingAddress: {
+    /**
+     * @minLength 5
+     */
+    street: string;
+
+    /**
+     * @pattern ^\d{5}(-\d{4})?$
+     */
+    zipCode: string;
+  };
+}
+```
+
+## Custom Error Messages
+
+**Note:** Custom messages are not supported in the current version, but are planned for future releases:
+
+```typescript
+// Future functionality (NOT working now):
+interface UserDto {
+  /**
+   * @minLength 3
+   * @errorMessage "Username must be at least 3 characters"
+   */
+  username: string;
+}
+```
+
+For now, messages are generated automatically:
+- `"username must be at least 3 characters"` for @minLength 3
+- `"age must be >= 18"` for @minimum 18
+- etc.
+
+## Performance
+
+JSDoc constraints are compiled into inline code:
+
+```typescript
+// Source code:
+interface Dto {
+  /**
+   * @minLength 3
+   * @maxLength 10
+   */
+  name: string;
+}
+const dto = assert<Dto>(data);
+
+// Generated code:
+const dto = ((data) => {
+  if (typeof data !== "object" || data === null)
+    throw new ValidationError("must be an object");
+  if (typeof data.name !== "string")
+    throw new ValidationError("name must be string");
+  if (data.name.length < 3)
+    throw new ValidationError("name must be at least 3 characters");
+  if (data.name.length > 10)
+    throw new ValidationError("name must be at most 10 characters");
+  return data;
+})(data);
+```
+
+No JSDoc parsing at runtime!
+
+## IDE Support
+
+JSDoc comments are displayed in IDE tooltips:
+
+```typescript
+interface UserDto {
+  /**
+   * Username
+   * @minLength 3
+   * @maxLength 20
+   */
+  username: string;
+}
+
+// When hovering over username in the IDE:
+// (property) username: string
+// Username
+// @minLength 3
+// @maxLength 20
+```
+
+## Debugging
+
+To view the generated checks, use debug mode:
+
+```typescript
+// validator-config.ts
+import { plugin } from "bun";
+import { createValidatorPlugin } from "@ambrosia/validator/plugin";
+
+plugin(createValidatorPlugin({
+  debug: true,
+}));
+```
+
+## Limitations
+
+Some limitations:
+
+1. JSDoc tags must be on **directly associated** properties
+2. Cannot use JSDoc on type aliases (only on interface properties)
+3. Regular expressions must be valid JavaScript RegExp
+
+**Does not work:**
+```typescript
+/**
+ * @minLength 3
+ */
+type Username = string; // ❌ JSDoc is ignored on type alias
+
+interface Dto {
+  username: Username; // No minLength check
+}
+```
+
+**Works:**
+```typescript
+interface Dto {
+  /**
+   * @minLength 3
+   */
+  username: string; // ✅ JSDoc is applied
+}
+```

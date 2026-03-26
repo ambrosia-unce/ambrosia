@@ -1,0 +1,143 @@
+---
+title: "Gateways"
+description: "In-depth guide to WebSocket gateways"
+---
+
+# WebSocket Gateways
+
+A gateway is the primary unit of WebSocket functionality. One gateway serves one WebSocket path.
+
+## @WebSocketGateway
+
+A class decorator. Specifies the path for WebSocket connections and automatically registers the class in DI.
+
+```typescript
+@WebSocketGateway("/chat")    // ws://host/chat
+@WebSocketGateway("/ws")      // ws://host/ws (default)
+@WebSocketGateway()           // same as "/ws"
+```
+
+## Message Handling
+
+### @SubscribeMessage
+
+Binds a method to a specific event. The client sends `{ event: "eventName", data: ... }`, and the method receives `(client, data)`.
+
+```typescript
+@WebSocketGateway("/game")
+class GameGateway {
+  @SubscribeMessage("move")
+  handleMove(client: WsClient, data: { x: number; y: number }) {
+    // data is the contents of the "data" field from the message
+    return { event: "moveResult", data: { valid: true } };
+  }
+
+  @SubscribeMessage("chat")
+  handleChat(client: WsClient, data: { text: string }) {
+    // You can return nothing — the client won't receive a response
+    console.log(`${client.id}: ${data.text}`);
+  }
+}
+```
+
+**Return value:**
+- `{ event, data }` — automatically sent to the client
+- `undefined` / `void` — no response is sent
+
+### Multiple Handlers
+
+A single gateway can subscribe to many events:
+
+```typescript
+@WebSocketGateway("/notifications")
+class NotificationGateway {
+  @SubscribeMessage("subscribe")
+  handleSubscribe(client: WsClient, data: { channel: string }) {
+    client.data.channels = client.data.channels || [];
+    client.data.channels.push(data.channel);
+    return { event: "subscribed", data: { channel: data.channel } };
+  }
+
+  @SubscribeMessage("unsubscribe")
+  handleUnsubscribe(client: WsClient, data: { channel: string }) {
+    client.data.channels = (client.data.channels || [])
+      .filter((ch: string) => ch !== data.channel);
+  }
+}
+```
+
+## Lifecycle Events
+
+### @OnConnection
+
+Called when a new client connects. Use it for initialization, authorization, or sending initial data.
+
+```typescript
+@OnConnection()
+handleConnection(client: WsClient) {
+  // client.id — unique identifier
+  // client.data — object for storing client data
+  client.data.connectedAt = Date.now();
+}
+```
+
+### @OnDisconnection
+
+Called when a client disconnects. The `code` and `reason` parameters correspond to the WebSocket close frame.
+
+```typescript
+@OnDisconnection()
+handleDisconnection(client: WsClient, code: number, reason: string) {
+  console.log(`Client ${client.id} disconnected: ${code} ${reason}`);
+}
+```
+
+## WsClient API
+
+```typescript
+interface WsClient {
+  id: string;                          // Unique ID
+  data: Record<string, any>;           // User data
+  send(event: string, data: any): void; // Send an event
+  sendRaw(data: string | ArrayBuffer): void; // Send raw data
+  close(code?: number, reason?: string): void; // Close the connection
+}
+```
+
+`client.data` persists between messages — use it to store session state.
+
+## Dependency Injection
+
+Gateways fully participate in DI. Dependencies are injected via the constructor:
+
+```typescript
+@Injectable()
+class RoomService {
+  private rooms = new Map<string, Set<string>>();
+
+  join(room: string, clientId: string) {
+    if (!this.rooms.has(room)) this.rooms.set(room, new Set());
+    this.rooms.get(room)!.add(clientId);
+  }
+
+  leave(room: string, clientId: string) {
+    this.rooms.get(room)?.delete(clientId);
+  }
+}
+
+@WebSocketGateway("/rooms")
+class RoomGateway {
+  constructor(private roomService: RoomService) {}
+
+  @SubscribeMessage("join")
+  handleJoin(client: WsClient, data: { room: string }) {
+    this.roomService.join(data.room, client.id);
+    return { event: "joined", data: { room: data.room } };
+  }
+}
+```
+
+## Next Steps
+
+- [Testing gateways](/docs/websocket/guides/testing)
+- [WebSocket packs](/docs/websocket/guides/packs)

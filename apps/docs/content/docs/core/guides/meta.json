@@ -1,0 +1,15 @@
+{
+  "title": "Руководства",
+  "pages": [
+    "basic-usage",
+    "scopes",
+    "circular-dependencies",
+    "auto-registration",
+    "plugins",
+    "async-operations",
+    "packs",
+    "lifecycle",
+    "testing",
+    "error-handling"
+  ]
+}

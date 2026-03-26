@@ -1,0 +1,93 @@
+---
+title: "ambrosia init"
+description: "Command for initializing ambrosia.json in a project — Pack Registry setup"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia init
+
+Creates the `ambrosia.json` file in your project root. This file is required to work with Pack Registry.
+
+## Usage
+
+```bash
+ambrosia init
+```
+
+## What It Does
+
+1. Checks for a `package.json` in the current directory
+2. Checks whether `ambrosia.json` already exists
+3. Prompts for the pack installation directory (default: `src/packs`)
+4. Prompts for the registry URL (default: `https://registry.ambrosia.dev`)
+5. Creates `ambrosia.json` with the specified settings
+
+## Interactive Mode
+
+```
+$ ambrosia init
+
+◆  ambrosia init
+│
+◇  Where should packs be installed?
+│  src/packs
+│
+◇  Default registry URL:
+│  https://registry.ambrosia.dev
+│
+◆  Created ambrosia.json
+│
+│  Config
+│  packs dir:  src/packs
+│  registry:   https://registry.ambrosia.dev
+│
+└  Ready! Use "ambrosia add <pack>" to install packs.
+```
+
+## Result
+
+The created `ambrosia.json`:
+
+```json title="ambrosia.json"
+{
+  "$schema": "https://registry.ambrosia.dev/schema/ambrosia.json",
+  "packsDir": "src/packs",
+  "registries": {
+    "default": "https://registry.ambrosia.dev"
+  },
+  "packs": {}
+}
+```
+
+## Re-running
+
+If `ambrosia.json` already exists, the CLI will offer to overwrite it:
+
+```
+◆  ambrosia init
+│
+▲  ambrosia.json already exists.
+│
+◆  Overwrite?
+│  ○ Yes / ● No
+```
+
+<Callout type="warn">
+  Overwriting will reset the `packs` section — information about previously installed packs will be lost. The actual pack files in `src/packs/` will remain in place.
+</Callout>
+
+## Errors
+
+### No package.json
+
+```
+✗  No package.json found. Run this command in a project root.
+```
+
+Solution: run the command in the project root where `package.json` is located.
+
+## See Also
+
+- [ambrosia.json format](/docs/cli/getting-started/configuration)
+- [ambrosia add](/docs/cli/commands/add) — adding packs after initialization

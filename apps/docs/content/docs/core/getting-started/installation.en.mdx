@@ -1,0 +1,204 @@
+---
+title: "Installation"
+description: "Install and configure @ambrosia/core in your project"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Installation
+
+Get started with @ambrosia/core in less than a minute.
+
+## Requirements
+
+<Callout type="info">
+  **@ambrosia/core** is optimized for **Bun runtime**. While it can work with Node.js, some features like AsyncLogger use Bun-specific APIs.
+</Callout>
+
+**Requirements:**
+- Bun 1.0.0 or higher
+- TypeScript 5.0 or higher (optional but recommended)
+
+## Installing Bun
+
+If you don't have Bun installed yet:
+
+<Tabs items={['macOS/Linux', 'Windows']}>
+  <Tab value="macOS/Linux">
+    ```bash
+    curl -fsSL https://bun.sh/install | bash
+    ```
+  </Tab>
+  <Tab value="Windows">
+    ```powershell
+    powershell -c "irm bun.sh/install.ps1 | iex"
+    ```
+  </Tab>
+</Tabs>
+
+Verify the installation:
+
+```bash
+bun --version
+```
+
+## Installing @ambrosia/core
+
+<Tabs items={['bun', 'npm', 'pnpm', 'yarn']}>
+  <Tab value="bun">
+    ```bash
+    bun add @ambrosia/core
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @ambrosia/core
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @ambrosia/core
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @ambrosia/core
+    ```
+  </Tab>
+</Tabs>
+
+## TypeScript Configuration
+
+Configure TypeScript to support decorators:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["bun-types"]
+  }
+}
+```
+
+<Callout type="warn">
+  **Important**: Both `experimentalDecorators` and `emitDecoratorMetadata` must be enabled for decorators to work.
+</Callout>
+
+## Verifying the Installation
+
+Create a test file to verify everything works:
+
+```typescript title="test.ts"
+import { Injectable, Container } from '@ambrosia/core';
+
+@Injectable()
+class HelloService {
+  greet(name: string) {
+    return `Hello, ${name}!`;
+  }
+}
+
+const container = new Container();
+const service = container.resolve(HelloService);
+
+console.log(service.greet('World'));
+```
+
+Run it:
+
+```bash
+bun run test.ts
+```
+
+Expected output:
+```
+Hello, World!
+```
+
+<Callout type="success">
+  **Success!** You're ready to use @ambrosia/core.
+</Callout>
+
+## Project Structure
+
+Recommended project structure for a TypeScript project with @ambrosia/core:
+
+```
+my-app/
+├── src/
+│   ├── services/
+│   │   ├── database.service.ts
+│   │   └── user.service.ts
+│   ├── container.ts          # Container configuration
+│   └── index.ts              # Application entry point
+├── tests/
+│   └── services/
+│       └── user.service.test.ts
+├── package.json
+└── tsconfig.json
+```
+
+## Troubleshooting
+
+### Decorators Not Working
+
+**Error:** `experimentalDecorators must be enabled`
+
+**Solution:** Make sure your `tsconfig.json` contains:
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+### Module Not Found
+
+**Error:** `Cannot find module '@ambrosia/core'`
+
+**Solution:**
+1. Check the installation: `bun pm ls | grep ambrosia`
+2. Reinstall: `bun add @ambrosia/core`
+3. Clear cache: `rm -rf node_modules && bun install`
+
+### Runtime Errors with Bun Functions
+
+**Error:** `Bun.write is not a function`
+
+**Solution:** Make sure you're running with Bun, not Node.js:
+```bash
+bun run index.ts  # Correct
+node index.ts     # Incorrect
+```
+
+## Additional Packages
+
+### Development Tools
+
+```bash
+# Type checking
+bun add -d typescript
+
+# Testing
+bun add -d bun:test
+
+# Linting
+bun add -d @typescript-eslint/eslint-plugin
+```
+
+## Next Steps
+
+Now that you have @ambrosia/core installed:
+
+1. Follow the [Quick Start Guide](/docs/core/getting-started/quick-start) to create your first container
+2. Learn about [Core Concepts](/docs/core/getting-started/concepts)
+3. Explore [Basic Usage](/docs/core/guides/basic-usage) patterns

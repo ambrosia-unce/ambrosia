@@ -1,0 +1,156 @@
+---
+title: "Introduction"
+description: "CLI tool and Pack Registry for Ambrosia — distribute and integrate ready-made modules as source code"
+---
+
+import {Card, Cards} from 'fumadocs-ui/components/card';
+
+# @ambrosia/cli
+
+**@ambrosia/cli** is a command-line tool for Ambrosia that lets you create projects, generate resources, and add **ready-made modules (packs)** from a registry directly into your project's source code.
+
+## Philosophy
+
+Unlike traditional npm packages, the **Pack Registry** follows a **code distribution** model — similar to [shadcn/ui](https://ui.shadcn.com) for React components. When you add a pack, its source code is copied into your project. You **own the code** and can freely modify it.
+
+```
+npm package:    node_modules/@lib/auth  →  closed, updated via npm
+ambrosia pack:  src/packs/jwt-auth/     →  your code, full control
+```
+
+## Key Features
+
+<Cards>
+    <Card
+        title="Pack Registry"
+        description="Install ready-made modules with a single command. Source code is injected directly into your project — you own every line."
+    />
+    <Card
+        title="Scaffolding"
+        description="Create new projects with a pre-configured architecture in seconds. Supports modular, layered, clean, and CQRS patterns."
+    />
+    <Card
+        title="Dependencies"
+        description="Automatic recursive dependency resolution between packs. npm dependencies are installed automatically."
+    />
+    <Card
+        title="Custom Registries"
+        description="Connect private corporate registries. Support for multiple registries in a single project."
+    />
+</Cards>
+
+## Quick Example
+
+```bash
+# Create a project
+ambrosia new my-app
+
+# Initialize pack registry
+cd my-app
+ambrosia init
+
+# Add a pack
+ambrosia add jwt-auth
+```
+
+After running `ambrosia add jwt-auth`, your project will contain:
+
+```
+my-app/
+├── src/
+│   ├── packs/
+│   │   └── jwt-auth/
+│   │       ├── index.ts
+│   │       ├── jwt-auth.pack.ts
+│   │       ├── jwt-auth.service.ts
+│   │       ├── jwt-auth.guard.ts
+│   │       └── types.ts
+│   └── main.ts
+├── ambrosia.json
+└── package.json
+```
+
+Wire up the pack in your application:
+
+```typescript title="src/main.ts"
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { JwtAuthPack } from './packs/jwt-auth';
+
+const app = await HttpApplication.create({
+  provider: new ElysiaProvider(),
+  packs: [
+    JwtAuthPack.forRoot({
+      secret: process.env.JWT_SECRET!,
+      expiresIn: '1h',
+    }),
+  ],
+});
+
+await app.listen(3000);
+```
+
+## Getting Started
+
+<Cards>
+    <Card
+        title="Installation"
+        description="Install @ambrosia/cli globally"
+        href="/docs/cli/getting-started/installation"
+    />
+    <Card
+        title="Configuration"
+        description="Set up ambrosia.json for your project"
+        href="/docs/cli/getting-started/configuration"
+    />
+</Cards>
+
+## Pack Registry
+
+<Cards>
+    <Card
+        title="Registry Overview"
+        description="How the Pack Registry works and its architecture"
+        href="/docs/cli/registry/overview"
+    />
+    <Card
+        title="Registry Item Schema"
+        description="Pack description format in the registry"
+        href="/docs/cli/registry/registry-item"
+    />
+    <Card
+        title="Creating Packs"
+        description="How to create your own pack for distribution"
+        href="/docs/cli/registry/creating-packs"
+    />
+    <Card
+        title="Publishing"
+        description="How to publish a pack to the registry"
+        href="/docs/cli/registry/publishing"
+    />
+</Cards>
+
+## Commands
+
+<Cards>
+    <Card
+        title="ambrosia init"
+        description="Initialize ambrosia.json in a project"
+        href="/docs/cli/commands/init"
+    />
+    <Card
+        title="ambrosia add"
+        description="Add packs from the registry"
+        href="/docs/cli/commands/add"
+    />
+    <Card
+        title="ambrosia new"
+        description="Create a new project"
+        href="/docs/cli/commands/new"
+    />
+    <Card
+        title="ambrosia generate"
+        description="Generate resources (pack project)"
+        href="/docs/cli/commands/generate"
+    />
+</Cards>

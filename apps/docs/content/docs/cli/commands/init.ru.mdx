@@ -1,0 +1,93 @@
+---
+title: "ambrosia init"
+description: "Команда инициализации ambrosia.json в проекте — настройка Pack Registry"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia init
+
+Создаёт файл `ambrosia.json` в корне проекта. Этот файл необходим для работы с Pack Registry.
+
+## Использование
+
+```bash
+ambrosia init
+```
+
+## Что делает
+
+1. Проверяет наличие `package.json` в текущей директории
+2. Проверяет, не существует ли уже `ambrosia.json`
+3. Запрашивает директорию для установки паков (по умолчанию `src/packs`)
+4. Запрашивает URL registry (по умолчанию `https://registry.ambrosia.dev`)
+5. Создаёт `ambrosia.json` с указанными параметрами
+
+## Интерактивный режим
+
+```
+$ ambrosia init
+
+◆  ambrosia init
+│
+◇  Where should packs be installed?
+│  src/packs
+│
+◇  Default registry URL:
+│  https://registry.ambrosia.dev
+│
+◆  Created ambrosia.json
+│
+│  Config
+│  packs dir:  src/packs
+│  registry:   https://registry.ambrosia.dev
+│
+└  Ready! Use "ambrosia add <pack>" to install packs.
+```
+
+## Результат
+
+Созданный `ambrosia.json`:
+
+```json title="ambrosia.json"
+{
+  "$schema": "https://registry.ambrosia.dev/schema/ambrosia.json",
+  "packsDir": "src/packs",
+  "registries": {
+    "default": "https://registry.ambrosia.dev"
+  },
+  "packs": {}
+}
+```
+
+## Повторный запуск
+
+Если `ambrosia.json` уже существует, CLI предложит перезаписать:
+
+```
+◆  ambrosia init
+│
+▲  ambrosia.json already exists.
+│
+◆  Overwrite?
+│  ○ Yes / ● No
+```
+
+<Callout type="warn">
+  Перезапись сбросит секцию `packs` — информация о ранее установленных паках будет потеряна. Сами файлы паков в `src/packs/` останутся на месте.
+</Callout>
+
+## Ошибки
+
+### Нет package.json
+
+```
+✗  No package.json found. Run this command in a project root.
+```
+
+Решение: выполните команду в корне проекта, где находится `package.json`.
+
+## Подробнее
+
+- [Формат ambrosia.json](/docs/cli/getting-started/configuration)
+- [ambrosia add](/docs/cli/commands/add) — добавление паков после инициализации

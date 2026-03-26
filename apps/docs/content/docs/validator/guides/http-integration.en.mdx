@@ -1,0 +1,552 @@
+---
+title: "HTTP Integration"
+description: "Using @ambrosia/validator with @ambrosia/http"
+---
+
+# HTTP Integration
+
+@ambrosia/validator integrates seamlessly with @ambrosia/http for validating incoming requests.
+
+## Basic Usage
+
+### With assert()
+
+```typescript
+import { Controller, Http, Body, Param } from '@ambrosia/http';
+import { assert } from '@ambrosia/validator';
+import type { Email } from '@ambrosia/validator/types';
+
+interface CreateUserDto {
+  name: string;
+  email: Email;
+  age: number;
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    // Validation with automatic typing
+    const dto = assert<CreateUserDto>(body);
+
+    // dto is fully typed!
+    console.log(dto.email); // typed as Email
+
+    return this.userService.create(dto);
+  }
+}
+```
+
+### With validate()
+
+```typescript
+import { validate, ValidationError } from '@ambrosia/validator';
+
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    const result = validate<CreateUserDto>(body);
+
+    if (!result.success) {
+      // ValidationError is automatically converted to HTTP 422
+      throw new ValidationError('Validation failed', result.errors);
+    }
+
+    return this.userService.create(result.data);
+  }
+}
+```
+
+### With is() type guard
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    if (!is<CreateUserDto>(body)) {
+      throw new BadRequestException('Invalid request body');
+    }
+
+    // body is typed as CreateUserDto
+    return this.userService.create(body);
+  }
+}
+```
+
+## Route Parameter Validation
+
+```typescript
+import type { UUID } from '@ambrosia/validator/types';
+
+interface GetUserParams {
+  id: UUID;
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  async findOne(@Param('id') id: unknown) {
+    // UUID validation
+    const params = assert<GetUserParams>({ id });
+
+    return this.userService.findById(params.id);
+  }
+}
+```
+
+## Query Parameter Validation
+
+```typescript
+import type { PositiveInt } from '@ambrosia/validator/types';
+
+interface PaginationQuery {
+  /**
+   * @integer
+   * @minimum 1
+   */
+  page: PositiveInt;
+
+  /**
+   * @integer
+   * @minimum 1
+   * @maximum 100
+   */
+  limit: PositiveInt;
+
+  search?: string;
+}
+
+@Controller('/products')
+export class ProductController {
+  @Http.Get('/')
+  async list(@Query() query: unknown) {
+    const pagination = assert<PaginationQuery>(query);
+
+    return this.productService.findAll({
+      page: pagination.page,
+      limit: pagination.limit,
+      search: pagination.search,
+    });
+  }
+}
+```
+
+## Validation Error Handling
+
+ValidationError automatically returns HTTP 422:
+
+```typescript
+// ValidationError thrown by assert()
+try {
+  const dto = assert<CreateUserDto>(body);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    // Will be converted to HTTP 422 Unprocessable Entity
+    // Response:
+    // {
+    //   "statusCode": 422,
+    //   "message": "Validation failed",
+    //   "errors": [
+    //     {
+    //       "path": "email",
+    //       "message": "must be a valid email",
+    //       "value": "invalid-email"
+    //     }
+    //   ]
+    // }
+    throw error;
+  }
+}
+```
+
+### Custom Exception Filter
+
+For full control, create your own exception filter:
+
+```typescript
+import { ExceptionFilter, Catch, ExecutionContext } from '@ambrosia/http';
+import { ValidationError } from '@ambrosia/validator';
+
+@Catch(ValidationError)
+export class ValidationExceptionFilter implements ExceptionFilter {
+  catch(exception: ValidationError, context: ExecutionContext) {
+    const httpContext = context.switchToHttp();
+
+    httpContext.response.status(422).json({
+      success: false,
+      message: 'Validation failed',
+      errors: exception.errors.map(err => ({
+        field: err.path,
+        message: err.message,
+        receivedValue: err.value,
+      })),
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+```
+
+Register in the controller:
+
+```typescript
+import { UseFilters } from '@ambrosia/http';
+
+@Controller('/users')
+@UseFilters(ValidationExceptionFilter)
+export class UserController {
+  // ...
+}
+```
+
+## Nested Object Validation
+
+```typescript
+import type { Email, PhoneNumber } from '@ambrosia/validator/types';
+
+interface AddressDto {
+  /**
+   * @minLength 5
+   */
+  street: string;
+
+  /**
+   * @pattern ^\d{5}$
+   */
+  zipCode: string;
+
+  city: string;
+}
+
+interface CreateCompanyDto {
+  /**
+   * @minLength 2
+   * @maxLength 100
+   */
+  name: string;
+
+  email: Email;
+  phone: PhoneNumber;
+  address: AddressDto;
+}
+
+@Controller('/companies')
+export class CompanyController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    // Validates the entire structure including nested address
+    const dto = assert<CreateCompanyDto>(body);
+
+    return this.companyService.create(dto);
+  }
+}
+```
+
+## Array Validation
+
+```typescript
+import type { UUID } from '@ambrosia/validator/types';
+
+interface BatchDeleteDto {
+  /**
+   * @minItems 1
+   * @maxItems 100
+   * @uniqueItems
+   */
+  ids: UUID[];
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Delete('/batch')
+  async deleteMany(@Body() body: unknown) {
+    const dto = assert<BatchDeleteDto>(body);
+
+    // dto.ids is guaranteed to contain 1-100 unique UUIDs
+    return this.userService.deleteMany(dto.ids);
+  }
+}
+```
+
+## PATCH Requests (Partial Updates)
+
+```typescript
+import type { Email } from '@ambrosia/validator/types';
+
+interface UpdateUserDto {
+  /**
+   * @minLength 2
+   */
+  name?: string;
+
+  email?: Email;
+
+  /**
+   * @minimum 18
+   */
+  age?: number;
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Patch('/:id')
+  async update(
+    @Param('id') id: string,
+    @Body() body: unknown
+  ) {
+    // Validates that if fields are present, they are valid
+    const dto = assert<UpdateUserDto>(body);
+
+    // Check that at least one field is provided
+    if (!dto.name && !dto.email && !dto.age) {
+      throw new BadRequestException('At least one field required');
+    }
+
+    return this.userService.update(id, dto);
+  }
+}
+```
+
+## Using with Guards
+
+```typescript
+import { UseGuards } from '@ambrosia/http';
+import { AuthGuard } from '../guards/auth.guard';
+
+@Controller('/admin/users')
+@UseGuards(AuthGuard)
+export class AdminUserController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    // Guards execute BEFORE validation
+    // Authentication is checked first, then validation
+    const dto = assert<CreateUserDto>(body);
+
+    return this.userService.create(dto);
+  }
+}
+```
+
+## Using with Interceptors
+
+```typescript
+import { UseInterceptors } from '@ambrosia/http';
+import { LoggingInterceptor } from '../interceptors/logging.interceptor';
+
+@Controller('/users')
+@UseInterceptors(LoggingInterceptor)
+export class UserController {
+  @Http.Post('/')
+  async create(@Body() body: unknown) {
+    const dto = assert<CreateUserDto>(body);
+
+    // Interceptor logs request and response
+    return this.userService.create(dto);
+  }
+}
+```
+
+## Response DTO (Serialization)
+
+The validator can be used not only for incoming data:
+
+```typescript
+interface UserResponseDto {
+  id: string;
+  name: string;
+  email: Email;
+  createdAt: string;
+  // NO password or other sensitive fields!
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  async findOne(@Param('id') id: string) {
+    const user = await this.userService.findById(id);
+
+    // Ensure the response matches the DTO
+    return assert<UserResponseDto>({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt.toISOString(),
+    });
+  }
+}
+```
+
+## Combined Example
+
+A real-world REST API controller:
+
+```typescript
+import {
+  Controller,
+  Http,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  UseFilters,
+  Status
+} from '@ambrosia/http';
+import { assert } from '@ambrosia/validator';
+import type { Email, UUID, PositiveInt } from '@ambrosia/validator/types';
+import { AuthGuard } from '../guards/auth.guard';
+import { ValidationExceptionFilter } from '../filters/validation.filter';
+
+interface CreateUserDto {
+  /**
+   * @minLength 2
+   * @maxLength 50
+   */
+  name: string;
+
+  email: Email;
+
+  /**
+   * @minLength 8
+   * @pattern ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$
+   */
+  password: string;
+}
+
+interface UpdateUserDto {
+  name?: string;
+  email?: Email;
+}
+
+interface ListUsersQuery {
+  page?: PositiveInt;
+  limit?: PositiveInt;
+  search?: string;
+}
+
+@Controller('/api/users')
+@UseFilters(ValidationExceptionFilter)
+export class UserController {
+  constructor(private userService: UserService) {}
+
+  @Http.Get('/')
+  async list(@Query() query: unknown) {
+    const { page = 1, limit = 10, search } = assert<ListUsersQuery>(query);
+    return this.userService.findAll({ page, limit, search });
+  }
+
+  @Http.Get('/:id')
+  async findOne(@Param('id') id: unknown) {
+    const params = assert<{ id: UUID }>({ id });
+    const user = await this.userService.findById(params.id);
+    if (!user) throw new NotFoundException();
+    return user;
+  }
+
+  @Http.Post('/')
+  @Status(201)
+  async create(@Body() body: unknown) {
+    const dto = assert<CreateUserDto>(body);
+    return this.userService.create(dto);
+  }
+
+  @Http.Patch('/:id')
+  @UseGuards(AuthGuard)
+  async update(
+    @Param('id') id: unknown,
+    @Body() body: unknown
+  ) {
+    const params = assert<{ id: UUID }>({ id });
+    const dto = assert<UpdateUserDto>(body);
+    return this.userService.update(params.id, dto);
+  }
+
+  @Http.Delete('/:id')
+  @UseGuards(AuthGuard)
+  @Status(204)
+  async remove(@Param('id') id: unknown) {
+    const params = assert<{ id: UUID }>({ id });
+    await this.userService.remove(params.id);
+  }
+}
+```
+
+## Testing
+
+```typescript
+import { describe, test, expect } from 'bun:test';
+import { ValidationError } from '@ambrosia/validator';
+
+describe('UserController', () => {
+  test('create user - validates email', async () => {
+    const controller = new UserController(mockUserService);
+
+    await expect(
+      controller.create({
+        name: 'Alice',
+        email: 'invalid-email',
+        password: 'Password123',
+      })
+    ).rejects.toThrow(ValidationError);
+  });
+
+  test('create user - success', async () => {
+    const controller = new UserController(mockUserService);
+
+    const result = await controller.create({
+      name: 'Alice',
+      email: 'alice@example.com',
+      password: 'Password123',
+    });
+
+    expect(result.email).toBe('alice@example.com');
+  });
+});
+```
+
+## Performance
+
+Since validation is compiled into inline code:
+
+- No overhead for creating schema objects
+- No reflection or dynamic invocation
+- Optimized checks
+- Validation runs in O(n) where n is the number of fields
+
+## Best Practices
+
+1. **Always type @Body() as unknown**
+   ```typescript
+   @Http.Post('/')
+   create(@Body() body: unknown) { // ✅ unknown
+     const dto = assert<CreateUserDto>(body);
+   }
+   ```
+
+2. **Use branded types for special formats**
+   ```typescript
+   interface Dto {
+     email: Email; // ✅ instead of string with @format email
+   }
+   ```
+
+3. **Validate route parameters**
+   ```typescript
+   @Http.Get('/:id')
+   findOne(@Param('id') id: unknown) { // ✅
+     const params = assert<{ id: UUID }>({ id });
+   }
+   ```
+
+4. **Create separate DTOs for Create/Update**
+   ```typescript
+   interface CreateUserDto { /* all fields required */ }
+   interface UpdateUserDto { /* fields optional */ }
+   ```
+
+5. **Use exception filters for consistent errors**
+   ```typescript
+   @UseFilters(ValidationExceptionFilter)
+   @Controller('/users')
+   export class UserController { }
+   ```

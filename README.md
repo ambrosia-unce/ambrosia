@@ -1,0 +1,149 @@
+<div align="center">
+
+# ambrosia
+
+**The Bun Framework for Modern Backends**
+
+Decorator-based DI, provider-agnostic HTTP, compile-time validation, and a pack ecosystem.
+Built from the ground up for Bun.
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Bun](https://img.shields.io/badge/runtime-Bun-%23f9f1e1?logo=bun)](https://bun.sh)
+
+[Documentation](https://ambrosia.dev) · [Pack Market](https://packs.ambrosia.dev) · [Discord](https://discord.gg/ambrosia)
+
+</div>
+
+## Quick Start
+
+```bash
+bun add -g @ambrosia/cli
+ambrosia new my-app
+cd my-app && bun run dev
+```
+
+## Features
+
+**Dependency Injection** -- Token-based DI with constructor/property injection, 3 scopes, and a pack module system.
+
+```typescript
+@Injectable()
+class UserService {
+  constructor(private db: DatabaseService) {}
+}
+```
+
+**Provider-Agnostic HTTP** -- Decorator-based controllers with a pre-compiled request pipeline: Middleware > Guards > Interceptors > Pipes > Handler > Filters.
+
+```typescript
+@Controller("/users")
+class UserController {
+  constructor(private users: UserService) {}
+
+  @Http.Get("/:id")
+  getOne(@Param("id") id: string) {
+    return this.users.findOne(id);
+  }
+}
+```
+
+**Compile-Time Validation** -- TypeScript types become runtime validators at build time. Zero overhead, no schemas.
+
+```typescript
+import { assert, type Email } from "@ambrosia/validator";
+
+interface CreateUser { name: string; email: Email }
+const user = assert<CreateUser>(body); // validated + typed
+```
+
+**Type-Safe Config** -- Environment configuration with schema validation, injected through DI.
+
+**Event Bus** -- Decorator-driven event system integrated with the DI container.
+
+**CLI** -- Scaffold projects, generate resources, manage packs.
+
+```bash
+ambrosia new my-app
+ambrosia g controller users
+ambrosia add @ambrosia/auth
+```
+
+**Pack Ecosystem** -- Installable feature modules via the pack marketplace.
+
+## Packages
+
+| Package | Description | Version |
+|---------|-------------|---------|
+| [`@ambrosia/core`](packages/core) | Decorator-based DI container | [![npm](https://img.shields.io/npm/v/@ambrosia/core.svg)](https://www.npmjs.com/package/@ambrosia/core) |
+| [`@ambrosia/http`](packages/http) | Provider-agnostic HTTP layer | [![npm](https://img.shields.io/npm/v/@ambrosia/http.svg)](https://www.npmjs.com/package/@ambrosia/http) |
+| [`@ambrosia/http-elysia`](packages/http-elysia) | Elysia.js HTTP adapter | [![npm](https://img.shields.io/npm/v/@ambrosia/http-elysia.svg)](https://www.npmjs.com/package/@ambrosia/http-elysia) |
+| [`@ambrosia/validator`](packages/validator) | Compile-time type validation | [![npm](https://img.shields.io/npm/v/@ambrosia/validator.svg)](https://www.npmjs.com/package/@ambrosia/validator) |
+| [`@ambrosia/config`](packages/config) | Type-safe environment config | [![npm](https://img.shields.io/npm/v/@ambrosia/config.svg)](https://www.npmjs.com/package/@ambrosia/config) |
+| [`@ambrosia/events`](packages/events) | DI-integrated event bus | [![npm](https://img.shields.io/npm/v/@ambrosia/events.svg)](https://www.npmjs.com/package/@ambrosia/events) |
+| [`@ambrosia/cli`](packages/cli) | Project scaffolding CLI | [![npm](https://img.shields.io/npm/v/@ambrosia/cli.svg)](https://www.npmjs.com/package/@ambrosia/cli) |
+
+## Example
+
+```typescript
+import "reflect-metadata";
+import { Injectable } from "@ambrosia/core";
+import { HttpApplication, Controller, Http, Param, type HttpPackDefinition } from "@ambrosia/http";
+import { ElysiaProvider } from "@ambrosia/http-elysia";
+
+@Injectable()
+class GreetService {
+  hello(name: string) {
+    return { message: `Hello, ${name}!` };
+  }
+}
+
+@Controller("/greet")
+class GreetController {
+  constructor(private greet: GreetService) {}
+
+  @Http.Get("/:name")
+  sayHello(@Param("name") name: string) {
+    return this.greet.hello(name);
+  }
+}
+
+const AppPack: HttpPackDefinition = {
+  name: "AppPack",
+  controllers: [GreetController],
+  providers: [GreetService],
+};
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+});
+
+await app.listen(3000);
+```
+
+## Pack Ecosystem
+
+Packs are installable feature modules -- auth, logging, ORM integrations, and more. Browse and install from the [Pack Market](https://packs.ambrosia.dev).
+
+```bash
+ambrosia search auth        # find packs
+ambrosia add @ambrosia/auth # install a pack
+ambrosia list               # view installed packs
+```
+
+## Documentation
+
+Full documentation is available at [ambrosia.dev](https://ambrosia.dev).
+
+## Contributing
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Run `bun install` and `bun test` in the relevant package
+4. Submit a pull request
+
+We use [Biome](https://biomejs.dev/) for linting and formatting. Run `bun run check` to auto-fix.
+
+## License
+
+MIT

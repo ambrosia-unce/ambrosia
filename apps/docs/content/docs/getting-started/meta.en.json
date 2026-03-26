@@ -1,0 +1,11 @@
+{
+  "title": "Getting Started",
+  "description": "Build your first API with the Ambrosia framework",
+  "pages": [
+    "installation",
+    "first-api",
+    "packs",
+    "deployment"
+  ],
+  "root": true
+}

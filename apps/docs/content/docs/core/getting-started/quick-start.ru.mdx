@@ -1,0 +1,249 @@
+---
+title: "Быстрый старт"
+description: "Создайте ваш первый DI-контейнер за 5 минут"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps } from 'fumadocs-ui/components/steps';
+
+# Быстрый старт
+
+Начните работу с @ambrosia/core за 5 минут. Это руководство научит вас основам dependency injection на простом примере.
+
+## Что мы создадим
+
+Простую систему управления пользователями с:
+- **DatabaseService** - Обработка подключений к базе данных
+- **UserRepository** - Управление данными пользователей
+- **UserService** - Бизнес-логика
+
+## Пошаговое руководство
+
+<Steps>
+
+### Создайте DatabaseService
+
+Сначала создайте сервис для работы с базой данных:
+
+```typescript title="src/services/database.service.ts"
+import { Injectable } from '@ambrosia/core';
+
+@Injectable()
+export class DatabaseService {
+  private connected = false;
+
+  connect() {
+    if (!this.connected) {
+      console.log('📦 Подключение к базе данных...');
+      this.connected = true;
+    }
+    return this.connected;
+  }
+
+  query(sql: string) {
+    if (!this.connected) {
+      throw new Error('База данных не подключена');
+    }
+    console.log(`🔍 Выполнение запроса: ${sql}`);
+    return [];
+  }
+}
+```
+
+<Callout type="info">
+  Декоратор `@Injectable()` помечает класс как доступный для dependency injection.
+</Callout>
+
+### Создайте UserRepository
+
+Создайте репозиторий, который зависит от сервиса базы данных:
+
+```typescript title="src/repositories/user.repository.ts"
+import { Injectable } from '@ambrosia/core';
+import { DatabaseService } from '../services/database.service.ts';
+
+@Injectable()
+export class UserRepository {
+  // DatabaseService автоматически инъектируется через конструктор
+  constructor(private db: DatabaseService) {}
+
+  findById(id: string) {
+    this.db.connect();
+    const results = this.db.query(`SELECT * FROM users WHERE id = '${id}'`);
+    return results[0] || null;
+  }
+
+  findAll() {
+    this.db.connect();
+    return this.db.query('SELECT * FROM users');
+  }
+
+  create(userData: { name: string; email: string }) {
+    this.db.connect();
+    this.db.query(`INSERT INTO users VALUES ('${userData.name}', '${userData.email}')`);
+    return { id: '123', ...userData };
+  }
+}
+```
+
+<Callout type="success">
+  **Автоматическое разрешение зависимостей**: Контейнер автоматически определяет, что `UserRepository` нуждается в `DatabaseService` и инъектирует его.
+</Callout>
+
+### Создайте UserService
+
+Создайте слой сервисов, который зависит от репозитория:
+
+```typescript title="src/services/user.service.ts"
+import { Injectable } from '@ambrosia/core';
+import { UserRepository } from '../repositories/user.repository.ts';
+
+@Injectable()
+export class UserService {
+  constructor(private userRepo: UserRepository) {}
+
+  getUser(id: string) {
+    console.log(`👤 Получение пользователя ${id}`);
+    return this.userRepo.findById(id);
+  }
+
+  getAllUsers() {
+    console.log('👥 Получение всех пользователей');
+    return this.userRepo.findAll();
+  }
+
+  createUser(name: string, email: string) {
+    console.log(`✨ Создание пользователя: ${name}`);
+    
+    // Валидация бизнес-логики
+    if (!email.includes('@')) {
+      throw new Error('Неверный email адрес');
+    }
+
+    return this.userRepo.create({ name, email });
+  }
+}
+```
+
+### Создайте контейнер
+
+Настройте DI-контейнер:
+
+```typescript title="src/container.ts"
+import { Container } from '@ambrosia/core';
+
+// Создаём контейнер с production режимом для лучшей производительности
+export const container = new Container({
+  mode: 'production',
+  autoRegister: true, // Автоматически регистрировать @Injectable классы
+});
+```
+
+<Callout type="info">
+  **Production режим**: Включает оптимизации, такие как пропуск проверки циклов для кэшированных singleton и отключение debug логирования.
+</Callout>
+
+### Используйте ваши сервисы
+
+Теперь используйте сервисы в вашем приложении:
+
+```typescript title="src/index.ts"
+import { container } from './container.ts';
+import { UserService } from './services/user.service.ts';
+
+// Разрешаем UserService - контейнер автоматически разрешает все зависимости
+const userService = container.resolve(UserService);
+
+// Используем сервис
+const newUser = userService.createUser('Иван Иванов', 'ivan@example.com');
+console.log('Создан:', newUser);
+
+const user = userService.getUser('123');
+console.log('Найден:', user);
+
+const allUsers = userService.getAllUsers();
+console.log('Все пользователи:', allUsers);
+```
+
+### Запустите приложение
+
+```bash
+bun run src/index.ts
+```
+
+Ожидаемый вывод:
+```
+📦 Подключение к базе данных...
+✨ Создание пользователя: Иван Иванов
+🔍 Выполнение запроса: INSERT INTO users VALUES ('Иван Иванов', 'ivan@example.com')
+Создан: { id: '123', name: 'Иван Иванов', email: 'ivan@example.com' }
+👤 Получение пользователя 123
+🔍 Выполнение запроса: SELECT * FROM users WHERE id = '123'
+Найден: null
+👥 Получение всех пользователей
+🔍 Выполнение запроса: SELECT * FROM users
+Все пользователи: []
+```
+
+</Steps>
+
+## Что произошло?
+
+1. **DatabaseService** был помечен как `@Injectable()`
+2. **UserRepository** объявил `DatabaseService` как зависимость конструктора
+3. **UserService** объявил `UserRepository` как зависимость конструктора
+4. **Container** автоматически разрешил все дерево зависимостей:
+   ```
+   UserService → UserRepository → DatabaseService
+   ```
+5. Все экземпляры были кэшированы как **singleton** (область видимости по умолчанию)
+
+## Ключевые концепции
+
+### Декоратор @Injectable()
+
+Помечает класс как инъектируемый:
+
+```typescript
+@Injectable()
+class MyService {}
+```
+
+### Инъекция через конструктор
+
+Зависимости инъектируются через параметры конструктора:
+
+```typescript
+@Injectable()
+class ServiceA {
+  constructor(private serviceB: ServiceB) {}
+}
+```
+
+<Callout type="info">
+  `emitDecoratorMetadata` в TypeScript позволяет контейнеру автоматически определять типы параметров.
+</Callout>
+
+### Область видимости Singleton (по умолчанию)
+
+По умолчанию все сервисы — **singleton** - создаётся только один экземпляр и используется повторно:
+
+```typescript
+const service1 = container.resolve(UserService);
+const service2 = container.resolve(UserService);
+
+console.log(service1 === service2); // true
+```
+
+## Следующие шаги
+
+<Callout type="success">
+  **Поздравляем!** Вы создали ваш первый DI-контейнер.
+</Callout>
+
+Теперь изучите более продвинутые функции:
+
+1. [Основные концепции](/docs/core/getting-started/concepts) - Поймите фундаментальные принципы DI
+2. [Руководство по областям видимости](/docs/core/guides/scopes) - Глубокое погружение в управление областями видимости
+3. [Циклические зависимости](/docs/core/guides/circular-dependencies) - Обработка циклических ссылок
+4. [Плагины](/docs/core/guides/plugins) - Расширьте возможности логированием, телеметрией и т.д.

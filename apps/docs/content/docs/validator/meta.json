@@ -1,0 +1,9 @@
+{
+  "title": "@ambrosia/validator",
+  "description": "Type-safe compile-time validation для TypeScript",
+  "pages": [
+    "index",
+    "guides"
+  ],
+  "root": true
+}

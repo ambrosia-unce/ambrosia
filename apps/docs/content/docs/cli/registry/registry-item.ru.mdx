@@ -1,0 +1,288 @@
+---
+title: "Схема Registry Item"
+description: "Полное описание формата RegistryItem — JSON-схема pack в registry"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Схема Registry Item
+
+Каждый pack в registry описывается JSON-объектом формата `RegistryItem`. Этот документ содержит полную спецификацию схемы.
+
+## RegistryItem
+
+```typescript
+interface RegistryItem {
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  tags: string[];
+  category: PackCategory;
+  files: RegistryFile[];
+  dependencies: Record<string, string>;
+  devDependencies: Record<string, string>;
+  registryDependencies: string[];
+  ambrosiaDependencies: string[];
+}
+```
+
+### Поля
+
+| Поле | Тип | Обязательное | Описание |
+|---|---|---|---|
+| `name` | `string` | Да | Slug-имя пака (например `"jwt-auth"`) |
+| `version` | `string` | Да | Semver-версия (`"0.2.1"`) |
+| `description` | `string` | Да | Описание для маркетплейса |
+| `author` | `string` | Да | Автор или организация |
+| `tags` | `string[]` | Да | Теги для поиска |
+| `category` | `PackCategory` | Да | Категория |
+| `files` | `RegistryFile[]` | Да | Исходные файлы пака |
+| `dependencies` | `Record<string, string>` | Да | npm runtime зависимости |
+| `devDependencies` | `Record<string, string>` | Да | npm dev зависимости |
+| `registryDependencies` | `string[]` | Да | Зависимости на другие паки |
+| `ambrosiaDependencies` | `string[]` | Да | Требуемые `@ambrosia/*` пакеты |
+
+### `name`
+
+Уникальный идентификатор пака в registry. Используется как имя директории при установке и как ключ в `ambrosia.json`.
+
+Формат: lowercase, через дефис. Аналогично npm package name.
+
+```
+jwt-auth          ✓
+redis-cache       ✓
+my-custom-pack    ✓
+JwtAuth           ✗
+jwt_auth          ✗
+```
+
+### `version`
+
+Строка в формате [Semantic Versioning](https://semver.org/):
+
+```
+"1.0.0"           ✓ стабильный релиз
+"0.2.1"           ✓ pre-1.0
+"1.0.0-beta.1"    ✓ пре-релиз
+```
+
+### `category`
+
+Одно из значений `PackCategory`:
+
+```typescript
+type PackCategory =
+  | "http"
+  | "database"
+  | "auth"
+  | "cache"
+  | "logging"
+  | "validation"
+  | "testing"
+  | "utils"
+  | "microservices";
+```
+
+### `files`
+
+Массив файлов с исходным кодом. Каждый файл записывается в директорию пака.
+
+### `dependencies`
+
+npm-пакеты, необходимые в runtime. CLI выполнит `bun add` для каждого пакета:
+
+```json
+"dependencies": {
+  "jose": "^5.0.0",
+  "ioredis": "^5.3.0"
+}
+```
+
+### `devDependencies`
+
+npm-пакеты, нужные только в разработке. CLI выполнит `bun add -D`:
+
+```json
+"devDependencies": {
+  "@types/ioredis": "^5.0.0"
+}
+```
+
+### `registryDependencies`
+
+Имена других паков из того же registry. CLI рекурсивно загрузит и установит их:
+
+```json
+"registryDependencies": ["jwt-auth", "config-pack"]
+```
+
+### `ambrosiaDependencies`
+
+Пакеты фреймворка `@ambrosia/*`, необходимые для работы пака. Если они отсутствуют в проекте, CLI установит их через `bun add`:
+
+```json
+"ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+```
+
+---
+
+## RegistryFile
+
+```typescript
+interface RegistryFile {
+  path: string;
+  content: string;
+  type: RegistryFileType;
+}
+```
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `path` | `string` | Относительный путь внутри директории пака |
+| `content` | `string` | Полный исходный код файла |
+| `type` | `RegistryFileType` | Семантический тип файла |
+
+### `path`
+
+Путь относительно директории пака. Поддерживает вложенные директории:
+
+```
+"index.ts"                        → src/packs/{name}/index.ts
+"jwt-auth.service.ts"             → src/packs/{name}/jwt-auth.service.ts
+"guards/auth.guard.ts"            → src/packs/{name}/guards/auth.guard.ts
+```
+
+### `type`
+
+Семантический тип для категоризации файлов:
+
+```typescript
+type RegistryFileType =
+  | "pack"          // PackDefinition (*.pack.ts)
+  | "service"       // Сервисы (@Injectable)
+  | "controller"    // HTTP контроллеры (@Controller)
+  | "guard"         // Guards (CanActivate)
+  | "interceptor"   // Interceptors
+  | "pipe"          // Pipes (PipeTransform)
+  | "filter"        // Exception filters
+  | "middleware"     // HTTP middleware
+  | "types"         // Типы, интерфейсы, токены
+  | "config"        // Конфигурационные файлы
+  | "test"          // Тестовые файлы
+  | "index"         // Barrel export (index.ts)
+  | "other";        // Прочее
+```
+
+<Callout type="info">
+  Поле `type` используется для категоризации в маркетплейсе и документации. Оно **не влияет** на процесс установки — все файлы копируются одинаково.
+</Callout>
+
+---
+
+## RegistryIndex
+
+Индекс registry — список всех доступных паков **без содержимого файлов**:
+
+```typescript
+interface RegistryIndex {
+  packs: RegistryIndexEntry[];
+}
+
+interface RegistryIndexEntry {
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  category: PackCategory;
+  tags: string[];
+}
+```
+
+Пример:
+
+```json title="index.json"
+{
+  "packs": [
+    {
+      "name": "jwt-auth",
+      "version": "0.2.1",
+      "description": "JWT аутентификация с guards и RBAC",
+      "author": "community",
+      "category": "auth",
+      "tags": ["jwt", "auth", "guard", "rbac"]
+    },
+    {
+      "name": "redis-cache",
+      "version": "0.1.3",
+      "description": "Redis кэширование с декоратором @Cacheable",
+      "author": "community",
+      "category": "cache",
+      "tags": ["redis", "cache", "ttl"]
+    }
+  ]
+}
+```
+
+---
+
+## Полный пример Registry Item
+
+```json title="jwt-auth.json"
+{
+  "name": "jwt-auth",
+  "version": "0.2.1",
+  "description": "JWT аутентификация с guards, генерацией токенов и RBAC.",
+  "author": "community",
+  "tags": ["jwt", "auth", "guard", "rbac", "security"],
+  "category": "auth",
+  "files": [
+    {
+      "path": "index.ts",
+      "type": "index",
+      "content": "export { JwtAuthPack } from './jwt-auth.pack';\nexport { JwtAuthService } from './jwt-auth.service';\nexport { JwtAuthGuard } from './jwt-auth.guard';\nexport type { JwtAuthConfig } from './types';\nexport { JWT_AUTH_CONFIG } from './types';\n"
+    },
+    {
+      "path": "types.ts",
+      "type": "types",
+      "content": "import { InjectionToken } from '@ambrosia/core';\n\nexport interface JwtAuthConfig {\n  secret: string;\n  expiresIn: string;\n  refreshExpiresIn?: string;\n}\n\nexport const JWT_AUTH_CONFIG = new InjectionToken<JwtAuthConfig>('JwtAuthConfig');\n"
+    },
+    {
+      "path": "jwt-auth.pack.ts",
+      "type": "pack",
+      "content": "import type { PackDefinition } from '@ambrosia/core';\nimport { JwtAuthService } from './jwt-auth.service';\nimport { JwtAuthGuard } from './jwt-auth.guard';\nimport type { JwtAuthConfig } from './types';\nimport { JWT_AUTH_CONFIG } from './types';\n\nexport class JwtAuthPack {\n  static forRoot(config: JwtAuthConfig): PackDefinition {\n    return {\n      meta: { name: 'jwt-auth', version: '0.2.1' },\n      providers: [\n        { token: JWT_AUTH_CONFIG, useValue: config },\n        JwtAuthService,\n        JwtAuthGuard,\n      ],\n      exports: [JwtAuthService, JwtAuthGuard],\n    };\n  }\n}\n"
+    },
+    {
+      "path": "jwt-auth.service.ts",
+      "type": "service",
+      "content": "import { Injectable, Inject } from '@ambrosia/core';\nimport type { JwtAuthConfig } from './types';\nimport { JWT_AUTH_CONFIG } from './types';\nimport * as jose from 'jose';\n\n@Injectable()\nexport class JwtAuthService {\n  constructor(@Inject(JWT_AUTH_CONFIG) private config: JwtAuthConfig) {}\n\n  async sign(payload: Record<string, unknown>): Promise<string> {\n    const secret = new TextEncoder().encode(this.config.secret);\n    return new jose.SignJWT(payload)\n      .setProtectedHeader({ alg: 'HS256' })\n      .setExpirationTime(this.config.expiresIn)\n      .sign(secret);\n  }\n\n  async verify(token: string): Promise<jose.JWTPayload> {\n    const secret = new TextEncoder().encode(this.config.secret);\n    const { payload } = await jose.jwtVerify(token, secret);\n    return payload;\n  }\n}\n"
+    },
+    {
+      "path": "jwt-auth.guard.ts",
+      "type": "guard",
+      "content": "import { Injectable } from '@ambrosia/core';\nimport type { CanActivate, ExecutionContext } from '@ambrosia/http';\nimport { JwtAuthService } from './jwt-auth.service';\n\n@Injectable()\nexport class JwtAuthGuard implements CanActivate {\n  constructor(private jwtService: JwtAuthService) {}\n\n  async canActivate(context: ExecutionContext): Promise<boolean> {\n    const ctx = context.switchToHttp();\n    const authHeader = ctx.getRequest().headers.get('authorization');\n    if (!authHeader?.startsWith('Bearer ')) return false;\n    try {\n      const token = authHeader.slice(7);\n      const payload = await this.jwtService.verify(token);\n      ctx.getRequest().user = payload;\n      return true;\n    } catch {\n      return false;\n    }\n  }\n}\n"
+    }
+  ],
+  "dependencies": {
+    "jose": "^5.0.0"
+  },
+  "devDependencies": {},
+  "registryDependencies": [],
+  "ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+}
+```
+
+## Соответствие с @ambrosia/core
+
+`RegistryItem` спроектирован для совместимости с `PackDefinition` из `@ambrosia/core`:
+
+| RegistryItem | PackDefinition | Связь |
+|---|---|---|
+| `name` | `meta.name` | Прямое соответствие |
+| `version` | `meta.version` | Прямое соответствие |
+| `description` | `meta.description` | Прямое соответствие |
+| `author` | `meta.author` | Прямое соответствие |
+| `tags` | `meta.tags` | Прямое соответствие |
+| `files` | — | Исходный код, записывается в проект |
+| `registryDependencies` | `imports` | Паки, от которых зависит данный pack |
+| `ambrosiaDependencies` | — | Framework пакеты, устанавливаются как npm deps |

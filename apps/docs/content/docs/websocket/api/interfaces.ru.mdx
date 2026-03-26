@@ -1,0 +1,105 @@
+---
+title: "Интерфейсы"
+description: "API Reference для WebSocket интерфейсов и типов"
+---
+
+# Интерфейсы и типы
+
+## WsClient
+
+Абстракция WebSocket клиента. Предоставляется в обработчиках событий.
+
+```typescript
+interface WsClient {
+  /** Уникальный идентификатор клиента */
+  id: string;
+
+  /** Хранилище данных клиента (сохраняется между сообщениями) */
+  data: Record<string, any>;
+
+  /** Отправить событие клиенту */
+  send(event: string, data: any): void;
+
+  /** Отправить сырые данные */
+  sendRaw(data: string | ArrayBuffer): void;
+
+  /** Закрыть соединение */
+  close(code?: number, reason?: string): void;
+}
+```
+
+---
+
+## WsMessage
+
+Формат WebSocket сообщения.
+
+```typescript
+interface WsMessage<T = any> {
+  /** Имя события */
+  event: string;
+  /** Данные сообщения */
+  data: T;
+}
+```
+
+---
+
+## WsProvider
+
+Интерфейс для реализации WebSocket адаптеров. Реализуйте для поддержки нового HTTP сервера.
+
+```typescript
+interface WsProvider {
+  readonly name: string;
+  registerGateway(config: WsGatewayConfig): void;
+  getClients(path: string): Set<WsClient>;
+  broadcast(path: string, event: string, data: any): void;
+}
+```
+
+---
+
+## WsGatewayConfig
+
+Конфигурация гейтвея, передаваемая в провайдер.
+
+```typescript
+interface WsGatewayConfig {
+  path: string;
+  onConnection: (client: WsClient) => void | Promise<void>;
+  onDisconnection: (client: WsClient, code: number, reason: string) => void | Promise<void>;
+  onMessage: (client: WsClient, message: WsMessage) => any | Promise<any>;
+}
+```
+
+---
+
+## WsPackDefinition
+
+Расширение PackDefinition для WebSocket модулей.
+
+```typescript
+interface WsPackDefinition extends PackDefinition {
+  gateways?: Constructor[];
+}
+```
+
+---
+
+## WsApplicationOptions
+
+Опции для `WsApplication.create()`.
+
+```typescript
+interface WsApplicationOptions {
+  /** WebSocket провайдер */
+  provider: WsProvider;
+  /** Существующий DI контейнер */
+  container?: Container;
+  /** Классы гейтвеев */
+  gateways?: Constructor[];
+  /** Паки с гейтвеями */
+  packs?: (WsPackDefinition | null | undefined | false)[];
+}
+```

@@ -1,0 +1,208 @@
+---
+title: "Создание Pack"
+description: "Полное руководство по созданию собственного pack для Ambrosia — от структуры проекта до публикации"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps } from 'fumadocs-ui/components/steps';
+
+# Создание Pack
+
+Pack -- это набор исходных файлов (сервисы, guards, middleware, контроллеры), которые распространяются через Pack Registry как исходный код. В этом руководстве рассмотрен полный цикл: от создания до публикации.
+
+## Структура pack-проекта
+
+Каждый pack живёт в отдельной директории внутри вашего проекта:
+
+```
+src/packs/my-pack/
+├── index.ts               # Barrel export
+├── my-pack.pack.ts        # PackDefinition с forRoot/forRootAsync
+├── my-pack.service.ts     # Основной сервис
+├── my-pack.guard.ts       # Guard (опционально)
+├── my-pack.middleware.ts   # Middleware (опционально)
+└── types.ts               # Интерфейсы конфигурации, InjectionToken
+```
+
+Используйте генератор для быстрого старта:
+
+```bash
+ambrosia generate pack my-pack
+# или короткий алиас
+ambrosia g pack my-pack
+```
+
+## Манифест registry.json
+
+Для публикации пака в registry необходим файл `registry.json` в корне проекта. Он описывает метаданные и файлы пака.
+
+### Полный формат
+
+```json title="registry.json"
+{
+  "$schema": "https://ambrosia.dev/schemas/registry.json",
+  "name": "my-registry",
+  "items": [
+    {
+      "name": "my-pack",
+      "version": "0.1.0",
+      "description": "Описание для маркетплейса",
+      "author": "your-name",
+      "tags": ["tag1", "tag2"],
+      "category": "utils",
+      "files": [
+        { "path": "src/packs/my-pack/index.ts", "type": "index" },
+        { "path": "src/packs/my-pack/types.ts", "type": "types" },
+        { "path": "src/packs/my-pack/my-pack.pack.ts", "type": "pack" },
+        { "path": "src/packs/my-pack/my-pack.service.ts", "type": "service" }
+      ],
+      "dependencies": {},
+      "devDependencies": {},
+      "registryDependencies": [],
+      "ambrosiaDependencies": ["@ambrosia/core"]
+    }
+  ]
+}
+```
+
+### Описание полей
+
+| Поле | Тип | Описание |
+|---|---|---|
+| `name` | `string` | Slug-имя пака (lowercase, через дефис) |
+| `version` | `string` | Semver-версия (`"0.1.0"`, `"1.0.0-beta.1"`) |
+| `description` | `string` | Описание для поиска и маркетплейса |
+| `author` | `string` | Автор или организация |
+| `tags` | `string[]` | Теги для поиска (`ambrosia search`) |
+| `category` | `PackCategory` | Одна из: `http`, `database`, `auth`, `cache`, `logging`, `validation`, `testing`, `utils`, `microservices` |
+| `files` | `array` | Исходные файлы пака (путь + тип) |
+| `dependencies` | `object` | npm runtime зависимости с версиями |
+| `devDependencies` | `object` | npm dev зависимости |
+| `registryDependencies` | `string[]` | Зависимости на другие паки из registry |
+| `ambrosiaDependencies` | `string[]` | Требуемые пакеты `@ambrosia/*` |
+
+### Типы файлов
+
+Поле `type` в `files[]` используется для категоризации:
+
+| Тип | Описание | Пример |
+|---|---|---|
+| `pack` | PackDefinition | `my-pack.pack.ts` |
+| `service` | Сервисы (`@Injectable`) | `my-pack.service.ts` |
+| `controller` | HTTP контроллеры | `my-pack.controller.ts` |
+| `guard` | Guards | `my-pack.guard.ts` |
+| `interceptor` | Interceptors | `cache.interceptor.ts` |
+| `pipe` | Pipes | `validation.pipe.ts` |
+| `filter` | Exception filters | `error.filter.ts` |
+| `middleware` | HTTP middleware | `logger.middleware.ts` |
+| `types` | Типы и токены | `types.ts` |
+| `index` | Barrel export | `index.ts` |
+| `test` | Тестовые файлы | `my-pack.test.ts` |
+| `other` | Прочее | — |
+
+<Callout type="info">
+  Поле `type` не влияет на процесс установки — все файлы копируются одинаково. Оно используется для отображения в маркетплейсе.
+</Callout>
+
+## Зависимости
+
+### npm-зависимости
+
+Укажите все npm-пакеты, необходимые для работы пака:
+
+```json
+{
+  "dependencies": {
+    "jose": "^5.0.0",
+    "ioredis": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.0.0"
+  }
+}
+```
+
+При установке (`ambrosia add`) CLI автоматически выполнит `bun add` для каждого пакета.
+
+### Registry-зависимости
+
+Если ваш pack зависит от другого пака из registry:
+
+```json
+{
+  "registryDependencies": ["jwt-auth", "config-pack"]
+}
+```
+
+CLI рекурсивно загрузит и установит зависимые паки depth-first. Циклические зависимости между паками запрещены.
+
+### Ambrosia-зависимости
+
+Пакеты фреймворка, необходимые для работы:
+
+```json
+{
+  "ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+}
+```
+
+## Публикация
+
+<Steps>
+
+### Подготовка исходников
+
+Убедитесь, что все файлы пака реализованы и протестированы.
+
+### Создание registry.json
+
+Опишите пак в манифесте `registry.json` со всеми метаданными и путями к файлам.
+
+### Сборка
+
+```bash
+ambrosia build
+```
+
+Команда читает `registry.json`, загружает содержимое каждого файла и генерирует JSON:
+
+```
+dist/registry/
+├── index.json        # Индекс (метаданные без кода)
+└── my-pack.json      # Полный RegistryItem с content
+```
+
+### Размещение
+
+Разместите содержимое `dist/registry/` на HTTP-сервере:
+
+- **GitHub Pages** — бесплатно для публичных репозиториев
+- **Cloudflare Pages** / **Vercel** — бесплатные тарифы с CDN
+- **S3 + CloudFront** — для корпоративного использования
+
+### Подключение потребителями
+
+После размещения registry потребители могут установить пак:
+
+```bash
+ambrosia add my-pack --registry your-registry
+```
+
+</Steps>
+
+## Лучшие практики
+
+1. **Единственная ответственность** — один pack решает одну задачу (аутентификация, кэширование, логирование)
+2. **forRoot / forRootAsync** — всегда предоставляйте оба метода конфигурации для гибкости
+3. **Экспортируйте осознанно** — в `exports` включайте только то, что нужно потребителю
+4. **Документируйте конфигурацию** — описывайте каждое поле `Config`-интерфейса через JSDoc
+5. **Тестируйте через TestingPackFactory** — изолированные тесты без поднятия HTTP-сервера
+6. **Используйте InjectionToken** — вместо строковых токенов для type-safe инъекций
+7. **Именование файлов** — следуйте конвенции `{name}.{type}.ts` (например, `auth.guard.ts`)
+
+## Подробнее
+
+- [Схема Registry Item](/docs/cli/registry/registry-item) — полная спецификация формата
+- [Публикация паков](/docs/cli/registry/publishing) — детальная инструкция
+- [Custom Registry](/docs/cli/registry/custom-registry) — приватные registry
+- [ambrosia build](/docs/cli/commands/build) — команда сборки

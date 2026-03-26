@@ -1,0 +1,160 @@
+---
+title: "Lazy Loading"
+description: "Proxy-based lazy loading, deferred initialization, and startup optimization"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Lazy Loading
+
+Techniques for deferred dependency initialization to optimize startup time and memory consumption.
+
+## Lazy Proxy (autoResolveCircular)
+
+The container can create transparent proxy objects that resolve the real instance on first property or method access:
+
+```typescript
+import { Container, Injectable } from "@ambrosia/core";
+
+const container = new Container({ autoResolveCircular: true });
+
+@Injectable()
+class ServiceA {
+  constructor(private b: ServiceB) {}
+  doWork() {
+    return this.b.help(); // Proxy resolves ServiceB on call
+  }
+}
+
+@Injectable()
+class ServiceB {
+  constructor(private a: ServiceA) {} // Cycle -> lazy proxy
+  help() { return "done"; }
+}
+
+const a = container.resolve(ServiceA);
+a.doWork(); // "done"
+```
+
+**Lazy proxy features:**
+- Transparent to calling code
+- Supports `instanceof`, property access, method calls
+- Resolves real instance on first access
+- Caches real instance after first resolution
+
+<Callout type="warn">
+Do not access the lazy proxy **in the constructor**. The constructor is called before the real instance is created. Use the proxy only in methods.
+</Callout>
+
+## Lazy Singleton via Factory
+
+For heavy resources, use `FactoryProvider` with `Scope.SINGLETON`:
+
+```typescript
+import { Container, InjectionToken, Scope, Injectable, Inject } from "@ambrosia/core";
+
+const ML_MODEL = new InjectionToken<MLModel>("MLModel");
+
+container.register({
+  token: ML_MODEL,
+  useFactory: async () => {
+    console.log("Loading ML model (heavy operation)...");
+    const model = new MLModel();
+    await model.load("./weights/model-v2.bin"); // May take seconds
+    return model;
+  },
+  scope: Scope.SINGLETON,
+});
+
+@Injectable()
+class PredictionService {
+  constructor(@Inject(ML_MODEL) private model: MLModel) {}
+  predict(input: number[]) {
+    return this.model.predict(input);
+  }
+}
+
+// Model loads ONLY on first resolveAsync
+const service = await container.resolveAsync(PredictionService);
+```
+
+## Lazy Module Import
+
+Dynamic `import()` for code splitting:
+
+```typescript
+import { Container, InjectionToken, Scope } from "@ambrosia/core";
+
+const SHARP = new InjectionToken<typeof import("sharp")>("Sharp");
+
+container.register({
+  token: SHARP,
+  useFactory: async () => {
+    const { default: sharp } = await import("sharp");
+    return sharp;
+  },
+  scope: Scope.SINGLETON,
+});
+
+@Injectable()
+class ImageService {
+  constructor(@Inject(SHARP) private sharp: typeof import("sharp")) {}
+  async resize(buffer: Buffer, width: number) {
+    return this.sharp(buffer).resize(width).toBuffer();
+  }
+}
+```
+
+## lazyImports for Packs
+
+To break circular imports between packs, use `lazyImports`:
+
+```typescript
+import { definePack, type PackDefinition } from "@ambrosia/core";
+
+const PackA: PackDefinition = definePack({
+  meta: { name: "pack-a" },
+  providers: [ServiceA],
+  lazyImports: () => [PackB], // Lazy import - evaluated during processing
+});
+
+const PackB: PackDefinition = definePack({
+  meta: { name: "pack-b" },
+  providers: [ServiceB],
+  imports: [PackA], // Regular import
+});
+```
+
+## When to Use Lazy Loading
+
+### Use for:
+- Heavy SDKs (AWS, ML models, image processing)
+- Rarely used modules (admin panel, reports)
+- Breaking circular dependencies between packs
+- Development-only tools (profiling, debugging)
+
+### Do NOT use for:
+- Startup-critical services (config, database)
+- Frequently used dependencies (faster to eager-load)
+- Simple stateless services (overhead not justified)
+
+## Trade-offs
+
+| Aspect | Eager (default) | Lazy |
+|--------|-----------------|------|
+| Startup time | Slower | Faster |
+| First call | Instant | Slower (initialization) |
+| Error detection | At startup | On first use |
+| Complexity | Minimal | Additional |
+| Memory | Everything loaded | On demand |
+
+<Callout type="info">
+**Recommendation:** Use eager loading by default. Switch to lazy only for specific heavy dependencies where it measurably improves startup time.
+</Callout>
+
+## Next Steps
+
+- [Performance Optimization](/docs/core/advanced/performance) - Production mode and caching
+- [Circular Dependencies](/docs/core/guides/circular-dependencies) - autoResolveCircular
+- [Pack System](/docs/core/guides/packs) - lazyImports

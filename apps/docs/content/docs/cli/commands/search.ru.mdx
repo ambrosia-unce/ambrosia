@@ -1,0 +1,121 @@
+---
+title: "ambrosia search"
+description: "Команда поиска паков в Pack Registry"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia search
+
+Ищет паки в registry по текстовому запросу. Возвращает список найденных паков с описанием, версией и категорией.
+
+## Использование
+
+```bash
+ambrosia search <query> [--registry <name>]
+```
+
+## Аргументы
+
+| Аргумент | Описание |
+|---|---|
+| `<query>` | Текстовый запрос для поиска (имя, тег или ключевое слово) |
+| `--registry <name>` | Имя registry из `ambrosia.json` (по умолчанию `"default"`) |
+
+## Примеры
+
+```bash
+# Поиск по ключевому слову
+ambrosia search auth
+
+# Поиск пака кэширования
+ambrosia search cache
+
+# Поиск в корпоративном registry
+ambrosia search internal-auth --registry corp
+```
+
+## Что делает
+
+### 1. Чтение конфигурации
+
+CLI читает `ambrosia.json` из текущей директории для получения URL registry. Если файл не найден:
+
+```
+✗  No ambrosia.json found. Run "ambrosia init" to create one.
+```
+
+### 2. Запрос к registry
+
+CLI отправляет поисковый запрос к registry и получает список совпадений:
+
+```
+$ ambrosia search auth
+
+◆  ambrosia search
+│
+◒  Searching for "auth"...
+◇  Found 3 pack(s)
+```
+
+### 3. Формат вывода
+
+Результаты отображаются в виде таблицы:
+
+```
+│ Results
+│
+│ Name        Version  Category  Description
+│ ──────────  ───────  ────────  ──────────────────────────────
+│ jwt-auth    0.2.1    auth      JWT аутентификация с guards и RBAC
+│ rbac-pack   0.1.0    auth      Role-based access control
+│ oauth2      0.3.0    auth      OAuth2 провайдер с поддержкой Google, GitHub
+```
+
+Если паки не найдены:
+
+```
+◇  Search complete
+ℹ  No packs found.
+```
+
+## Использование с custom registry
+
+```bash
+ambrosia search logging --registry corp
+```
+
+Registry `"corp"` должен быть определён в `ambrosia.json`:
+
+```json
+{
+  "registries": {
+    "default": "https://registry.ambrosia.dev",
+    "corp": "https://packs.mycompany.com"
+  }
+}
+```
+
+## Ошибки
+
+### Registry недоступен
+
+```
+✗  Search failed: Failed to fetch from https://registry.ambrosia.dev
+```
+
+Проверьте сетевое подключение и доступность URL registry.
+
+### Неизвестный registry
+
+```
+✗  Unknown registry "unknown". Available: default, corp
+```
+
+Добавьте registry в `ambrosia.json` → `registries`.
+
+## Подробнее
+
+- [ambrosia add](/docs/cli/commands/add) — установка найденных паков
+- [Обзор Pack Registry](/docs/cli/registry/overview)
+- [Custom Registry](/docs/cli/registry/custom-registry)

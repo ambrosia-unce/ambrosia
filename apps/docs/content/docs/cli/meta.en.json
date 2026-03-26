@@ -1,0 +1,12 @@
+{
+  "title": "@ambrosia/cli",
+  "description": "CLI and Pack Registry for Ambrosia",
+  "pages": [
+    "index",
+    "getting-started",
+    "registry",
+    "commands",
+    "guides"
+  ],
+  "root": true
+}

@@ -1,0 +1,79 @@
+---
+title: "Введение"
+description: "Высокопроизводительная шина событий для Ambrosia"
+---
+
+import {Card, Cards} from 'fumadocs-ui/components/card';
+
+# @ambrosia/events
+
+**@ambrosia/events** — высокопроизводительная шина событий (Event Bus) для фреймворка Ambrosia. Позволяет организовать слабосвязанное взаимодействие между сервисами через декларативные обработчики событий.
+
+## Ключевые возможности
+
+<Cards>
+    <Card
+        title="Максимальная производительность"
+        description="Pre-built Map с O(1) lookup. Обработчики привязаны и отсортированы при инициализации — ноль аллокаций при emit()."
+    />
+    <Card
+        title="Типобезопасные события"
+        description="Классы-события вместо строковых имён. Конструктор класса как ключ — быстрее строкового хеширования."
+    />
+    <Card
+        title="Sync / Async fast path"
+        description="Если все обработчики синхронные — Promise.all не вызывается. Нулевой async overhead для sync-событий."
+    />
+    <Card
+        title="Приоритеты"
+        description="Декларативное управление порядком выполнения через @OnEvent(Event, { priority: 10 }). Сортировка один раз при старте."
+    />
+</Cards>
+
+## Быстрый старт
+
+```ts
+import { Injectable, definePack } from '@ambrosia/core';
+import { EventBus, EventBusModule, OnEvent } from '@ambrosia/events';
+
+// 1. Определите событие как класс
+class UserRegisteredEvent {
+  constructor(public readonly userId: string, public readonly email: string) {}
+}
+
+// 2. Создайте слушатель с @OnEvent
+@Injectable()
+class EmailListener {
+  @OnEvent(UserRegisteredEvent)
+  async onUserRegistered(event: UserRegisteredEvent) {
+    console.log(`Отправка welcome email на ${event.email}`);
+  }
+}
+
+// 3. Подключите EventBusModule
+const AppPack = definePack({
+  imports: [EventBusModule.forRoot()],
+  providers: [EmailListener],
+});
+
+// 4. Emit событий через EventBus
+@Injectable()
+class UserService {
+  constructor(private bus: EventBus) {}
+
+  async register(email: string) {
+    const userId = crypto.randomUUID();
+    // ... сохранение пользователя ...
+    this.bus.emit(new UserRegisteredEvent(userId, email));
+  }
+}
+```
+
+## Архитектура
+
+Шина событий работает по принципу "compile once, emit fast":
+
+1. **Build time** — `EventCollector` сканирует все `@OnEvent` декораторы, привязывает (`.bind()`) методы к инстансам, сортирует по приоритету
+2. **Runtime** — `EventBus.emit()` выполняет `Map.get(constructor)` + прямой `for`-цикл по обработчикам
+
+Никакой runtime-регистрации, никаких middleware-цепочек, никаких интерцепторов на событиях — чистые прямые вызовы.

@@ -1,0 +1,125 @@
+---
+title: "Схема конфигурации"
+description: "Определение конфигурации через defineConfig() с типизацией и валидацией"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Схема конфигурации
+
+Схема конфигурации — это декларативное описание всех переменных окружения вашего приложения. Она определяет, какие переменные читать, как их парсить и какие значения использовать по умолчанию.
+
+## defineConfig()
+
+Функция `defineConfig()` создаёт типобезопасную схему конфигурации:
+
+```ts
+import { defineConfig } from '@ambrosia/config';
+
+const AppConfig = defineConfig({
+  port: { env: 'PORT', type: 'int', default: 3000 },
+  debug: { env: 'DEBUG', type: 'bool', default: false },
+  dbHosts: { env: 'DB_HOSTS', type: 'array', separator: ',' },
+  redis: { env: 'REDIS_CONFIG', type: 'json' },
+  secret: { env: 'JWT_SECRET', required: true },
+});
+```
+
+## Поля записи схемы
+
+Каждая запись в схеме — объект `ConfigSchemaEntry` со следующими полями:
+
+| Поле | Тип | Обязательное | Описание |
+|------|-----|--------------|----------|
+| `env` | `string` | Да | Имя переменной окружения |
+| `type` | `ConfigType` | Нет | Тип парсера (`string`, `int`, `float`, `bool`, `array`, `json`). По умолчанию `string` |
+| `default` | `unknown` | Нет | Значение по умолчанию, если переменная не задана |
+| `required` | `boolean` | Нет | Если `true` и значение не найдено — ошибка при старте. По умолчанию `true` если нет `default` |
+| `separator` | `string` | Нет | Разделитель для типа `array`. По умолчанию `','` |
+
+## Обязательные поля
+
+По умолчанию, если переменная окружения не задана и нет значения `default`, конфигурация считается невалидной:
+
+```ts
+const Config = defineConfig({
+  // Обязательное — приложение не запустится без JWT_SECRET
+  secret: { env: 'JWT_SECRET', required: true },
+
+  // Обязательное неявно — нет default, нет required: false
+  dbUrl: { env: 'DATABASE_URL' },
+
+  // Необязательное — явно помечено
+  analytics: { env: 'ANALYTICS_KEY', required: false },
+
+  // Необязательное — есть default
+  port: { env: 'PORT', type: 'int', default: 3000 },
+});
+```
+
+## Валидация при старте
+
+Когда `validate: true` (по умолчанию), все ошибки конфигурации собираются и выбрасываются одним сообщением:
+
+```
+[Config] Configuration validation failed with 2 error(s):
+  - [Config] Required config "secret" is missing: environment variable "JWT_SECRET" is not set and no default was provided
+  - [Config] Failed to parse "port" as int: Value is not a valid integer (raw: "abc")
+```
+
+<Callout type="info">
+  Все ошибки собираются **одновременно** — вы увидите полный список проблем при первом запуске, а не по одной ошибке за раз.
+</Callout>
+
+## ConfigService API
+
+После инициализации доступ к конфигурации через `ConfigService`:
+
+```ts
+import { Injectable } from '@ambrosia/core';
+import { ConfigService } from '@ambrosia/config';
+
+@Injectable()
+class MyService {
+  constructor(private config: ConfigService) {}
+
+  example() {
+    // O(1) доступ — прямой Map.get
+    const port = this.config.get<number>('port');           // number | undefined
+    const secret = this.config.getOrThrow<string>('secret'); // string (throws если нет)
+    const exists = this.config.has('debug');                  // boolean
+    const all = this.config.getAll();                         // Readonly<Record<string, unknown>>
+  }
+}
+```
+
+## Группировка конфигураций
+
+Для больших приложений рекомендуется разбивать конфигурацию на модули:
+
+```ts title="src/config/database.config.ts"
+export const DatabaseConfig = defineConfig({
+  dbHost: { env: 'DB_HOST', default: 'localhost' },
+  dbPort: { env: 'DB_PORT', type: 'int', default: 5432 },
+  dbName: { env: 'DB_NAME', required: true },
+  dbUser: { env: 'DB_USER', required: true },
+  dbPass: { env: 'DB_PASS', required: true },
+});
+```
+
+```ts title="src/config/redis.config.ts"
+export const RedisConfig = defineConfig({
+  redisHost: { env: 'REDIS_HOST', default: 'localhost' },
+  redisPort: { env: 'REDIS_PORT', type: 'int', default: 6379 },
+  redisDb: { env: 'REDIS_DB', type: 'int', default: 0 },
+});
+```
+
+```ts title="src/config/index.ts"
+export const AppConfig = defineConfig({
+  ...DatabaseConfig,
+  ...RedisConfig,
+  port: { env: 'PORT', type: 'int', default: 3000 },
+  nodeEnv: { env: 'NODE_ENV', default: 'development' },
+});
+```

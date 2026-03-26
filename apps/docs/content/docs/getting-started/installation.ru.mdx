@@ -1,0 +1,188 @@
+---
+title: "Установка"
+description: "Установите CLI Ambrosia, создайте новый проект и разберитесь в его структуре"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Установка
+
+Это руководство проведет вас через настройку нового проекта на Ambrosia с нуля.
+
+## Требования
+
+Перед началом убедитесь, что у вас есть:
+
+- **[Bun](https://bun.sh)** v1.1 или новее -- Ambrosia создан для рантайма Bun
+- Знание **TypeScript** -- Ambrosia активно использует декораторы и продвинутые возможности типов
+- Редактор кода с поддержкой TypeScript (рекомендуется VS Code)
+
+Проверьте версию Bun:
+
+```bash
+bun --version
+```
+
+Если Bun не установлен:
+
+<Tabs items={['macOS / Linux', 'Windows']}>
+  <Tab value="macOS / Linux">
+    ```bash
+    curl -fsSL https://bun.sh/install | bash
+    ```
+  </Tab>
+  <Tab value="Windows">
+    ```powershell
+    powershell -c "irm bun.sh/install.ps1 | iex"
+    ```
+  </Tab>
+</Tabs>
+
+## Создание проекта
+
+<Steps>
+<Step>
+### Установите CLI Ambrosia
+
+```bash
+bun add -g @ambrosia/cli
+```
+
+Проверьте установку:
+
+```bash
+ambrosia --version
+```
+</Step>
+
+<Step>
+### Сгенерируйте новый проект
+
+```bash
+ambrosia new my-api --arch modular
+```
+
+Флаг `--arch modular` создает проект со структурой на основе паков (feature-модулей). Это рекомендуемая архитектура для большинства приложений.
+
+</Step>
+
+<Step>
+### Установите зависимости
+
+```bash
+cd my-api
+bun install
+```
+</Step>
+</Steps>
+
+## Структура проекта
+
+После генерации проект выглядит так:
+
+```
+my-api/
+  src/
+    app.pack.ts          # Корневой пак приложения
+    main.ts              # Точка входа -- бутстрап HttpApplication
+  bunfig.toml            # Конфигурация Bun (preloads и т.д.)
+  package.json
+  tsconfig.json
+  .env                   # Переменные окружения
+```
+
+Разберем ключевые файлы:
+
+### `src/main.ts` -- Точка входа
+
+Здесь происходит запуск приложения:
+
+```ts
+import 'reflect-metadata';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { AppPack } from './app.pack.ts';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  port: 3000,
+});
+
+await app.listen();
+```
+
+Ключевые моменты:
+- `reflect-metadata` должен быть импортирован **первым** -- он необходим для работы DI-системы на декораторах
+- `ElysiaProvider` -- адаптер HTTP-движка. HTTP-слой Ambrosia не привязан к конкретному провайдеру
+- `packs` -- список feature-модулей для загрузки
+- `app.listen()` запускает сервер на указанном порту
+
+### `src/app.pack.ts` -- Корневой пак
+
+Корневой пак связывает все воедино:
+
+```ts
+import { definePack } from '@ambrosia/core';
+
+export const AppPack = definePack({
+  providers: [],
+  imports: [],
+});
+```
+
+Паки -- это единица композиции в Ambrosia. Они объявляют providers (сервисы), imports (другие паки), exports (что видно импортерам) и controllers (HTTP-эндпоинты). Подробнее о паках -- в разделе [Паки](/docs/getting-started/packs).
+
+### `tsconfig.json` -- Конфигурация TypeScript
+
+Две настройки **обязательны** для системы декораторов Ambrosia:
+
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strict": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["bun-types"]
+  }
+}
+```
+
+<Callout type="warn">
+Без `experimentalDecorators` и `emitDecoratorMetadata` DI-система работать не будет. Контейнер использует `reflect-metadata` для чтения типов параметров конструктора в рантайме.
+</Callout>
+
+### `bunfig.toml` -- Конфигурация Bun
+
+Если вы планируете использовать `@ambrosia/validator` для compile-time валидации, добавьте preload:
+
+```toml
+preload = ["@ambrosia/validator/preload"]
+```
+
+Это активирует TypeScript-трансформер, который заменяет вызовы `assert<T>()` / `validate<T>()` на встроенный валидационный код на этапе сборки.
+
+## Проверка
+
+Запустите dev-сервер:
+
+```bash
+bun run dev
+```
+
+Вы должны увидеть:
+
+```
+🚀 Ambrosia HTTP Server running on http://localhost:3000
+```
+
+Сервер запущен, но маршрутов пока нет. В следующем разделе вы создадите свой первый контроллер и сервис.
+
+<Callout type="info">
+Далее: [Создание первого API](/docs/getting-started/first-api) -- контроллеры, сервисы и внедрение зависимостей.
+</Callout>

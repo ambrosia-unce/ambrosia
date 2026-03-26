@@ -1,0 +1,136 @@
+---
+title: "ambrosia update"
+description: "Command for updating installed packs to the latest versions"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia update
+
+Checks for updates to installed packs and updates them to the latest versions from the registry. You can update specific packs or all at once.
+
+## Usage
+
+```bash
+# Update all installed packs
+ambrosia update
+
+# Update specific packs
+ambrosia update <pack...>
+```
+
+## Arguments
+
+| Argument | Description |
+|---|---|
+| `<pack...>` | Pack names to update (optional). If omitted — all packs are updated |
+
+## Examples
+
+```bash
+# Update a single pack
+ambrosia update jwt-auth
+
+# Update multiple packs
+ambrosia update jwt-auth redis-cache
+
+# Update all installed packs
+ambrosia update
+```
+
+## What It Does
+
+### 1. Checking for Updates
+
+The CLI compares installed pack versions with the latest versions in the registry:
+
+```
+$ ambrosia update
+
+◆  ambrosia update
+│
+◒  Checking for updates...
+◇  Check complete
+```
+
+### 2. Displaying Available Updates
+
+If updates are found, the CLI shows a version comparison:
+
+```
+ℹ  Updates available:
+    jwt-auth: 0.2.1 → 0.3.0
+    redis-cache: 0.1.3 → 0.2.0
+```
+
+If all packs are up to date:
+
+```
+ℹ  All packs are up to date.
+```
+
+### 3. Applying Updates
+
+The CLI downloads new versions from the registry and overwrites the files:
+
+```
+◒  Updating packs...
+◇  Updated 2 pack(s)
+```
+
+### 4. Updating ambrosia.json
+
+The version, installation date, and file list are updated in `ambrosia.json`:
+
+```json
+{
+  "packs": {
+    "jwt-auth": {
+      "version": "0.3.0",
+      "registry": "default",
+      "installedAt": "2026-03-26T12:00:00.000Z",
+      "files": [...]
+    }
+  }
+}
+```
+
+## Important Notes
+
+<Callout type="warn">
+  Updating **overwrites all files** of the pack. If you made local changes to the pack's source code, they will be lost. It is recommended to commit your changes in git before updating.
+</Callout>
+
+<Callout type="info">
+  Each pack is updated from the registry it was originally installed from (the `registry` field in `ambrosia.json`).
+</Callout>
+
+## Errors
+
+### Pack Not Installed
+
+```
+✗  Pack(s) not installed: unknown-pack
+```
+
+Check the pack name with `ambrosia list`.
+
+### Registry Unavailable
+
+```
+⚠  jwt-auth: Failed to fetch from https://registry.ambrosia.dev
+```
+
+When checking individual packs fails, the CLI continues checking the rest and outputs warnings.
+
+### No Installed Packs
+
+```
+ℹ  No packs installed.
+```
+
+## See Also
+
+- [ambrosia list](/docs/cli/commands/list) — viewing installed packs
+- [ambrosia add](/docs/cli/commands/add) — installing new packs
+- [ambrosia remove](/docs/cli/commands/remove) — removing packs

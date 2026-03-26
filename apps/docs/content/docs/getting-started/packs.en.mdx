@@ -1,0 +1,265 @@
+---
+title: "Packs"
+description: "Organize your Ambrosia application into reusable, encapsulated modules with the pack system"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Packs
+
+Packs are the fundamental unit of composition in Ambrosia. They let you group related providers, controllers, and imports into self-contained modules with clear boundaries.
+
+## Why Packs?
+
+Without packs, every service is globally visible and any file can depend on any other file. This quickly becomes unmanageable as your application grows. Packs solve this by enforcing encapsulation:
+
+- **Providers are private by default** -- only what you explicitly `export` is visible to other packs
+- **Imports are explicit** -- a pack declares its dependencies upfront
+- **Each pack is a feature boundary** -- authentication, posts, payments, etc.
+
+## Anatomy of a Pack
+
+A pack is a plain object that satisfies the `PackDefinition` (or `HttpPackDefinition`) interface:
+
+```ts
+import { definePack } from '@ambrosia/core';
+import type { HttpPackDefinition } from '@ambrosia/http';
+
+export const UsersPack: HttpPackDefinition = {
+  ...definePack({
+    // Services available within this pack
+    providers: [UsersService, UsersRepository],
+
+    // Services visible to packs that import this one
+    exports: [UsersService],
+
+    // Other packs this pack depends on
+    imports: [DatabasePack],
+  }),
+
+  // HTTP controllers (only in HttpPackDefinition)
+  controllers: [UsersController],
+};
+```
+
+### `providers`
+
+Classes or value/factory providers registered in the DI container. Providers are scoped to this pack -- other packs cannot access them unless they are exported.
+
+```ts
+providers: [
+  UsersService,                               // Class provider (shorthand)
+  { token: 'API_KEY', useValue: 'secret' },   // Value provider
+  {
+    token: UsersRepository,                    // Factory provider
+    useFactory: (db: DatabaseService) => new UsersRepository(db),
+    inject: [DatabaseService],
+  },
+],
+```
+
+### `exports`
+
+Tokens that become available to any pack that imports this one. If you do not export a provider, it remains internal.
+
+```ts
+exports: [UsersService],  // Only UsersService is visible outside
+```
+
+### `imports`
+
+Other packs whose exported providers should be available in this pack. The import order determines processing order.
+
+```ts
+imports: [DatabasePack, CachePack],
+```
+
+### `controllers`
+
+HTTP controllers to register with the application. This field is specific to `HttpPackDefinition` and is not available on the core `PackDefinition`.
+
+```ts
+controllers: [UsersController, AdminController],
+```
+
+### Lifecycle hooks
+
+Packs support `onInit` and `onDestroy` hooks for setup and teardown logic:
+
+```ts
+export const DatabasePack = definePack({
+  providers: [DatabaseService],
+  exports: [DatabaseService],
+  onInit: async (container) => {
+    const db = container.resolve(DatabaseService);
+    await db.connect();
+  },
+  onDestroy: async (container) => {
+    const db = container.resolve(DatabaseService);
+    await db.disconnect();
+  },
+});
+```
+
+## Pack Composition
+
+### Importing packs
+
+Packs form a tree. The root pack imports feature packs, which may import shared packs:
+
+```ts
+// src/app.pack.ts
+import { definePack } from '@ambrosia/core';
+import { ConfigModule } from '@ambrosia/config';
+import { AppConfig } from './config/app.config.ts';
+import { UsersPack } from './users/users.pack.ts';
+import { PostsPack } from './posts/posts.pack.ts';
+import { AuthPack } from './auth/auth.pack.ts';
+
+export const AppPack = definePack({
+  imports: [
+    ConfigModule.forRoot({ schema: AppConfig }),
+    AuthPack,
+    UsersPack,
+    PostsPack,
+  ],
+});
+```
+
+### Encapsulation in practice
+
+Consider this scenario:
+
+```ts
+// database.pack.ts
+export const DatabasePack = definePack({
+  providers: [DatabaseService, MigrationRunner],
+  exports: [DatabaseService],  // MigrationRunner stays internal
+});
+
+// users.pack.ts
+export const UsersPack: HttpPackDefinition = {
+  ...definePack({
+    imports: [DatabasePack],
+    providers: [UsersService],
+    exports: [UsersService],
+  }),
+  controllers: [UsersController],
+};
+```
+
+In this setup:
+- `UsersService` can inject `DatabaseService` (exported by `DatabasePack`)
+- `UsersService` **cannot** inject `MigrationRunner` (not exported)
+- Any pack that imports `UsersPack` can access `UsersService` but **not** `DatabaseService` (it is not re-exported)
+
+### Re-exporting
+
+If you want to pass through a dependency from an imported pack:
+
+```ts
+export const UsersPack = definePack({
+  imports: [DatabasePack],
+  providers: [UsersService],
+  exports: [UsersService, DatabaseService],  // Re-export DatabaseService
+});
+```
+
+Now packs that import `UsersPack` can also access `DatabaseService` without importing `DatabasePack` directly.
+
+## Conditional Packs
+
+The `packs` array in `HttpApplication.create()` accepts falsy values, making it easy to conditionally load packs:
+
+```ts
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [
+    AppPack,
+    process.env.NODE_ENV === 'development' && DevToolsPack,
+    config.get('ENABLE_METRICS') && MetricsPack,
+  ],
+});
+```
+
+## Lazy Imports
+
+For circular dependencies between packs, use `lazyImports`:
+
+```ts
+export const PackA = definePack({
+  providers: [ServiceA],
+  exports: [ServiceA],
+  lazyImports: [() => PackB],  // Resolved later, avoids circular import
+});
+```
+
+<Callout type="warn">
+Lazy imports should be a last resort. If two packs need each other, consider extracting the shared dependency into a third pack.
+</Callout>
+
+## Structuring a Real Application
+
+Here is a recommended structure for a medium-sized application:
+
+```
+src/
+  config/
+    app.config.ts
+  auth/
+    auth.controller.ts
+    auth.service.ts
+    auth.guard.ts
+    auth.pack.ts
+  users/
+    users.controller.ts
+    users.service.ts
+    users.repository.ts
+    users.pack.ts
+  posts/
+    posts.controller.ts
+    posts.service.ts
+    posts.pack.ts
+    dto/
+      create-post.dto.ts
+    events/
+      post-created.event.ts
+    listeners/
+      post-created.listener.ts
+  shared/
+    database/
+      database.service.ts
+      database.pack.ts
+    cache/
+      cache.service.ts
+      cache.pack.ts
+  app.pack.ts
+  main.ts
+```
+
+Each feature is a self-contained pack. Shared infrastructure (database, cache) lives in `shared/` and is imported by feature packs as needed.
+
+## Testing Packs
+
+Ambrosia provides `TestingPackFactory` for unit-testing packs in isolation:
+
+```ts
+import { TestingPackFactory } from '@ambrosia/core';
+import { PostsPack } from './posts.pack.ts';
+
+const testingPack = await TestingPackFactory.create(PostsPack);
+
+// Override a provider with a mock
+testingPack.overrideValue(DatabaseService, {
+  query: () => Promise.resolve([]),
+});
+
+const postsService = testingPack.get(PostsService);
+const posts = postsService.findAll();
+```
+
+This creates an isolated DI container with only the providers from the specified pack, letting you test each feature module independently.
+
+<Callout type="info">
+Next: Learn how to [Deploy](/docs/getting-started/deployment) your Ambrosia application to production.
+</Callout>

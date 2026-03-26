@@ -1,0 +1,281 @@
+---
+title: "Packs in HTTP"
+description: "HttpPackDefinition -- modular HTTP application organization with controllers"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Packs in HTTP
+
+`HttpPackDefinition` extends the base `PackDefinition` from `@ambrosia/core` by adding controller support -- an HTTP-specific concept that doesn't belong in the DI core.
+
+## HttpPackDefinition
+
+```typescript
+import type { HttpPackDefinition } from "@ambrosia/http";
+
+export const UserPack: HttpPackDefinition = {
+  meta: { name: "user" },
+  controllers: [UserController],
+  providers: [UserService, UserRepository],
+  exports: [UserService],
+};
+```
+
+### Difference from PackDefinition
+
+| Field | `PackDefinition` (core) | `HttpPackDefinition` (http) |
+|------|--------------------------|------------------------------|
+| `providers` | + | + |
+| `imports` | + | + |
+| `exports` | + | + |
+| `meta` | + | + |
+| `onInit` / `onDestroy` | + | + |
+| `controllers` | - | + |
+
+<Callout type="info">
+Controllers are an HTTP layer concept. The base `PackDefinition` in `@ambrosia/core` works only with DI providers. If your pack doesn't contain controllers (e.g., a database pack), use a regular `PackDefinition`.
+</Callout>
+
+## HTTP Application Structure
+
+A typical application is organized into feature packs, each containing its own controllers, services, and providers:
+
+```
+src/
+├── modules/
+│   ├── health/
+│   │   ├── health.controller.ts
+│   │   ├── health.service.ts
+│   │   └── health.pack.ts
+│   ├── user/
+│   │   ├── user.controller.ts
+│   │   ├── user.service.ts
+│   │   ├── user.repository.ts
+│   │   └── user.pack.ts
+│   └── auth/
+│       ├── auth.controller.ts
+│       ├── auth.service.ts
+│       └── auth.pack.ts
+└── main.ts
+```
+
+### Feature Pack
+
+```typescript
+// src/modules/user/user.pack.ts
+import type { HttpPackDefinition } from "@ambrosia/http";
+import { UserController } from "./user.controller.ts";
+import { UserService } from "./user.service.ts";
+import { UserRepository } from "./user.repository.ts";
+
+export const UserPack: HttpPackDefinition = {
+  meta: { name: "user", version: "1.0.0" },
+  controllers: [UserController],
+  providers: [UserService, UserRepository],
+  exports: [UserService], // Other packs can use UserService
+};
+```
+
+### Registration in the Application
+
+```typescript
+// src/main.ts
+import { HttpApplication } from "@ambrosia/http";
+import { ElysiaProvider } from "@ambrosia/http-elysia";
+import { HealthPack } from "./modules/health/health.pack.ts";
+import { UserPack } from "./modules/user/user.pack.ts";
+import { AuthPack } from "./modules/auth/auth.pack.ts";
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [
+    HealthPack,
+    UserPack,
+    AuthPack,
+  ],
+});
+
+await app.listen(3000);
+```
+
+## Controllers and Packs
+
+Controllers from packs are automatically:
+1. Registered in the DI container
+2. Scanned for routes (`@Get`, `@Post`, etc.)
+3. Routes registered with the HTTP provider
+
+### Controller Sources
+
+`HttpApplication` collects controllers from three sources (all are deduplicated):
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+
+  // 1. Controllers from packs
+  packs: [UserPack, AuthPack],
+
+  // 2. Explicit controller list
+  controllers: [HealthController],
+
+  // 3. ControllerRegistry (side-effect import for backward compatibility)
+});
+```
+
+### Excluding Controllers
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [UserPack, AuthPack],
+  excludeControllers: [DebugController], // Don't register in production
+});
+```
+
+## Configurable Packs
+
+The `forRoot` / `forRootAsync` pattern works the same as in core, but with controllers added:
+
+```typescript
+import type { HttpPackDefinition, AsyncPackOptions } from "@ambrosia/http";
+import { createAsyncProvider } from "@ambrosia/core";
+
+export class AuthPack {
+  static forRoot(config: AuthConfig): HttpPackDefinition {
+    return {
+      meta: { name: "auth" },
+      controllers: [AuthController, OAuthController],
+      providers: [
+        { token: AUTH_CONFIG, useValue: config },
+        AuthService,
+        TokenService,
+      ],
+      exports: [AuthService],
+    };
+  }
+
+  static forRootAsync(options: AsyncPackOptions<AuthConfig>): HttpPackDefinition {
+    return {
+      meta: { name: "auth-async" },
+      controllers: [AuthController, OAuthController],
+      providers: [
+        createAsyncProvider(AUTH_CONFIG, options),
+        AuthService,
+        TokenService,
+      ],
+      exports: [AuthService],
+    };
+  }
+}
+```
+
+Usage:
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [
+    AuthPack.forRoot({ secret: process.env.JWT_SECRET!, expiresIn: "24h" }),
+    UserPack,
+  ],
+});
+```
+
+## Conditional Pack Loading
+
+The `packs` array supports falsy values:
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [
+    HealthPack,
+    UserPack,
+    process.env.ENABLE_ADMIN === "true" && AdminPack,
+    process.env.NODE_ENV === "development" && SwaggerPack,
+    null,      // ignored
+    undefined, // ignored
+  ],
+});
+```
+
+## Lifecycle and Shutdown
+
+### Graceful Shutdown
+
+`app.close()` performs cleanup in the correct order:
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [
+    DatabasePack.forRoot(dbConfig),
+    CachePack.forRoot(cacheConfig),
+    UserPack,
+  ],
+});
+
+await app.listen(3000);
+
+// On receiving a termination signal:
+process.on("SIGTERM", async () => {
+  await app.close();
+  process.exit(0);
+});
+```
+
+`app.close()` performs:
+
+1. **Pack onDestroy** -- pack hooks in reverse order (LIFO)
+2. **Injectable onDestroy** -- `onDestroy()` of all tracked instances (LIFO)
+3. **Cache cleanup** -- all container scope caches
+
+```typescript
+// Order during shutdown:
+// 1. UserPack.onDestroy()    (if defined)
+// 2. CachePack.onDestroy()   (LIFO)
+// 3. DatabasePack.onDestroy()
+// 4. CacheService.onDestroy()    (Injectable lifecycle)
+// 5. DatabaseService.onDestroy()
+// 6. Container cleanup
+```
+
+## Mixing Core and HTTP Packs
+
+A database pack doesn't contain controllers -- a regular `PackDefinition` is appropriate:
+
+```typescript
+import type { PackDefinition } from "@ambrosia/core";
+
+// Core pack -- no controllers
+export const DatabasePack: PackDefinition = {
+  meta: { name: "database" },
+  providers: [DatabaseService, ConnectionPool],
+  exports: [DatabaseService],
+};
+```
+
+```typescript
+import type { HttpPackDefinition } from "@ambrosia/http";
+
+// HTTP pack -- with controllers
+export const UserPack: HttpPackDefinition = {
+  meta: { name: "user" },
+  controllers: [UserController],
+  providers: [UserService],
+  imports: [DatabasePack], // Core pack as a dependency
+};
+```
+
+Both pack types work in the `packs` array of `HttpApplication` -- `PackDefinition` is automatically compatible with `HttpPackDefinition` (the `controllers` field is simply absent).
+
+## CLI Generation
+
+```bash
+ambrosia new my-app
+```
+
+The CLI generates a project with a ready-made feature pack structure, including `HttpPackDefinition`, controllers, and services.

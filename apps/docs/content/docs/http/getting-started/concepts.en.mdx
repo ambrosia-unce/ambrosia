@@ -1,0 +1,336 @@
+---
+title: "Core Concepts"
+description: "Understand the architecture and lifecycle of @ambrosia/http"
+---
+
+# Core Concepts
+
+Understanding the fundamental concepts of **@ambrosia/http** will help you build better HTTP applications.
+
+## Architecture
+
+@ambrosia/http consists of several key components:
+
+```
++-------------------------------------+
+|      HttpApplication                |
+|  (Orchestrates everything)          |
++------+------------------------------+
+       |
+  +----+--------+
+  |             |
++-v--------+ +--v----------+
+| Provider | | Container   |
+| (Elysia) | |   (DI)      |
++----------+ +-------------+
+  |               |
+  |         +-----+------+
+  |         |            |
+  |    +----v---+ +-----v---+
+  |    |Guards  | |Services |
+  |    |Pipes   | |         |
+  |    |Filters | |         |
+  |    +--------+ +---------+
+  |
++-v--------------------+
+|  Controllers         |
+|  (HTTP Handlers)     |
++----------------------+
+```
+
+### HttpApplication
+
+The main application class that:
+- Creates and manages the DI container
+- Registers controllers automatically
+- Configures the HTTP provider
+- Compiles the lifecycle pipeline
+- Manages global components
+
+### HttpProvider
+
+Abstraction over the HTTP library (Elysia, Hono):
+- Registers routes
+- Handles HTTP requests
+- Provides native API
+
+### Controllers
+
+Classes with decorators that handle HTTP requests:
+- Define routes
+- Process parameters
+- Return responses
+
+## Request Lifecycle
+
+Every HTTP request passes through the following stages:
+
+```
+1. Incoming Request
+        |
+2. Middleware
+   |
+   +- @UseMiddleware(CorsMiddleware)
+   +- @UseMiddleware(RateLimitMiddleware)
+   +- Custom middleware
+        |
+3. Guards
+   |
+   +- @UseGuard(AuthGuard)
+   +- @UseGuard(RoleGuard)
+   +- Authorization checks
+        |
+4. Interceptors (before)
+   |
+   +- @UseInterceptor(LoggingInterceptor)
+   +- Transform request
+   +- Add metadata
+        |
+5. Pipes
+   |
+   +- ValidationPipe (validate DTO)
+   +- ParseIntPipe (transform params)
+   +- Custom transformation
+        |
+6. Route Handler
+   |
+   +- Controller method execution
+        |
+7. Interceptors (after)
+   |
+   +- Transform response
+   +- Add headers
+   +- Log execution time
+        |
+8. Exception Filters (if error)
+   |
+   +- DefaultExceptionFilter
+   +- HttpExceptionFilter
+   +- Custom error handling
+        |
+9. Response
+```
+
+### Middleware
+
+Executes **first** in the pipeline. Used for:
+- CORS headers
+- Rate limiting
+- Request logging
+- Body parsing
+
+```typescript
+@Injectable()
+class CorsMiddleware implements Middleware {
+  async use(req: IHttpRequest, res: IHttpResponse, next: () => Promise<void>) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    await next();
+  }
+}
+```
+
+### Guards
+
+Execute **after middleware**. Used for:
+- Authentication
+- Authorization
+- Role checks
+- Permission validation
+
+```typescript
+@Injectable()
+class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers['authorization'];
+    return !!token; // true = allow, false = deny
+  }
+}
+```
+
+### Interceptors
+
+Execute **before and after** the handler. Used for:
+- Request/response transformation
+- Logging
+- Caching
+- Timeout handling
+
+```typescript
+@Injectable()
+class LoggingInterceptor implements Interceptor {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<any> {
+    const start = Date.now();
+    const result = await next.handle();
+    const duration = Date.now() - start;
+    console.log(`Request took ${duration}ms`);
+    return result;
+  }
+}
+```
+
+### Pipes
+
+Execute **before the handler**. Used for:
+- Data validation
+- Data transformation
+- Type conversion
+
+```typescript
+@Injectable()
+class ValidationPipe implements Pipe {
+  transform(value: any, metadata: PipeMetadata): any {
+    return TypeBoxValidator.validate(schema, value);
+  }
+}
+```
+
+### Exception Filters
+
+Execute **on error**. Used for:
+- Error formatting
+- Error logging
+- Custom error responses
+
+```typescript
+@Injectable()
+class HttpExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, httpContext } = args;
+    return {
+      statusCode: exception.status || 500,
+      message: exception.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+```
+
+## Component Application Levels
+
+Lifecycle components can be applied at three levels:
+
+### 1. Global (Application)
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalGuards: [AuthGuard],
+  globalInterceptors: [LoggingInterceptor],
+  globalPipes: [ValidationPipe],
+  globalFilters: [HttpExceptionFilter]
+});
+```
+
+Applied to **all routes**.
+
+### 2. Controller (Class)
+
+```typescript
+@Controller('/users')
+@UseGuard(AuthGuard)
+@UseInterceptor(LoggingInterceptor)
+export class UserController {
+  // All methods are protected by AuthGuard
+}
+```
+
+Applied to **all controller methods**.
+
+### 3. Method
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')
+  findAll() {
+    // No guard
+  }
+
+  @Http.Delete('/:id')
+  @UseGuard(AdminGuard)  // Only this method
+  delete(@Param('id') id: string) {
+    // Requires admin rights
+  }
+}
+```
+
+Applied **only to this method**.
+
+## Execution Order
+
+When components are defined at multiple levels, they execute in order:
+
+```
+Global -> Controller -> Method
+```
+
+## Dependency Injection
+
+All lifecycle components and controllers are managed by the DI container:
+
+```typescript
+@Injectable()
+class AuthService {
+  validateToken(token: string) { /* Validate JWT */ }
+}
+
+@Injectable()
+class AuthGuard implements Guard {
+  constructor(private authService: AuthService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers['authorization'];
+    return this.authService.validateToken(token);
+  }
+}
+
+@Controller('/users')
+export class UserController {
+  constructor(private userService: UserService) {}
+  // UserService is automatically injected
+}
+```
+
+### Scopes
+
+Components support different scopes:
+
+- **SINGLETON** (default) - One instance per application
+- **TRANSIENT** - New instance every time
+- **REQUEST** - One instance per HTTP request
+
+```typescript
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {
+  requestId: string = generateId();
+  // Unique for each request
+}
+```
+
+## ExecutionContext
+
+A special object passed to Guards and Interceptors:
+
+```typescript
+interface ExecutionContext {
+  getHttpContext(): HttpContext;
+  getClass(): Constructor;      // Controller class
+  getHandler(): string | symbol; // Method name
+  getArgs(): any[];              // Method arguments
+
+  switchToHttp(): {
+    getRequest(): IHttpRequest;
+    getResponse(): IHttpResponse;
+    getContext(): HttpContext;
+  };
+}
+```
+
+## Next Steps
+
+- [Controllers](/docs/http/guides/controllers) - Creating controllers
+- [Guards](/docs/http/guides/guards) - Route protection
+- [Interceptors](/docs/http/guides/interceptors) - Request transformation
+- [Pipes](/docs/http/guides/pipes) - Data validation

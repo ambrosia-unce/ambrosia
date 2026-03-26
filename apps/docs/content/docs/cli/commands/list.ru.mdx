@@ -1,0 +1,80 @@
+---
+title: "ambrosia list"
+description: "Команда просмотра установленных паков в проекте"
+---
+
+# ambrosia list
+
+Выводит список всех установленных паков в текущем проекте с версиями, registry и датой установки.
+
+## Использование
+
+```bash
+ambrosia list
+```
+
+Команда не принимает аргументов и флагов.
+
+## Формат вывода
+
+Результат выводится в виде таблицы:
+
+```
+$ ambrosia list
+
+◆  ambrosia list
+│
+│ Installed packs
+│
+│ Name        Version  Registry  Installed At
+│ ──────────  ───────  ────────  ────────────────────────
+│ jwt-auth    0.2.1    default   2026-02-19T12:00:00.000Z
+│ redis-cache 0.1.3    default   2026-02-20T10:30:00.000Z
+│ orm         0.1.0    corp      2026-03-01T08:15:00.000Z
+│
+└
+```
+
+Если паки не установлены:
+
+```
+◆  ambrosia list
+│
+ℹ  No packs installed.
+│
+└
+```
+
+## Источник данных
+
+Информация берётся из секции `packs` файла `ambrosia.json`:
+
+```json title="ambrosia.json"
+{
+  "packs": {
+    "jwt-auth": {
+      "version": "0.2.1",
+      "registry": "default",
+      "installedAt": "2026-02-19T12:00:00.000Z",
+      "files": [...]
+    }
+  }
+}
+```
+
+## Ошибки
+
+### Нет ambrosia.json
+
+```
+✗  No ambrosia.json found. Run "ambrosia init" to create one.
+```
+
+Инициализируйте проект командой `ambrosia init`.
+
+## Подробнее
+
+- [ambrosia add](/docs/cli/commands/add) — установка паков
+- [ambrosia remove](/docs/cli/commands/remove) — удаление паков
+- [ambrosia update](/docs/cli/commands/update) — обновление паков
+- [Конфигурация ambrosia.json](/docs/cli/getting-started/configuration)

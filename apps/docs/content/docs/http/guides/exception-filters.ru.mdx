@@ -1,0 +1,642 @@
+---
+title: Exception Filters (Фильтры исключений)
+description: Обработка ошибок с помощью Exception Filters в Ambrosia HTTP
+---
+
+# Exception Filters (Фильтры исключений)
+
+Exception Filters отвечают за обработку всех исключений, выброшенных во время выполнения запроса. Они перехватывают ошибки и преобразуют их в корректные HTTP ответы.
+
+## Основы
+
+Exception Filter - это класс с методом `catch()`, который получает исключение и контекст:
+
+```typescript
+import { Injectable } from '@ambrosia/core';
+import { ExceptionFilter, ExceptionFilterArgs, HttpException } from '@ambrosia/http';
+
+@Injectable()
+export class HttpExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { response, request } = context.switchToHttp();
+    
+    const status = exception instanceof HttpException 
+      ? exception.getStatus() 
+      : 500;
+      
+    const message = exception instanceof HttpException
+      ? exception.getMessage()
+      : 'Internal server error';
+    
+    return {
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      message
+    };
+  }
+}
+```
+
+## Встроенные исключения
+
+Ambrosia HTTP предоставляет стандартные HTTP исключения:
+
+```typescript
+import {
+  BadRequestException,          // 400
+  UnauthorizedException,        // 401
+  ForbiddenException,           // 403
+  NotFoundException,            // 404
+  MethodNotAllowedException,    // 405
+  ConflictException,            // 409
+  UnprocessableEntityException, // 422
+  InternalServerErrorException  // 500
+} from '@ambrosia/http';
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  async getOne(@Param('id') id: string) {
+    const user = await this.userService.findById(id);
+    
+    if (!user) {
+      throw new NotFoundException(`Пользователь ${id} не найден`);
+    }
+    
+    return user;
+  }
+  
+  @Http.Post('/')
+  async create(@Body() dto: CreateUserDto) {
+    const exists = await this.userService.existsByEmail(dto.email);
+    
+    if (exists) {
+      throw new ConflictException('Email уже используется');
+    }
+    
+    return this.userService.create(dto);
+  }
+}
+```
+
+## Применение Exception Filters
+
+### На уровне метода
+
+```typescript
+import { UseFilter } from '@ambrosia/http';
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  @UseFilter(DatabaseExceptionFilter)
+  async getOne(@Param('id') id: string) {
+    return this.userService.findById(id);
+  }
+}
+```
+
+### На уровне контроллера
+
+```typescript
+@Controller('/api')
+@UseFilter(ApiExceptionFilter, ValidationExceptionFilter)
+export class ApiController {
+  // Все методы используют эти фильтры
+  
+  @Http.Get('/data')
+  async getData() {
+    return [];
+  }
+}
+```
+
+### Глобальные Exception Filters
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalFilters: [GlobalExceptionFilter],
+  port: 3000
+});
+```
+
+По умолчанию используется `DefaultExceptionFilter`, если не указаны globalFilters.
+
+## Default Exception Filter
+
+Стандартный фильтр возвращает JSON с деталями ошибки:
+
+```typescript
+// Ответ при NotFoundException:
+{
+  "statusCode": 404,
+  "error": "Not Found",
+  "message": "Пользователь 123 не найден",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "path": "/users/123"
+}
+
+// Ответ при ValidationError:
+{
+  "statusCode": 422,
+  "error": "Unprocessable Entity",
+  "message": "Validation failed",
+  "errors": [
+    {
+      "path": "/email",
+      "message": "Expected string to match 'email'",
+      "value": "invalid"
+    }
+  ],
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "path": "/users"
+}
+```
+
+## @Catch — типизированные фильтры
+
+Декоратор `@Catch(...ExceptionTypes)` позволяет указать, какие типы исключений обрабатывает фильтр. Фильтры без `@Catch` ловят все исключения (как раньше).
+
+```typescript
+import { Injectable } from '@ambrosia/core';
+import { 
+  ExceptionFilter, ExceptionFilterArgs, Catch,
+  NotFoundException, BadRequestException, HttpException 
+} from '@ambrosia/http';
+
+// Ловит только NotFoundException
+@Catch(NotFoundException)
+@Injectable()
+export class NotFoundFilter implements ExceptionFilter {
+  catch({ exception, httpContext }: ExceptionFilterArgs): any {
+    return {
+      statusCode: 404,
+      error: 'Not Found',
+      message: exception.getMessage(),
+      path: httpContext.request.url,
+    };
+  }
+}
+
+// Ловит BadRequestException и UnprocessableEntityException
+@Catch(BadRequestException, UnprocessableEntityException)
+@Injectable()
+export class ValidationFilter implements ExceptionFilter {
+  catch({ exception, httpContext }: ExceptionFilterArgs): any {
+    return {
+      statusCode: exception.getStatus(),
+      error: 'Validation Error',
+      message: exception.getMessage(),
+    };
+  }
+}
+
+// Без @Catch — ловит всё остальное (fallback)
+@Injectable()
+export class FallbackFilter implements ExceptionFilter {
+  catch({ exception }: ExceptionFilterArgs): any {
+    const status = exception instanceof HttpException ? exception.getStatus() : 500;
+    return { statusCode: status, message: 'Internal error' };
+  }
+}
+```
+
+Применение:
+
+```typescript
+@Controller('/users')
+@UseFilter(NotFoundFilter, ValidationFilter, FallbackFilter)
+export class UserController {
+  @Http.Get('/:id')
+  async getOne(@Param('id') id: string) {
+    // NotFoundException → NotFoundFilter
+    // BadRequestException → ValidationFilter
+    // Другие ошибки → FallbackFilter
+  }
+}
+```
+
+Фильтры проверяются по порядку. Если `@Catch` указан, фильтр обрабатывает исключение только при `exception instanceof Type`. Фильтры без `@Catch` ловят всё, что не поймали типизированные фильтры.
+
+## Кастомные Exception Filters
+
+### Database Exception Filter
+
+```typescript
+@Injectable()
+export class DatabaseExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { response, request } = context.switchToHttp();
+    
+    if (this.isDatabaseError(exception)) {
+      console.error('Database error:', exception);
+      
+      return {
+        statusCode: 503,
+        error: 'Service Unavailable',
+        message: 'Временная ошибка базы данных. Попробуйте позже.',
+        timestamp: new Date().toISOString(),
+        path: request.url
+      };
+    }
+    
+    // Передать дальше для других фильтров
+    throw exception;
+  }
+  
+  private isDatabaseError(exception: any): boolean {
+    return exception.name === 'DatabaseError' || 
+           exception.code?.startsWith('ER_');
+  }
+}
+```
+
+### Validation Exception Filter
+
+```typescript
+@Injectable()
+export class ValidationExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    
+    if (exception instanceof ValidationError) {
+      const { response, request } = context.switchToHttp();
+      
+      return {
+        statusCode: 422,
+        error: 'Validation Failed',
+        message: exception.getMessage(),
+        errors: exception.errors.map(err => ({
+          field: err.path,
+          message: err.message,
+          value: err.value
+        })),
+        timestamp: new Date().toISOString(),
+        path: request.url
+      };
+    }
+    
+    throw exception;
+  }
+}
+```
+
+### Logging Exception Filter
+
+```typescript
+@Injectable()
+export class LoggingExceptionFilter implements ExceptionFilter {
+  constructor(private logger: LoggerService) {}
+  
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { request } = context.switchToHttp();
+    
+    // Логирование с деталями
+    this.logger.error('Exception caught', {
+      error: exception.message,
+      stack: exception.stack,
+      method: request.method,
+      url: request.url,
+      userAgent: request.headers['user-agent'],
+      ip: request.ip,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Передать дальше для обработки другими фильтрами
+    throw exception;
+  }
+}
+```
+
+### API Exception Filter
+
+```typescript
+@Injectable()
+export class ApiExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { response } = context.switchToHttp();
+    
+    let status = 500;
+    let error = 'Internal Server Error';
+    let message = 'Произошла внутренняя ошибка';
+    
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      error = exception.getError();
+      message = exception.getMessage();
+    }
+    
+    // Скрыть детали в production
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    return {
+      success: false,
+      error: {
+        code: status,
+        type: error,
+        message: isProduction && status === 500 
+          ? 'Internal Server Error' 
+          : message
+      },
+      timestamp: Date.now()
+    };
+  }
+}
+```
+
+## Dependency Injection
+
+Exception Filters поддерживают полную DI:
+
+```typescript
+@Injectable()
+export class MonitoringExceptionFilter implements ExceptionFilter {
+  constructor(
+    private monitoringService: MonitoringService,
+    private notificationService: NotificationService
+  ) {}
+  
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { request } = context.switchToHttp();
+    
+    // Отправить в систему мониторинга
+    this.monitoringService.recordException({
+      error: exception.message,
+      stack: exception.stack,
+      url: request.url,
+      method: request.method
+    });
+    
+    // Уведомить администраторов при критических ошибках
+    if (this.isCritical(exception)) {
+      this.notificationService.alertAdmins({
+        message: 'Critical error occurred',
+        details: exception.message,
+        url: request.url
+      });
+    }
+    
+    // Передать для дальнейшей обработки
+    throw exception;
+  }
+  
+  private isCritical(exception: any): boolean {
+    return !(exception instanceof HttpException) ||
+           exception.getStatus() === 500;
+  }
+}
+```
+
+## Кастомные исключения
+
+Создавайте специфичные исключения для вашего домена:
+
+```typescript
+export class PaymentException extends HttpException {
+  constructor(message: string, public readonly paymentId: string) {
+    super(message, 402); // Payment Required
+    this.name = 'PaymentException';
+  }
+}
+
+export class RateLimitException extends HttpException {
+  constructor(
+    public readonly retryAfter: number,
+    message: string = 'Превышен лимит запросов'
+  ) {
+    super(message, 429); // Too Many Requests
+    this.name = 'RateLimitException';
+  }
+}
+
+// Exception Filter для обработки
+@Injectable()
+export class PaymentExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    
+    if (exception instanceof PaymentException) {
+      return {
+        statusCode: 402,
+        error: 'Payment Required',
+        message: exception.getMessage(),
+        paymentId: exception.paymentId
+      };
+    }
+    
+    if (exception instanceof RateLimitException) {
+      const { response } = context.switchToHttp();
+      response.setHeader('Retry-After', exception.retryAfter.toString());
+      
+      return {
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: exception.getMessage(),
+        retryAfter: exception.retryAfter
+      };
+    }
+    
+    throw exception;
+  }
+}
+```
+
+## Порядок выполнения
+
+Exception Filters выполняются в следующем порядке (от специфичного к общему):
+
+1. Filters на уровне метода
+2. Filters на уровне контроллера
+3. Глобальные filters
+
+```typescript
+const app = await HttpApplication.create({
+  globalFilters: [GlobalExceptionFilter], // 3. Последний
+});
+
+@Controller('/users')
+@UseFilter(ControllerExceptionFilter) // 2. Второй
+export class UserController {
+  @Http.Get('/:id')
+  @UseFilter(MethodExceptionFilter) // 1. Первый
+  async getOne(@Param('id') id: string) {
+    throw new Error('Test error');
+  }
+}
+```
+
+Первый фильтр, который обработает исключение (не пробросит дальше), станет окончательным обработчиком.
+
+## Цепочка обработки
+
+Фильтры могут пробрасывать исключения дальше:
+
+```typescript
+@Injectable()
+export class SpecificExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception } = args;
+    
+    if (exception instanceof SpecificException) {
+      // Обработать специфичное исключение
+      return { handled: true };
+    }
+    
+    // Пробросить для других фильтров
+    throw exception;
+  }
+}
+
+@Injectable()
+export class GenericExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception } = args;
+    
+    // Обработать все остальные исключения
+    return {
+      statusCode: 500,
+      message: 'Unexpected error'
+    };
+  }
+}
+```
+
+## Environment-зависимая обработка
+
+```typescript
+@Injectable()
+export class EnvironmentExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { request } = context.switchToHttp();
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    const status = exception instanceof HttpException 
+      ? exception.getStatus() 
+      : 500;
+    
+    const response: any = {
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      message: exception.message
+    };
+    
+    // Добавить stack trace только в development
+    if (isDevelopment) {
+      response.stack = exception.stack;
+      response.details = {
+        name: exception.name,
+        ...exception
+      };
+    }
+    
+    return response;
+  }
+}
+```
+
+## Интеграция с внешними сервисами
+
+### Sentry Integration
+
+```typescript
+@Injectable()
+export class SentryExceptionFilter implements ExceptionFilter {
+  constructor(private sentryService: SentryService) {}
+  
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { request } = context.switchToHttp();
+    
+    // Отправить в Sentry
+    this.sentryService.captureException(exception, {
+      tags: {
+        endpoint: request.url,
+        method: request.method
+      },
+      user: {
+        ip: request.ip
+      },
+      extra: {
+        headers: request.headers,
+        query: request.query,
+        body: request.body
+      }
+    });
+    
+    // Передать дальше
+    throw exception;
+  }
+}
+```
+
+## Best Practices
+
+1. **Специфичные фильтры сначала**: Размещайте специфичные фильтры на уровне метода/контроллера, общие - глобально
+2. **Скрывайте детали в production**: Не раскрывайте внутренние детали ошибок в production
+3. **Логируйте все исключения**: Всегда логируйте исключения для отладки
+4. **Стандартный формат ответа**: Используйте единый формат для всех ошибок
+5. **Корректные HTTP коды**: Используйте правильные status codes для разных типов ошибок
+6. **Не перехватывайте все**: Позволяйте специфичным фильтрам обрабатывать свои исключения
+7. **Мониторинг**: Интегрируйте с системами мониторинга (Sentry, Datadog и т.д.)
+8. **Валидация**: Используйте `ValidationError` для ошибок валидации с деталями
+9. **Пробрасывание**: Если фильтр не может обработать исключение, пробросьте его дальше
+10. **Тестирование**: Покройте фильтры тестами для всех типов исключений
+
+## Форматы ответов
+
+### REST API формат
+
+```typescript
+{
+  "error": {
+    "code": 404,
+    "type": "Not Found",
+    "message": "Resource not found"
+  },
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+### JSON:API формат
+
+```typescript
+{
+  "errors": [
+    {
+      "status": "404",
+      "title": "Not Found",
+      "detail": "The requested resource was not found",
+      "source": {
+        "pointer": "/users/123"
+      }
+    }
+  ]
+}
+```
+
+### Problem Details (RFC 7807)
+
+```typescript
+{
+  "type": "https://example.com/problems/not-found",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "The user with id 123 was not found",
+  "instance": "/users/123"
+}
+```
+
+## См. также
+
+- [Guards](/docs/http/guides/guards) - Защита маршрутов
+- [Interceptors](/docs/http/guides/interceptors) - Преобразование запросов и ответов
+- [Exceptions](/docs/http/api/exceptions) - Встроенные исключения

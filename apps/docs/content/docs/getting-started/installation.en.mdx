@@ -1,0 +1,188 @@
+---
+title: "Installation"
+description: "Install the Ambrosia CLI, create a new project, and understand the generated structure"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Installation
+
+This guide will walk you through setting up a new Ambrosia project from scratch.
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+- **[Bun](https://bun.sh)** v1.1 or later -- Ambrosia is built for the Bun runtime
+- **TypeScript** knowledge -- Ambrosia uses decorators and advanced type features
+- A code editor with TypeScript support (VS Code recommended)
+
+Check your Bun version:
+
+```bash
+bun --version
+```
+
+If you do not have Bun installed, install it:
+
+<Tabs items={['macOS / Linux', 'Windows']}>
+  <Tab value="macOS / Linux">
+    ```bash
+    curl -fsSL https://bun.sh/install | bash
+    ```
+  </Tab>
+  <Tab value="Windows">
+    ```powershell
+    powershell -c "irm bun.sh/install.ps1 | iex"
+    ```
+  </Tab>
+</Tabs>
+
+## Create a New Project
+
+<Steps>
+<Step>
+### Install the Ambrosia CLI
+
+```bash
+bun add -g @ambrosia/cli
+```
+
+Verify the installation:
+
+```bash
+ambrosia --version
+```
+</Step>
+
+<Step>
+### Scaffold a new project
+
+```bash
+ambrosia new my-api --arch modular
+```
+
+The `--arch modular` flag generates a project structured around packs (feature modules). This is the recommended architecture for most applications.
+
+</Step>
+
+<Step>
+### Install dependencies
+
+```bash
+cd my-api
+bun install
+```
+</Step>
+</Steps>
+
+## Project Structure
+
+After scaffolding, your project looks like this:
+
+```
+my-api/
+  src/
+    app.pack.ts          # Root application pack
+    main.ts              # Entry point -- bootstraps HttpApplication
+  bunfig.toml            # Bun configuration (preloads, etc.)
+  package.json
+  tsconfig.json
+  .env                   # Environment variables
+```
+
+Let's look at the key files:
+
+### `src/main.ts` -- Entry Point
+
+This is where the application boots up:
+
+```ts
+import 'reflect-metadata';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { AppPack } from './app.pack.ts';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  port: 3000,
+});
+
+await app.listen();
+```
+
+Key points:
+- `reflect-metadata` must be imported **first** -- it is required for the decorator-based DI system
+- `ElysiaProvider` is the HTTP engine adapter -- Ambrosia's HTTP layer is provider-agnostic
+- `packs` is the list of feature modules to load
+- `app.listen()` starts the server on the configured port
+
+### `src/app.pack.ts` -- Root Pack
+
+The root pack ties everything together:
+
+```ts
+import { definePack } from '@ambrosia/core';
+
+export const AppPack = definePack({
+  providers: [],
+  imports: [],
+});
+```
+
+Packs are the unit of composition in Ambrosia. They declare providers (services), imports (other packs), exports (what is visible to importers), and controllers (HTTP endpoints). You will learn more about packs in the [Packs](/docs/getting-started/packs) section.
+
+### `tsconfig.json` -- TypeScript Configuration
+
+Two settings are **required** for Ambrosia's decorator system:
+
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strict": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["bun-types"]
+  }
+}
+```
+
+<Callout type="warn">
+Without `experimentalDecorators` and `emitDecoratorMetadata`, the DI system will not work. The container relies on `reflect-metadata` to read constructor parameter types at runtime.
+</Callout>
+
+### `bunfig.toml` -- Bun Configuration
+
+If you plan to use `@ambrosia/validator` for compile-time validation, add the preload:
+
+```toml
+preload = ["@ambrosia/validator/preload"]
+```
+
+This activates the TypeScript transformer that replaces `assert<T>()` / `validate<T>()` calls with inlined validation code at build time.
+
+## Verify the Setup
+
+Start the development server:
+
+```bash
+bun run dev
+```
+
+You should see:
+
+```
+🚀 Ambrosia HTTP Server running on http://localhost:3000
+```
+
+The server is running, but it has no routes yet. In the next section, you will create your first controller and service.
+
+<Callout type="info">
+Next up: [Build your first API](/docs/getting-started/first-api) -- create controllers, services, and wire them together with DI.
+</Callout>

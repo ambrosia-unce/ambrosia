@@ -1,0 +1,185 @@
+---
+title: "Events and Listeners"
+description: "Defining events and registering handlers"
+---
+
+# Events and Listeners
+
+## Defining Events
+
+An event is a regular TypeScript class. The class constructor is used as the key in a `Map` for handler lookup. String names are not used -- this is faster and more type-safe.
+
+```ts
+// Event with data
+class UserRegisteredEvent {
+  constructor(
+    public readonly userId: string,
+    public readonly email: string,
+  ) {}
+}
+
+// Event without data -- still a class
+class ApplicationStartedEvent {}
+
+// Event with nested objects
+class PaymentProcessedEvent {
+  constructor(
+    public readonly payment: {
+      id: string;
+      amount: number;
+      currency: string;
+    },
+  ) {}
+}
+```
+
+## The @OnEvent Decorator
+
+`@OnEvent(EventClass, options?)` marks a method as an event handler.
+
+```ts
+import { Injectable } from '@ambrosia/core';
+import { OnEvent } from '@ambrosia/events';
+
+@Injectable()
+class EmailListener {
+  @OnEvent(UserRegisteredEvent)
+  async sendWelcomeEmail(event: UserRegisteredEvent) {
+    await sendEmail(event.email, 'Welcome!');
+  }
+
+  @OnEvent(UserRegisteredEvent, { priority: 10 })
+  logRegistration(event: UserRegisteredEvent) {
+    console.log(`User registered: ${event.userId}`);
+  }
+}
+```
+
+### Multiple Handlers for the Same Event
+
+A single class can contain multiple handlers for the same event:
+
+```ts
+@Injectable()
+class OrderListener {
+  @OnEvent(OrderPlacedEvent, { priority: 100 })
+  validateOrder(event: OrderPlacedEvent) {
+    // Executes first (priority: 100)
+  }
+
+  @OnEvent(OrderPlacedEvent, { priority: 0 })
+  sendConfirmation(event: OrderPlacedEvent) {
+    // Executes second (priority: 0)
+  }
+}
+```
+
+### Multiple Classes for One Event
+
+Different services can listen to the same event:
+
+```ts
+@Injectable()
+class EmailService {
+  @OnEvent(UserRegisteredEvent)
+  async sendWelcome(event: UserRegisteredEvent) { /* ... */ }
+}
+
+@Injectable()
+class AnalyticsService {
+  @OnEvent(UserRegisteredEvent)
+  trackRegistration(event: UserRegisteredEvent) { /* ... */ }
+}
+
+@Injectable()
+class AuditService {
+  @OnEvent(UserRegisteredEvent)
+  logEvent(event: UserRegisteredEvent) { /* ... */ }
+}
+```
+
+## Emitting Events
+
+### emit() -- with awaiting
+
+`emit()` calls all handlers and returns `Promise<void>` (or `void` if all handlers are synchronous):
+
+```ts
+@Injectable()
+class UserService {
+  constructor(private bus: EventBus) {}
+
+  async register(email: string) {
+    const user = await this.db.createUser(email);
+
+    // Waits for ALL handlers to complete
+    await this.bus.emit(new UserRegisteredEvent(user.id, email));
+
+    return user;
+  }
+}
+```
+
+### emitAsync() -- fire and forget
+
+`emitAsync()` calls handlers but does NOT wait for their completion:
+
+```ts
+@Injectable()
+class UserService {
+  constructor(private bus: EventBus) {}
+
+  async register(email: string) {
+    const user = await this.db.createUser(email);
+
+    // Doesn't wait -- handlers execute in the background
+    this.bus.emitAsync(new UserRegisteredEvent(user.id, email));
+
+    return user; // Returns immediately
+  }
+}
+```
+
+## Introspection
+
+EventBus provides methods for checking state:
+
+```ts
+@Injectable()
+class DiagnosticService {
+  constructor(private bus: EventBus) {}
+
+  check() {
+    // Are there handlers for the event?
+    console.log(this.bus.hasHandlers(UserRegisteredEvent)); // true/false
+
+    // How many handlers?
+    console.log(this.bus.getHandlerCount(UserRegisteredEvent)); // 3
+
+    // Which events are registered?
+    console.log(this.bus.getRegisteredEvents()); // [UserRegisteredEvent, ...]
+  }
+}
+```
+
+## Registering Listeners
+
+Listeners (classes with `@OnEvent`) must be registered as providers in packs:
+
+```ts
+const NotificationPack = definePack({
+  meta: { name: 'notifications' },
+  providers: [EmailService, SmsService, PushService],
+  exports: [EmailService, SmsService, PushService],
+});
+
+const AppPack = definePack({
+  imports: [
+    EventBusModule.forRoot(),
+    NotificationPack,
+  ],
+  providers: [UserService, OrderService],
+});
+```
+
+`EventBusModule` automatically scans all providers from all imported packs during initialization.

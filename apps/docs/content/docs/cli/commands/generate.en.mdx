@@ -1,0 +1,139 @@
+---
+title: "ambrosia generate"
+description: "Resource generation command — creating a pack inside a project"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia generate
+
+Generates resources for Ambrosia. A short alias `g` is available.
+
+## Usage
+
+```bash
+ambrosia generate <type> <name>
+ambrosia g <type> <name>
+```
+
+## Available Generators
+
+| Type | Description |
+|---|---|
+| `pack` | Creates a pack (source files) inside the current project |
+
+## ambrosia generate pack
+
+Creates pack source files in the `{packsDir}/{name}/` directory of the current project. If `ambrosia.json` exists, it uses `packsDir` from the configuration. Otherwise — `src/packs`.
+
+```bash
+ambrosia generate pack my-cache
+ambrosia g pack my-cache
+```
+
+### Generated Files
+
+```
+src/packs/my-cache/
+├── index.ts               ← barrel export
+├── my-cache.pack.ts       ← PackDefinition with forRoot/forRootAsync
+├── my-cache.service.ts    ← main service
+└── types.ts               ← config interface + InjectionToken
+```
+
+<Callout type="info">
+  Only **source files** are created — no package.json, build.ts, or README. The pack lives as part of your project.
+</Callout>
+
+### What Each File Contains
+
+**types.ts** — config interface and `InjectionToken`:
+
+```typescript title="src/packs/my-cache/types.ts"
+import { InjectionToken } from '@ambrosia/core';
+
+export interface MyCacheConfig {
+  enabled: boolean;
+}
+
+export const MY_CACHE_CONFIG = new InjectionToken<MyCacheConfig>('MyCacheConfig');
+```
+
+**my-cache.pack.ts** — module definition with `forRoot` and `forRootAsync`:
+
+```typescript title="src/packs/my-cache/my-cache.pack.ts"
+export class MyCachePack {
+  static forRoot(config: MyCacheConfig): PackDefinition {
+    return {
+      meta: { name: 'my-cache', version: '0.0.1' },
+      providers: [
+        { token: MY_CACHE_CONFIG, useValue: config },
+        MyCacheService,
+      ],
+      exports: [MyCacheService],
+    };
+  }
+
+  static forRootAsync(options: AsyncPackOptions<MyCacheConfig>): PackDefinition {
+    // Async configuration
+  }
+}
+```
+
+**my-cache.service.ts** — service stub:
+
+```typescript title="src/packs/my-cache/my-cache.service.ts"
+@Injectable()
+export class MyCacheService {
+  constructor(@Inject(MY_CACHE_CONFIG) private config: MyCacheConfig) {}
+
+  getConfig(): MyCacheConfig {
+    return this.config;
+  }
+}
+```
+
+**index.ts** — re-exports all public APIs:
+
+```typescript title="src/packs/my-cache/index.ts"
+export { MyCachePack } from './my-cache.pack';
+export { MyCacheService } from './my-cache.service';
+export type { MyCacheConfig } from './types';
+export { MY_CACHE_CONFIG } from './types';
+```
+
+### Output After Generation
+
+```
+$ ambrosia g pack my-cache
+
+◆  ambrosia generate pack
+│
+◇  Creating pack "my-cache" in src/packs/my-cache/
+│
+◆  Created 4 files
+│
+│  Usage
+│  import { MyCachePack } from "./src/packs/my-cache";
+│
+│  packs: [
+│    MyCachePack.forRoot({
+│      enabled: true,
+│    }),
+│  ]
+│
+└  Pack ready!
+```
+
+### Next Steps
+
+1. Edit `src/packs/my-cache/my-cache.service.ts` — add your business logic
+2. Wire the pack into your application
+3. If you want to distribute the pack via a registry — see [Publishing](/docs/cli/registry/publishing)
+
+## See Also
+
+- [Creating Packs](/docs/cli/registry/creating-packs) — detailed development guide
+- [Publishing](/docs/cli/registry/publishing) — `registry.json` + `ambrosia build`
+- [ambrosia build](/docs/cli/commands/build) — building registry JSON
+- [ambrosia new](/docs/cli/commands/new) — creating a full project

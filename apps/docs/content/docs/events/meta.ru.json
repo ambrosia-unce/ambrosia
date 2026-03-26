@@ -1,0 +1,10 @@
+{
+  "title": "@ambrosia/events",
+  "description": "Высокопроизводительная шина событий",
+  "pages": [
+    "index",
+    "getting-started",
+    "guides"
+  ],
+  "root": true
+}

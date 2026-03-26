@@ -1,0 +1,471 @@
+---
+title: "Области видимости"
+description: "Освойте SINGLETON, TRANSIENT и REQUEST области видимости для управления жизненным циклом"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Области видимости
+
+Области видимости контролируют время жизни и поведение кэширования экземпляров сервисов. @ambrosia/core поддерживает три типа областей видимости: SINGLETON, TRANSIENT и REQUEST.
+
+## Обзор
+
+| Область | Экземпляры | Кэширование | Применение |
+|---------|------------|-------------|------------|
+| **SINGLETON** | Один на контейнер | ✅ Кэшируется | Общие сервисы, БД, конфигурация |
+| **TRANSIENT** | Новый каждый раз | ❌ Никогда не кэшируется | Сервисы с состоянием, команды |
+| **REQUEST** | Один на запрос | ✅ Кэшируется в области видимости | HTTP запросы, транзакции |
+
+## Область видимости SINGLETON
+
+**Один экземпляр на контейнер** — возвращается один и тот же экземпляр каждый раз.
+
+### Базовое использование
+
+```typescript
+import { Injectable, Scope } from '@ambrosia/core';
+
+@Injectable({ scope: Scope.SINGLETON }) // По умолчанию
+class DatabaseService {
+  private connections = 0;
+  
+  connect() {
+    this.connections++;
+    console.log(`Всего подключений: ${this.connections}`);
+  }
+}
+
+const db1 = container.resolve(DatabaseService);
+const db2 = container.resolve(DatabaseService);
+
+console.log(db1 === db2); // true (тот же экземпляр)
+db1.connect(); // Всего подключений: 1
+db2.connect(); // Всего подключений: 2 (общее состояние!)
+```
+
+<Callout type="info">
+  **SINGLETON — область видимости по умолчанию** — вы можете опустить `{ scope: Scope.SINGLETON }`.
+</Callout>
+
+### Когда использовать
+
+✅ **Хорошие случаи использования:**
+- Подключения к базам данных
+- Сервисы конфигурации
+- Сервисы логирования
+- Кэши
+- API клиенты
+- Stateless сервисы
+
+❌ **Избегайте для:**
+- Данных специфичных для запроса
+- Пользовательских сессий
+- Временного состояния
+
+### Производительность
+
+Область видимости SINGLETON обеспечивает лучшую производительность:
+
+- **Первое разрешение:** ~1-2ms (создаёт экземпляр)
+- **Последующие разрешения:** ~0.01-0.05ms (поиск в кэше)
+
+```typescript
+// Результаты бенчмарка
+Singleton (кэшированный): 1,005,257 операций/сек (0.995μs)
+```
+
+## Область видимости TRANSIENT
+
+**Новый экземпляр каждый раз** — без кэширования, всегда создаёт свежий экземпляр.
+
+### Базовое использование
+
+```typescript
+import { Injectable, Scope } from '@ambrosia/core';
+
+@Injectable({ scope: Scope.TRANSIENT })
+class RequestHandler {
+  private id = Math.random();
+  private data: any = {};
+  
+  setData(key: string, value: any) {
+    this.data[key] = value;
+  }
+  
+  getData(key: string) {
+    return this.data[key];
+  }
+  
+  getId() {
+    return this.id;
+  }
+}
+
+const handler1 = container.resolve(RequestHandler);
+const handler2 = container.resolve(RequestHandler);
+
+console.log(handler1 === handler2); // false (разные экземпляры)
+console.log(handler1.getId() !== handler2.getId()); // true
+
+handler1.setData('user', 'Алиса');
+console.log(handler2.getData('user')); // undefined (отдельное состояние)
+```
+
+### Когда использовать
+
+✅ **Хорошие случаи использования:**
+- Command объекты
+- Обработчики запросов (если не используется REQUEST область)
+- Операции с состоянием
+- Объекты одноразового использования
+- Сервисы, которые не должны делить состояние
+
+❌ **Избегайте для:**
+- Тяжёлых объектов (подключения к БД и т.д.)
+- Сервисов, необходимых несколько раз в одной операции
+- Кэшей или реестров
+
+### Производительность
+
+Область видимости TRANSIENT имеет накладные расходы на создание новых экземпляров:
+
+```typescript
+// Результаты бенчмарка
+Transient: ~300,000-500,000 операций/сек
+```
+
+<Callout type="warn">
+  **TRANSIENT создаёт новые экземпляры каждый раз**, включая все зависимости. Это может быть дорого для сложных деревьев зависимостей.
+</Callout>
+
+### Разрешение зависимостей
+
+Когда TRANSIENT сервис имеет зависимости:
+
+```typescript
+@Injectable() // SINGLETON
+class DatabaseService {}
+
+@Injectable({ scope: Scope.TRANSIENT })
+class UserRepository {
+  constructor(private db: DatabaseService) {} // SINGLETON инъектируется
+}
+
+const repo1 = container.resolve(UserRepository);
+const repo2 = container.resolve(UserRepository);
+
+console.log(repo1 === repo2); // false (разные UserRepository экземпляры)
+console.log(repo1['db'] === repo2['db']); // true (тот же DatabaseService экземпляр)
+```
+
+**Правило:** Зависимости разрешаются согласно их собственной области видимости, а не области видимости родителя.
+
+## Область видимости REQUEST
+
+**Один экземпляр на область видимости запроса** — использует AsyncLocalStorage для поддержки области видимости через асинхронные границы.
+
+### Базовое использование
+
+```typescript
+import { Injectable, Scope } from '@ambrosia/core';
+
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {
+  userId?: string;
+  requestId?: string;
+  startTime = Date.now();
+  
+  getElapsedTime() {
+    return Date.now() - this.startTime;
+  }
+}
+
+@Injectable()
+class UserService {
+  constructor(private context: RequestContext) {}
+  
+  getCurrentUser() {
+    return { id: this.context.userId };
+  }
+}
+
+// Создаём область видимости запроса
+await container.createRequestScope(async () => {
+  // Все разрешения в этой области видимости используют один RequestContext
+  const context = container.resolve(RequestContext);
+  context.userId = '123';
+  context.requestId = crypto.randomUUID();
+  
+  const userService = container.resolve(UserService);
+  const user = userService.getCurrentUser();
+  
+  console.log(user); // { id: '123' }
+  console.log(context.getElapsedTime()); // Время с начала области видимости
+});
+```
+
+### Пример HTTP сервера
+
+```typescript
+import { Hono } from 'hono';
+import { Container, Injectable, Scope } from '@ambrosia/core';
+
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {
+  userId?: string;
+  requestId = crypto.randomUUID();
+}
+
+@Injectable()
+class UserService {
+  constructor(private context: RequestContext) {}
+  
+  getCurrentUser() {
+    return { id: this.context.userId, requestId: this.context.requestId };
+  }
+}
+
+const app = new Hono();
+const container = new Container({ mode: 'production' });
+
+app.use('*', async (c, next) => {
+  // Создаём область видимости запроса для этого HTTP запроса
+  await container.createRequestScope(async () => {
+    const context = container.resolve(RequestContext);
+    context.userId = c.req.header('x-user-id');
+    
+    // Сохраняем контейнер в контексте для обработчиков маршрутов
+    c.set('container', container);
+    await next();
+  });
+});
+
+app.get('/user', (c) => {
+  const container = c.get('container') as Container;
+  const userService = container.resolve(UserService);
+  return c.json(userService.getCurrentUser());
+});
+```
+
+### Когда использовать
+
+✅ **Хорошие случаи использования:**
+- Контекст HTTP запроса
+- Пользовательские сессии
+- Транзакции с областью видимости запроса
+- Correlation ID
+- Кэширование специфичное для запроса
+
+❌ **Избегайте для:**
+- Глобальных сервисов
+- Сервисов без контекста запроса
+- Долгоживущих операций
+
+### AsyncLocalStorage
+
+Область видимости REQUEST использует AsyncLocalStorage Node.js/Bun для поддержания контекста через асинхронные операции:
+
+```typescript
+@Injectable({ scope: Scope.REQUEST })
+class TransactionContext {
+  private transaction?: DatabaseTransaction;
+  
+  async begin() {
+    this.transaction = await db.beginTransaction();
+  }
+  
+  async commit() {
+    await this.transaction?.commit();
+  }
+}
+
+await container.createRequestScope(async () => {
+  const tx = container.resolve(TransactionContext);
+  await tx.begin();
+  
+  // Контекст сохраняется через асинхронные границы
+  await Promise.all([
+    updateUser(userId),
+    updateOrders(userId),
+  ]);
+  
+  await tx.commit();
+});
+```
+
+<Callout type="success">
+  **AsyncLocalStorage сохраняет контекст** через `await`, `setTimeout`, `Promise.then()` и другие асинхронные операции.
+</Callout>
+
+## Иерархии областей видимости
+
+При комбинировании разных областей видимости:
+
+```typescript
+@Injectable({ scope: Scope.SINGLETON })
+class ConfigService {}
+
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {
+  constructor(private config: ConfigService) {} // SINGLETON инъектируется
+}
+
+@Injectable({ scope: Scope.TRANSIENT })
+class RequestHandler {
+  constructor(
+    private context: RequestContext, // REQUEST инъектируется
+    private config: ConfigService    // SINGLETON инъектируется
+  ) {}
+}
+```
+
+**Правила разрешения:**
+1. SINGLETON зависимости делятся глобально
+2. REQUEST зависимости делятся в пределах области видимости запроса
+3. TRANSIENT зависимости никогда не делятся
+
+## Очистка областей видимости
+
+### Очистить кэш Singleton
+
+Удалите все кэшированные singleton экземпляры:
+
+```typescript
+import { Scope } from '@ambrosia/core';
+
+container.clearScope(Scope.SINGLETON);
+
+// Следующее разрешение создаст новые экземпляры
+const service = container.resolve(UserService);
+```
+
+<Callout type="warn">
+  **Очистка области видимости SINGLETON уничтожает все singleton экземпляры.** Используйте это осторожно, обычно только в тестах или во время горячей перезагрузки.
+</Callout>
+
+### Очистить область видимости Request
+
+Области видимости Request автоматически очищаются когда `createRequestScope` завершается:
+
+```typescript
+await container.createRequestScope(async () => {
+  // REQUEST-scoped экземпляры созданы
+  const context = container.resolve(RequestContext);
+  
+  // ... выполнение работы ...
+}); // Область видимости автоматически очищена здесь
+```
+
+## Лучшие практики областей видимости
+
+### 1. Выбирайте правильную область видимости
+
+<Tabs items={['SINGLETON', 'TRANSIENT', 'REQUEST']}>
+  <Tab value="SINGLETON">
+    ```typescript
+    // Stateless сервисы
+    @Injectable()
+    class EmailService {
+      async send(to: string, body: string) {
+        // Без состояния экземпляра
+      }
+    }
+    
+    // Конфигурация
+    @Injectable()
+    class ConfigService {
+      private readonly config = loadConfig();
+    }
+    
+    // Подключения
+    @Injectable()
+    class DatabaseService {
+      private connection = createConnection();
+    }
+    ```
+  </Tab>
+  <Tab value="TRANSIENT">
+    ```typescript
+    // Команды с состоянием
+    @Injectable({ scope: Scope.TRANSIENT })
+    class CreateUserCommand {
+      private userData: UserData;
+      
+      setData(data: UserData) {
+        this.userData = data;
+      }
+      
+      execute() {
+        // Создать пользователя с this.userData
+      }
+    }
+    
+    // Обработчики запросов
+    @Injectable({ scope: Scope.TRANSIENT })
+    class RequestHandler {
+      private headers = new Map();
+    }
+    ```
+  </Tab>
+  <Tab value="REQUEST">
+    ```typescript
+    // Контекст запроса
+    @Injectable({ scope: Scope.REQUEST })
+    class RequestContext {
+      userId?: string;
+      requestId?: string;
+    }
+    
+    // Транзакции с областью видимости запроса
+    @Injectable({ scope: Scope.REQUEST })
+    class TransactionContext {
+      private tx?: Transaction;
+    }
+    
+    // Кэш с областью видимости запроса
+    @Injectable({ scope: Scope.REQUEST })
+    class RequestCache {
+      private cache = new Map();
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### 2. Избегайте несоответствия областей видимости
+
+❌ **Плохо - SINGLETON зависит от REQUEST:**
+```typescript
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {}
+
+@Injectable({ scope: Scope.SINGLETON })
+class UserService {
+  // ❌ Singleton захватывает REQUEST-scoped зависимость
+  constructor(private context: RequestContext) {}
+}
+```
+
+**Проблема:** Singleton захватывает первый RequestContext и никогда не обновляется.
+
+✅ **Хорошо - Инъектируйте Container:**
+```typescript
+@Injectable({ scope: Scope.SINGLETON })
+class UserService {
+  constructor(private container: Container) {}
+  
+  getCurrentUser() {
+    // Разрешаем при каждом вызове
+    const context = this.container.resolve(RequestContext);
+    return context.userId;
+  }
+}
+```
+
+## Следующие шаги
+
+- [Циклические зависимости](/docs/core/guides/circular-dependencies) - Обработка циклических ссылок
+- [Плагины](/docs/core/guides/plugins) - Расширьте контейнер lifecycle hooks
+- [API Справочник: Области видимости](/docs/core/api-reference/scopes) - Полный API областей видимости
+- [Примеры: HTTP сервер](/docs/core/examples/http-server) - Реальное использование REQUEST области видимости

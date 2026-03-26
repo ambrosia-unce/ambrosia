@@ -1,0 +1,92 @@
+---
+title: "Декораторы"
+description: "API Reference для WebSocket декораторов"
+---
+
+# Декораторы
+
+## @WebSocketGateway(path?)
+
+Декоратор класса. Регистрирует класс как WebSocket гейтвей.
+
+| Параметр | Тип | По умолчанию | Описание |
+|---|---|---|---|
+| `path` | `string` | `"/ws"` | Путь для WebSocket подключения |
+
+```typescript
+@WebSocketGateway("/chat")
+class ChatGateway {}
+
+@WebSocketGateway() // путь: "/ws"
+class DefaultGateway {}
+```
+
+Автоматически применяет `@Injectable()`.
+
+---
+
+## @SubscribeMessage(event)
+
+Декоратор метода. Подписывает метод на конкретное WebSocket событие.
+
+| Параметр | Тип | Описание |
+|---|---|---|
+| `event` | `string` | Имя события для подписки |
+
+**Параметры метода:**
+
+| Параметр | Тип | Описание |
+|---|---|---|
+| `client` | `WsClient` | WebSocket клиент |
+| `data` | `any` | Данные из поля `data` сообщения |
+
+**Возвращаемое значение:**
+- `{ event: string, data: any }` — отправляется клиенту
+- `void` — ответ не отправляется
+
+```typescript
+@SubscribeMessage("ping")
+handlePing(client: WsClient, data: any) {
+  return { event: "pong", data: { ts: Date.now() } };
+}
+```
+
+---
+
+## @OnConnection()
+
+Декоратор метода. Вызывается при подключении нового клиента.
+
+**Параметры метода:**
+
+| Параметр | Тип | Описание |
+|---|---|---|
+| `client` | `WsClient` | Подключённый клиент |
+
+```typescript
+@OnConnection()
+handleConnection(client: WsClient) {
+  client.data.connectedAt = Date.now();
+}
+```
+
+---
+
+## @OnDisconnection()
+
+Декоратор метода. Вызывается при отключении клиента.
+
+**Параметры метода:**
+
+| Параметр | Тип | Описание |
+|---|---|---|
+| `client` | `WsClient` | Отключённый клиент |
+| `code` | `number` | WebSocket close code |
+| `reason` | `string` | Причина закрытия |
+
+```typescript
+@OnDisconnection()
+handleDisconnection(client: WsClient, code: number, reason: string) {
+  console.log(`Closed: ${code} ${reason}`);
+}
+```

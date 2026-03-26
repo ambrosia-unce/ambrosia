@@ -1,0 +1,273 @@
+---
+title: "Error Types"
+description: "Reference for all DI container errors in @ambrosia/core"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Error Types
+
+All DI errors inherit from `DIError`, which inherits from the standard `Error`. Each error type contains an actionable message with recommendations for fixing.
+
+## Error Hierarchy
+
+```
+Error
+ +-- DIError
+     +-- CircularDependencyError
+     +-- ProviderNotFoundError
+     +-- InvalidProviderError
+     +-- ResolutionError
+     +-- NoRequestScopeError
+     +-- NotInjectableError
+```
+
+---
+
+## DIError
+
+Base class for all DI errors.
+
+```typescript
+class DIError extends Error {
+  constructor(message: string);
+  name: "DIError";
+}
+```
+
+Use `instanceof DIError` to catch all DI errors:
+
+```typescript
+import { DIError } from "@ambrosia/core";
+
+try {
+  container.resolve(SomeService);
+} catch (error) {
+  if (error instanceof DIError) {
+    console.error("DI error:", error.message);
+  }
+}
+```
+
+---
+
+## CircularDependencyError
+
+Thrown when a circular dependency is detected in the graph.
+
+```typescript
+class CircularDependencyError extends DIError {
+  readonly chain: Token[];
+  name: "CircularDependencyError";
+}
+```
+
+### Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `chain` | `Token[]` | Full cycle path: `[A, B, C, A]` |
+| `message` | `string` | Cycle visualization and recommendations |
+
+### How to Fix
+
+<Tabs items={['@Autowired', 'autoResolveCircular', 'Refactoring']}>
+<Tab value="@Autowired">
+```typescript
+@Injectable()
+class ServiceA {
+  @Autowired()
+  private serviceB!: ServiceB; // Property injection breaks the cycle
+}
+
+@Injectable()
+class ServiceB {
+  constructor(private serviceA: ServiceA) {}
+}
+```
+</Tab>
+<Tab value="autoResolveCircular">
+```typescript
+const container = new Container({ autoResolveCircular: true });
+```
+</Tab>
+<Tab value="Refactoring">
+```typescript
+@Injectable()
+class SharedLogic { /* ... */ }
+
+@Injectable()
+class ServiceA {
+  constructor(private shared: SharedLogic) {}
+}
+
+@Injectable()
+class ServiceB {
+  constructor(private shared: SharedLogic) {}
+}
+```
+</Tab>
+</Tabs>
+
+---
+
+## ProviderNotFoundError
+
+Thrown when the container cannot find a provider for the requested token.
+
+```typescript
+class ProviderNotFoundError extends DIError {
+  readonly token: Token;
+  name: "ProviderNotFoundError";
+}
+```
+
+### Common Causes
+
+1. **Missing `@Injectable()`** on the class
+2. **Unregistered** `InjectionToken` via `registerValue()`
+3. **Incorrect import** - different copies of the same module
+4. **Pack does not export** the token with `enforceExports: true`
+
+---
+
+## InvalidProviderError
+
+Thrown when attempting to register an invalid provider.
+
+```typescript
+class InvalidProviderError extends DIError {
+  name: "InvalidProviderError";
+}
+```
+
+---
+
+## ResolutionError
+
+Wrapper over an error that occurred during dependency resolution. Contains context (which token was being resolved) and the original error.
+
+```typescript
+class ResolutionError extends DIError {
+  readonly token: Token;
+  cause: Error;
+  name: "ResolutionError";
+}
+```
+
+### Common Causes
+
+1. **Class constructor** threw an error
+2. **Factory function** returned an error
+3. **Missing dependency** of the constructor (no metadata)
+
+---
+
+## NoRequestScopeError
+
+Thrown when attempting to resolve a `REQUEST`-scoped provider outside an active request context.
+
+```typescript
+class NoRequestScopeError extends DIError {
+  name: "NoRequestScopeError";
+}
+```
+
+### How to Fix
+
+```typescript
+// Error - no request context
+container.resolve(RequestContext); // throws NoRequestScopeError
+
+// Wrap in request scope
+container.requestStorage.run(() => {
+  container.resolve(RequestContext); // OK
+});
+```
+
+---
+
+## NotInjectableError
+
+Thrown when a class without `@Injectable()` is used as a dependency.
+
+```typescript
+class NotInjectableError extends DIError {
+  readonly target: Function;
+  name: "NotInjectableError";
+}
+```
+
+---
+
+## Error Handling Patterns
+
+### Typed Catch
+
+```typescript
+import {
+  DIError, CircularDependencyError, ProviderNotFoundError,
+  ResolutionError, NoRequestScopeError,
+} from "@ambrosia/core";
+
+try {
+  const service = container.resolve(MyService);
+} catch (error) {
+  if (error instanceof CircularDependencyError) {
+    console.error("Cycle:", error.chain);
+  } else if (error instanceof ProviderNotFoundError) {
+    console.error("Missing:", error.token);
+  } else if (error instanceof NoRequestScopeError) {
+    console.error("Wrap in requestStorage.run()");
+  } else if (error instanceof ResolutionError) {
+    console.error("Resolution failed:", error.cause);
+  } else if (error instanceof DIError) {
+    console.error("DI error:", error.message);
+  }
+}
+```
+
+### Global Catch via Plugin
+
+```typescript
+const errorPlugin: Plugin = {
+  name: "global-error-handler",
+  onError(error, context) {
+    errorTracker.capture(error, {
+      token: tokenToString(context.token),
+      scope: context.scope,
+      parent: context.parent ? tokenToString(context.parent) : undefined,
+    });
+  },
+};
+
+container.use(errorPlugin);
+```
+
+### Graceful Degradation with @Optional
+
+```typescript
+@Injectable()
+class AppService {
+  constructor(
+    @Inject(CACHE_SERVICE) @Optional() private cache?: CacheService,
+    @Inject(METRICS) @Optional() private metrics?: MetricsClient,
+  ) {}
+
+  getData(key: string) {
+    const cached = this.cache?.get(key);
+    if (cached) {
+      this.metrics?.increment("cache.hit");
+      return cached;
+    }
+    // ... fetch from DB
+  }
+}
+```
+
+## Next Steps
+
+- [Container API](/docs/core/api-reference/container) - Container methods
+- [Decorators](/docs/core/api-reference/decorators) - @Optional and others
+- [Circular Dependencies](/docs/core/guides/circular-dependencies) - Resolution strategies

@@ -1,0 +1,111 @@
+---
+title: "Quick Start"
+description: "Создание первого WebSocket гейтвея"
+---
+
+# Quick Start
+
+Создадим простой чат за 5 минут.
+
+## 1. Сервис
+
+```typescript title="chat.service.ts"
+import { Injectable } from "@ambrosia/core";
+
+@Injectable()
+export class ChatService {
+  private messages: Array<{ from: string; text: string; ts: number }> = [];
+
+  addMessage(from: string, text: string) {
+    const msg = { from, text, ts: Date.now() };
+    this.messages.push(msg);
+    return msg;
+  }
+
+  getHistory() {
+    return this.messages.slice(-50);
+  }
+}
+```
+
+## 2. Гейтвей
+
+```typescript title="chat.gateway.ts"
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  OnConnection,
+  OnDisconnection,
+} from "@ambrosia/websocket";
+import type { WsClient } from "@ambrosia/websocket";
+import { ChatService } from "./chat.service";
+
+@WebSocketGateway("/chat")
+export class ChatGateway {
+  constructor(private chatService: ChatService) {}
+
+  @OnConnection()
+  onConnect(client: WsClient) {
+    console.log(`+ ${client.id}`);
+    // Отправляем историю новому клиенту
+    const history = this.chatService.getHistory();
+    client.send("history", history);
+  }
+
+  @OnDisconnection()
+  onDisconnect(client: WsClient) {
+    console.log(`- ${client.id}`);
+  }
+
+  @SubscribeMessage("sendMessage")
+  onMessage(client: WsClient, data: { text: string }) {
+    const msg = this.chatService.addMessage(client.id, data.text);
+    // Возвращаем ответ — автоматически отправляется клиенту
+    return { event: "newMessage", data: msg };
+  }
+}
+```
+
+## 3. Клиент (браузер)
+
+```javascript title="client.js"
+const ws = new WebSocket("ws://localhost:3000/chat");
+
+ws.onopen = () => {
+  // Отправляем сообщение
+  ws.send(JSON.stringify({
+    event: "sendMessage",
+    data: { text: "Hello!" }
+  }));
+};
+
+ws.onmessage = (event) => {
+  const { event: eventName, data } = JSON.parse(event.data);
+
+  if (eventName === "newMessage") {
+    console.log(`${data.from}: ${data.text}`);
+  }
+
+  if (eventName === "history") {
+    console.log("Chat history:", data);
+  }
+};
+```
+
+## 4. Протокол сообщений
+
+Все сообщения передаются как JSON с форматом:
+
+```json
+{ "event": "eventName", "data": { ... } }
+```
+
+- **Клиент → Сервер:** `{ "event": "sendMessage", "data": { "text": "Hello" } }`
+- **Сервер → Клиент:** `{ "event": "newMessage", "data": { "from": "ws-1", "text": "Hello" } }`
+
+Обработчик `@SubscribeMessage("sendMessage")` получает `data` из сообщения. Если метод возвращает `{ event, data }` — ответ автоматически отправляется клиенту.
+
+## Следующие шаги
+
+- [Подробно о гейтвеях](/docs/websocket/guides/gateways)
+- [Тестирование WebSocket](/docs/websocket/guides/testing)

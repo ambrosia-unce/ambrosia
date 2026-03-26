@@ -1,0 +1,35 @@
+{
+  "name": "@ambrosia/websocket-elysia",
+  "version": "0.1.0",
+  "description": "Elysia.js WebSocket adapter for @ambrosia/websocket",
+  "type": "module",
+  "license": "MIT",
+  "author": "Ambrosia Framework",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun run build.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@ambrosia/websocket": "workspace:*",
+    "elysia": "^1.4.22"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,398 @@
+---
+title: Guards
+description: Protecting routes with Guards in Ambrosia HTTP
+---
+
+# Guards
+
+Guards determine whether a request should be handled or rejected. They execute after middleware but before interceptors and the handler.
+
+## Basics
+
+A Guard is a class with a `canActivate()` method that returns a boolean or Promise\<boolean\>:
+
+```typescript
+import { Injectable } from '@ambrosia/core';
+import { Guard, ExecutionContext, ForbiddenException } from '@ambrosia/http';
+
+@Injectable()
+export class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const token = request.headers['authorization'];
+
+    if (!token) {
+      throw new ForbiddenException('Authorization required');
+    }
+
+    // Token validation
+    const isValid = await this.validateToken(token);
+    return isValid;
+  }
+
+  private async validateToken(token: string): Promise<boolean> {
+    // Token validation logic
+    return token.startsWith('Bearer ');
+  }
+}
+```
+
+## Applying Guards
+
+### At the Method Level
+
+```typescript
+import { Controller, Http, UseGuard } from '@ambrosia/http';
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/profile')
+  @UseGuard(AuthGuard)
+  async getProfile() {
+    return { user: 'current user' };
+  }
+
+  @Http.Get('/public')
+  async getPublic() {
+    return { data: 'public data' };
+  }
+}
+```
+
+### At the Controller Level
+
+```typescript
+@Controller('/admin')
+@UseGuard(AuthGuard, AdminGuard)
+export class AdminController {
+  // All methods are protected by AuthGuard and AdminGuard
+
+  @Http.Get('/users')
+  async getUsers() {
+    return [];
+  }
+
+  @Http.Delete('/users/:id')
+  @UseGuard(SuperAdminGuard) // Additional guard for this method
+  async deleteUser(@Param('id') id: string) {
+    // Requires AuthGuard + AdminGuard + SuperAdminGuard
+  }
+}
+```
+
+### Global Guards
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalGuards: [AuthGuard],
+  port: 3000
+});
+```
+
+## ExecutionContext
+
+Guards receive an `ExecutionContext` to access request details:
+
+```typescript
+@Injectable()
+export class RoleGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { getRequest } = context.switchToHttp();
+    const request = getRequest();
+
+    // Get handler metadata
+    const requiredRoles = context.getMetadata<string[]>('roles');
+    if (!requiredRoles) {
+      return true; // No role requirements
+    }
+
+    const user = request.user; // Assumed to be set by AuthGuard
+    return requiredRoles.some(role => user.roles?.includes(role));
+  }
+}
+```
+
+## SetMetadata and @Public
+
+`SetMetadata(key, value)` is a universal decorator for attaching arbitrary metadata to a class or method. Metadata is accessible via `context.getMetadata(key)` in guards and interceptors.
+
+```typescript
+import { SetMetadata } from '@ambrosia/http';
+
+// Create a custom decorator
+export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
+
+// In the controller
+@Http.Get('/admin')
+@UseGuard(RoleGuard)
+@Roles('admin', 'moderator')
+async adminOnly() {
+  return { message: 'Admins only' };
+}
+```
+
+### @Public and IS_PUBLIC_KEY
+
+`@Public()` is a built-in decorator that marks a route as public. This is useful when a global guard protects the entire application, but certain routes should be accessible without authorization:
+
+```typescript
+import { Public, IS_PUBLIC_KEY } from '@ambrosia/http';
+
+// Guard checks for @Public
+@Injectable()
+export class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // If the route is marked @Public, skip authorization
+    const isPublic = context.getMetadata<boolean>(IS_PUBLIC_KEY);
+    if (isPublic) {
+      return true;
+    }
+
+    const { getRequest } = context.switchToHttp();
+    const token = getRequest().headers['authorization'];
+    return !!token && this.validateToken(token);
+  }
+}
+
+// Register a global guard
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalGuards: [AuthGuard],
+});
+
+// Controller
+@Controller('/api')
+export class AppController {
+  @Public()
+  @Http.Get('/health')
+  health() {
+    return { ok: true }; // Accessible without a token
+  }
+
+  @Http.Get('/profile')
+  profile() {
+    return { user: 'current' }; // Requires authorization
+  }
+}
+```
+
+`@Public()` is syntactic sugar for `SetMetadata(IS_PUBLIC_KEY, true)`.
+
+## Dependency Injection
+
+Guards support full DI:
+
+```typescript
+@Injectable()
+export class AuthGuard implements Guard {
+  constructor(
+    private authService: AuthService,
+    private userRepository: UserRepository
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const token = request.headers['authorization'];
+
+    if (!token) {
+      return false;
+    }
+
+    try {
+      // Using injected dependencies
+      const payload = await this.authService.verifyToken(token);
+      const user = await this.userRepository.findById(payload.userId);
+
+      if (!user) {
+        return false;
+      }
+
+      // Attach user to request for use in handlers
+      request.user = user;
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+}
+```
+
+## Exceptions in Guards
+
+Guards can throw exceptions instead of returning `false`:
+
+```typescript
+@Injectable()
+export class PermissionGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const user = request.user;
+
+    if (!user) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+
+    const requiredPermission = context.getMetadata<string>('permission');
+    if (!requiredPermission) {
+      return true;
+    }
+
+    if (!user.permissions.includes(requiredPermission)) {
+      throw new ForbiddenException(
+        `Permission required: ${requiredPermission}`
+      );
+    }
+
+    return true;
+  }
+}
+```
+
+## Execution Order
+
+Guards execute in the following order:
+
+1. Global guards
+2. Controller-level guards
+3. Method-level guards
+
+If any guard returns `false` or throws an exception, the request is rejected.
+
+```typescript
+// Execution order:
+const app = await HttpApplication.create({
+  globalGuards: [GlobalAuthGuard], // 1. First
+});
+
+@Controller('/users')
+@UseGuard(ControllerAuthGuard) // 2. Second
+export class UserController {
+  @Http.Get('/:id')
+  @UseGuard(MethodAuthGuard) // 3. Third
+  async getUser(@Param('id') id: string) {
+    return {};
+  }
+}
+```
+
+## Usage Patterns
+
+### IP Whitelist Guard
+
+```typescript
+@Injectable()
+export class IpWhitelistGuard implements Guard {
+  private whitelist = ['127.0.0.1', '::1'];
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const clientIp = request.ip;
+
+    if (!this.whitelist.includes(clientIp)) {
+      throw new ForbiddenException('IP address not whitelisted');
+    }
+
+    return true;
+  }
+}
+```
+
+### Rate Limiting Guard
+
+```typescript
+@Injectable()
+export class RateLimitGuard implements Guard {
+  private requests = new Map<string, number[]>();
+  private readonly limit = 100; // 100 requests
+  private readonly window = 60000; // per 1 minute
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const { request } = context.switchToHttp();
+    const key = request.ip || 'unknown';
+
+    const now = Date.now();
+    const timestamps = this.requests.get(key) || [];
+
+    // Remove old timestamps
+    const validTimestamps = timestamps.filter(t => now - t < this.window);
+
+    if (validTimestamps.length >= this.limit) {
+      throw new BadRequestException('Rate limit exceeded');
+    }
+
+    validTimestamps.push(now);
+    this.requests.set(key, validTimestamps);
+
+    return true;
+  }
+}
+```
+
+### Feature Flag Guard
+
+```typescript
+@Injectable()
+export class FeatureGuard implements Guard {
+  constructor(private configService: ConfigService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const feature = context.getMetadata<string>('feature');
+    if (!feature) {
+      return true;
+    }
+
+    const isEnabled = await this.configService.isFeatureEnabled(feature);
+    if (!isEnabled) {
+      throw new NotFoundException('Feature not available');
+    }
+
+    return true;
+  }
+}
+
+// Usage
+export const Feature = (name: string) => SetMetadata('feature', name);
+
+@Http.Get('/beta-feature')
+@UseGuard(FeatureGuard)
+@Feature('beta-dashboard')
+async betaFeature() {
+  return { data: 'beta feature' };
+}
+```
+
+## Guard Composition
+
+You can combine multiple guards:
+
+```typescript
+@Controller('/api')
+@UseGuard(AuthGuard, RoleGuard)
+export class ApiController {
+  @Http.Post('/data')
+  @UseGuard(RateLimitGuard, PermissionGuard)
+  @Roles('admin')
+  @Permission('data:write')
+  async createData(@Body() data: CreateDataDto) {
+    // Requires: Auth + Role(admin) + RateLimit + Permission(data:write)
+    return { id: 1 };
+  }
+}
+```
+
+## Best Practices
+
+1. **Single responsibility per guard**: A guard should check only one condition
+2. **Cache results**: If validation is expensive, cache results on the request
+3. **Use exceptions**: Throw specific exceptions instead of returning `false` for better error handling
+4. **Attach data to request**: After validation, attach user data to the request for use in handlers
+5. **Global guards for basic protection**: Use global guards for authentication, local ones for authorization
+6. **Metadata for configuration**: Use metadata to pass configuration to guards
+7. **DI for logic**: Inject services for complex validation logic
+
+## See Also
+
+- [Interceptors](/docs/http/guides/interceptors) - Request and response transformation
+- [Middleware](/docs/http/guides/middleware) - HTTP-level processing
+- [Exception Filters](/docs/http/guides/exception-filters) - Error handling

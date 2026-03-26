@@ -1,0 +1,114 @@
+---
+title: "ambrosia remove"
+description: "Команда удаления установленных паков из проекта"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia remove
+
+Удаляет установленные паки из проекта: стирает файлы, очищает пустые директории и обновляет `ambrosia.json`.
+
+## Использование
+
+```bash
+ambrosia remove <pack...>
+```
+
+## Аргументы
+
+| Аргумент | Описание |
+|---|---|
+| `<pack...>` | Одно или несколько имён паков для удаления |
+
+## Примеры
+
+```bash
+# Один pack
+ambrosia remove jwt-auth
+
+# Несколько паков
+ambrosia remove jwt-auth redis-cache
+```
+
+## Что делает
+
+### 1. Валидация
+
+CLI проверяет, что все указанные паки установлены. Если пак не найден в `ambrosia.json`:
+
+```
+✗  Pack(s) not installed: unknown-pack
+```
+
+### 2. Удаление файлов
+
+CLI удаляет все файлы, перечисленные в записи пака в `ambrosia.json`:
+
+```
+$ ambrosia remove jwt-auth
+
+◆  ambrosia remove
+│
+◒  Removing packs...
+◇  Removed 1 pack(s)
+```
+
+Удаляются только файлы, зарегистрированные при установке. Файлы, добавленные вручную в директорию пака, остаются.
+
+### 3. Очистка директорий
+
+После удаления файлов CLI пытается удалить оставшиеся пустые директории (от самых вложенных к родительским). Непустые директории сохраняются.
+
+### 4. Обновление ambrosia.json
+
+Запись удалённого пака убирается из секции `packs`:
+
+```json title="ambrosia.json (до)"
+{
+  "packs": {
+    "jwt-auth": { "version": "0.2.1", "registry": "default", ... },
+    "redis-cache": { "version": "0.1.3", "registry": "default", ... }
+  }
+}
+```
+
+```json title="ambrosia.json (после ambrosia remove jwt-auth)"
+{
+  "packs": {
+    "redis-cache": { "version": "0.1.3", "registry": "default", ... }
+  }
+}
+```
+
+## Важные замечания
+
+<Callout type="warn">
+  Команда **не удаляет npm-зависимости**, которые были установлены вместе с паком. Если пак добавлял `jose` или другие пакеты, они останутся в `package.json`. Удалите их вручную при необходимости.
+</Callout>
+
+<Callout type="warn">
+  Если другие паки зависят от удаляемого пака (через `registryDependencies`), CLI **не предупредит** об этом. Убедитесь, что удаляемый пак не используется другими модулями.
+</Callout>
+
+## Ошибки
+
+### Pack не установлен
+
+```
+✗  Pack(s) not installed: unknown-pack
+```
+
+Проверьте имя пака. Используйте `ambrosia list` для просмотра установленных паков.
+
+### Нет ambrosia.json
+
+```
+✗  No ambrosia.json found. Run "ambrosia init" to create one.
+```
+
+## Подробнее
+
+- [ambrosia list](/docs/cli/commands/list) — просмотр установленных паков
+- [ambrosia add](/docs/cli/commands/add) — повторная установка паков
+- [ambrosia update](/docs/cli/commands/update) — обновление паков

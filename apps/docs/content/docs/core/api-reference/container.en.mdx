@@ -1,0 +1,375 @@
+---
+title: "Container API"
+description: "Complete reference for the Container class - the central component of the DI system"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Container API
+
+`Container` is the central class of the DI system. It manages provider registration, dependency resolution, instance caching, and lifecycle.
+
+## Creating a Container
+
+```typescript
+import { Container } from "@ambrosia/core";
+
+// With default settings
+const container = new Container();
+
+// With options
+const container = new Container({
+  autoRegister: true,
+  autoResolveCircular: false,
+  mode: "development",
+});
+
+// Legacy: boolean for autoRegister
+const container = new Container(false);
+```
+
+### ContainerOptions
+
+```typescript
+interface ContainerOptions {
+  autoRegister?: boolean;          // default: true
+  autoResolveCircular?: boolean;   // default: false
+  enforceExports?: boolean;        // default: false
+  mode?: "development" | "production"; // default: "development"
+  enableCycleDetection?: boolean;  // default: true in dev, false in prod
+}
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `autoRegister` | `boolean` | `true` | Automatically registers `@Injectable()` classes from the global Registry |
+| `autoResolveCircular` | `boolean` | `false` | Uses lazy proxy for automatic circular dependency resolution |
+| `enforceExports` | `boolean` | `false` | Only allows resolving tokens exported by packs |
+| `mode` | `string` | `"development"` | Mode: `development` - full diagnostics, `production` - optimized |
+| `enableCycleDetection` | `boolean` | depends on mode | Explicit cycle detection control (overrides mode) |
+
+### Global Container
+
+The package exports a ready-made singleton container:
+
+```typescript
+import { container } from "@ambrosia/core";
+
+const service = container.resolve(MyService);
+```
+
+---
+
+## Registering Providers
+
+### register()
+
+Registers a provider of any type.
+
+```typescript
+register<T>(provider: Provider<T>): void
+```
+
+```typescript
+import { Scope } from "@ambrosia/core";
+
+// ClassProvider
+container.register({ token: UserService, useClass: UserService, scope: Scope.SINGLETON });
+
+// ValueProvider
+container.register({ token: CONFIG_TOKEN, useValue: { apiUrl: "https://api.example.com" } });
+
+// FactoryProvider
+container.register({ token: Logger, useFactory: (c) => new Logger(c.resolve(CONFIG_TOKEN)), scope: Scope.SINGLETON });
+
+// ExistingProvider (alias)
+container.register({ token: ILogger, useExisting: ConsoleLogger });
+```
+
+### registerClass()
+
+Shorthand for registering a class.
+
+```typescript
+registerClass<T>(token: Token<T>, useClass: Constructor<T>, scope?: Scope): void
+```
+
+### registerValue()
+
+Registers a constant value.
+
+```typescript
+registerValue<T>(token: Token<T>, value: T): void
+```
+
+### registerFactory()
+
+Registers a factory function.
+
+```typescript
+registerFactory<T>(token: Token<T>, factory: Factory<T>, scope?: Scope, deps?: Token[]): void
+```
+
+### registerExisting()
+
+Creates an alias: one token points to another.
+
+```typescript
+registerExisting<T>(token: Token<T>, existingToken: Token<T>): void
+```
+
+### registerInstance()
+
+Registers a ready-made instance (wrapper over `registerValue`).
+
+```typescript
+registerInstance<T>(token: Token<T>, instance: T): void
+```
+
+---
+
+## Resolving Dependencies
+
+### resolve()
+
+Synchronously resolves a dependency. Throws an error if the provider is not found.
+
+```typescript
+resolve<T = unknown>(token: Token<T>): T
+```
+
+<Callout type="warn">
+If a class's `onInit()` returns a `Promise`, `resolve()` will throw an error. Use `resolveAsync()`.
+</Callout>
+
+### resolveOptional()
+
+Resolves a dependency or returns `undefined` if the provider is not found.
+
+```typescript
+resolveOptional<T = unknown>(token: Token<T>): T | undefined
+```
+
+### resolveAsync()
+
+Asynchronously resolves a dependency. Supports async factories and async `onInit()`.
+
+```typescript
+resolveAsync<T = unknown>(token: Token<T>): Promise<T>
+```
+
+### resolveOptionalAsync()
+
+Async optional resolution.
+
+```typescript
+resolveOptionalAsync<T = unknown>(token: Token<T>): Promise<T | undefined>
+```
+
+---
+
+## Scope Management
+
+### requestStorage
+
+Access to `RequestScopeStorage` for creating request contexts.
+
+```typescript
+container.requestStorage.run(() => {
+  const ctx = container.resolve(RequestContext);
+});
+
+await container.requestStorage.runAsync(async () => {
+  const ctx = container.resolve(RequestContext);
+  await handleRequest(ctx);
+});
+```
+
+### createChild()
+
+Creates a child container with separate caches but inherited providers.
+
+```typescript
+createChild(): Container
+```
+
+### clearScope()
+
+Clears all cached instances in the specified scope.
+
+```typescript
+clearScope(scope: Scope): void
+```
+
+### clearAll()
+
+Clears all caches in all scopes.
+
+```typescript
+clearAll(): void
+```
+
+### destroyAll()
+
+Calls `onDestroy()` on all tracked instances in reverse order (LIFO), then clears caches.
+
+```typescript
+destroyAll(): Promise<Error[]>
+```
+
+<Callout type="info">
+Errors in `onDestroy()` are logged and collected but do not interrupt the process - all instances will be destroyed.
+</Callout>
+
+---
+
+## Provider Management
+
+### has()
+
+Checks if a provider is registered for the token. Also checks the parent container.
+
+```typescript
+has(token: Token): boolean
+```
+
+### getTokens()
+
+Returns all registered tokens.
+
+```typescript
+getTokens(): Token[]
+```
+
+### remove()
+
+Removes a provider (does not affect cached instances).
+
+```typescript
+remove(token: Token): boolean
+```
+
+### size
+
+Number of registered providers.
+
+```typescript
+get size: number
+```
+
+### snapshot()
+
+Returns all providers. Useful for debugging and testing.
+
+```typescript
+snapshot(): Provider[]
+```
+
+---
+
+## Plugin System
+
+### use()
+
+Registers a plugin. Supports chaining.
+
+```typescript
+use(plugin: Plugin, priority?: PluginPriority): this
+```
+
+### getPlugins()
+
+Returns an array of all registered plugins.
+
+```typescript
+getPlugins(): Plugin[]
+```
+
+### hasPlugin()
+
+Checks for a plugin by name.
+
+```typescript
+hasPlugin(pluginName: string): boolean
+```
+
+---
+
+## Pack Introspection
+
+### getLoadedPacks()
+
+Returns information about all loaded packs.
+
+```typescript
+getLoadedPacks(): LoadedPackInfo[]
+```
+
+### getPack()
+
+Gets pack information by name.
+
+```typescript
+getPack(name: string): LoadedPackInfo | undefined
+```
+
+---
+
+## Diagnostics
+
+### getDiagnostics()
+
+Returns diagnostic information about the container.
+
+```typescript
+getDiagnostics(): {
+  providerCount: number;
+  singletonCacheSize: number;
+  requestCacheSize: number;
+  hasParent: boolean;
+}
+```
+
+---
+
+## Full Example
+
+```typescript
+import {
+  Container, Injectable, Inject, InjectionToken, Scope,
+  type OnInit, type OnDestroy, LoggingPlugin,
+} from "@ambrosia/core";
+
+const DB_URL = new InjectionToken<string>("DB_URL");
+
+@Injectable()
+class DatabaseService implements OnInit, OnDestroy {
+  private pool: ConnectionPool | null = null;
+  constructor(@Inject(DB_URL) private url: string) {}
+  async onInit() { this.pool = await ConnectionPool.create(this.url); }
+  async onDestroy() { await this.pool?.close(); }
+  query(sql: string) { return this.pool!.query(sql); }
+}
+
+@Injectable()
+class UserRepository {
+  constructor(private db: DatabaseService) {}
+  findById(id: string) { return this.db.query(`SELECT * FROM users WHERE id = '${id}'`); }
+}
+
+const container = new Container({ mode: "production" });
+container.use(new LoggingPlugin());
+container.registerValue(DB_URL, "postgres://localhost:5432/mydb");
+
+const repo = await container.resolveAsync(UserRepository);
+const user = await repo.findById("123");
+
+await container.destroyAll();
+```
+
+## Next Steps
+
+- [Decorators](/docs/core/api-reference/decorators) - Reference for all decorators
+- [Scopes](/docs/core/api-reference/scopes) - Instance lifecycle management
+- [Plugin System](/docs/core/api-reference/plugins) - Extending the container

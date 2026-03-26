@@ -1,0 +1,121 @@
+---
+title: "ambrosia search"
+description: "Command for searching packs in Pack Registry"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia search
+
+Searches for packs in the registry by text query. Returns a list of matching packs with descriptions, versions, and categories.
+
+## Usage
+
+```bash
+ambrosia search <query> [--registry <name>]
+```
+
+## Arguments
+
+| Argument | Description |
+|---|---|
+| `<query>` | Text query for searching (name, tag, or keyword) |
+| `--registry <name>` | Registry name from `ambrosia.json` (default: `"default"`) |
+
+## Examples
+
+```bash
+# Search by keyword
+ambrosia search auth
+
+# Search for caching packs
+ambrosia search cache
+
+# Search in a corporate registry
+ambrosia search internal-auth --registry corp
+```
+
+## What It Does
+
+### 1. Reading Configuration
+
+The CLI reads `ambrosia.json` from the current directory to get the registry URL. If the file is not found:
+
+```
+✗  No ambrosia.json found. Run "ambrosia init" to create one.
+```
+
+### 2. Querying the Registry
+
+The CLI sends a search request to the registry and receives a list of matches:
+
+```
+$ ambrosia search auth
+
+◆  ambrosia search
+│
+◒  Searching for "auth"...
+◇  Found 3 pack(s)
+```
+
+### 3. Output Format
+
+Results are displayed as a table:
+
+```
+│ Results
+│
+│ Name        Version  Category  Description
+│ ──────────  ───────  ────────  ──────────────────────────────
+│ jwt-auth    0.2.1    auth      JWT authentication with guards and RBAC
+│ rbac-pack   0.1.0    auth      Role-based access control
+│ oauth2      0.3.0    auth      OAuth2 provider with Google, GitHub support
+```
+
+If no packs are found:
+
+```
+◇  Search complete
+ℹ  No packs found.
+```
+
+## Using with a Custom Registry
+
+```bash
+ambrosia search logging --registry corp
+```
+
+The `"corp"` registry must be defined in `ambrosia.json`:
+
+```json
+{
+  "registries": {
+    "default": "https://registry.ambrosia.dev",
+    "corp": "https://packs.mycompany.com"
+  }
+}
+```
+
+## Errors
+
+### Registry Unavailable
+
+```
+✗  Search failed: Failed to fetch from https://registry.ambrosia.dev
+```
+
+Check your network connection and registry URL availability.
+
+### Unknown Registry
+
+```
+✗  Unknown registry "unknown". Available: default, corp
+```
+
+Add the registry to `ambrosia.json` under `registries`.
+
+## See Also
+
+- [ambrosia add](/docs/cli/commands/add) — installing found packs
+- [Pack Registry Overview](/docs/cli/registry/overview)
+- [Custom Registry](/docs/cli/registry/custom-registry)

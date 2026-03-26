@@ -1,0 +1,251 @@
+---
+title: "Deployment"
+description: "Build and deploy your Ambrosia application to production"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Deployment
+
+Ambrosia applications run on Bun, so deployment is straightforward -- no transpilation step is required. Bun executes TypeScript directly.
+
+## Production Build
+
+### Option 1: Run TypeScript directly
+
+The simplest approach -- Bun runs `.ts` files natively:
+
+```bash
+NODE_ENV=production bun run src/main.ts
+```
+
+This is sufficient for most deployments. Bun's TypeScript execution is fast and has minimal overhead.
+
+### Option 2: Compile to a single binary
+
+Bun can compile your application into a standalone executable with no external dependencies:
+
+```bash
+bun build --compile src/main.ts --outfile my-api
+```
+
+This produces a single binary that includes the Bun runtime. The result is a self-contained executable you can deploy to any compatible system without installing Bun.
+
+```bash
+./my-api
+```
+
+<Callout type="info">
+The compiled binary includes the Bun runtime, so it works on machines without Bun installed. The binary size is typically 50-80 MB.
+</Callout>
+
+## Environment Configuration
+
+Use `@ambrosia/config` to manage environment-specific settings. Never commit secrets to version control.
+
+### `.env` files
+
+Create environment-specific files:
+
+```
+.env                # Default values (committed)
+.env.local          # Local overrides (gitignored)
+.env.production     # Production values (gitignored)
+```
+
+Pass the correct env file via `ConfigModule.forRoot()`:
+
+```ts
+ConfigModule.forRoot({
+  schema: AppConfig,
+  envPath: `.env.${process.env.NODE_ENV || 'development'}`,
+  validate: true,
+})
+```
+
+### Environment variables
+
+In production, prefer real environment variables over `.env` files. `@ambrosia/config` reads from `process.env` by default -- the `.env` file is an overlay.
+
+```bash
+PORT=8080 NODE_ENV=production bun run src/main.ts
+```
+
+## Docker
+
+### Dockerfile
+
+```dockerfile
+FROM oven/bun:1 AS base
+WORKDIR /app
+
+# Install dependencies
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+
+# Copy source
+COPY src/ src/
+COPY bunfig.toml tsconfig.json ./
+
+# Run
+ENV NODE_ENV=production
+EXPOSE 3000
+CMD ["bun", "run", "src/main.ts"]
+```
+
+### Docker Compose
+
+```yaml
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+```
+
+Build and run:
+
+```bash
+docker compose up -d
+```
+
+## Health Checks
+
+Add a health check endpoint to your application for load balancers and orchestrators:
+
+```ts
+import { Controller, Http } from '@ambrosia/http';
+
+@Controller('/health')
+export class HealthController {
+  @Http.Get()
+  check() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
+}
+```
+
+Register it in your root pack or directly in `HttpApplication.create()`:
+
+```ts
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  controllers: [HealthController],
+});
+```
+
+## Global Prefix
+
+If your API is served behind a reverse proxy at a subpath, use the `prefix` option:
+
+```ts
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  prefix: '/api/v1',
+});
+```
+
+All routes will be prefixed: `GET /api/v1/posts`, `POST /api/v1/posts`, etc.
+
+## Graceful Shutdown
+
+Handle process signals to clean up resources (database connections, event listeners) on shutdown:
+
+```ts
+import 'reflect-metadata';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { AppPack } from './app.pack.ts';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+});
+
+await app.listen(3000);
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Shutting down...');
+  await app.close();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('Shutting down...');
+  await app.close();
+  process.exit(0);
+});
+```
+
+The `app.close()` method triggers `onDestroy` hooks on all packs, giving your services a chance to clean up.
+
+## Deployment Platforms
+
+<Tabs items={['VPS / VM', 'Docker / Kubernetes', 'Railway / Fly.io']}>
+  <Tab value="VPS / VM">
+    1. Install Bun on the server
+    2. Clone or upload your project
+    3. Run `bun install --production`
+    4. Set environment variables
+    5. Start with a process manager:
+
+    ```bash
+    # Using pm2
+    pm2 start --interpreter bun src/main.ts --name my-api
+
+    # Or using systemd
+    # Create /etc/systemd/system/my-api.service
+    ```
+  </Tab>
+  <Tab value="Docker / Kubernetes">
+    Build the Docker image and deploy to your container orchestrator:
+
+    ```bash
+    docker build -t my-api:latest .
+    docker push registry.example.com/my-api:latest
+    ```
+
+    For Kubernetes, create a Deployment with readiness and liveness probes pointing at `/health`.
+  </Tab>
+  <Tab value="Railway / Fly.io">
+    Both platforms support Bun natively.
+
+    **Railway:**
+    ```bash
+    railway init
+    railway up
+    ```
+
+    **Fly.io:**
+    ```bash
+    fly launch
+    fly deploy
+    ```
+
+    Set environment variables through the platform's dashboard or CLI.
+  </Tab>
+</Tabs>
+
+## Production Checklist
+
+Before deploying, verify:
+
+- [ ] `NODE_ENV` is set to `production`
+- [ ] All secrets are in environment variables, not in code
+- [ ] `ConfigModule.forRoot({ validate: true })` catches missing config at startup
+- [ ] Health check endpoint is available
+- [ ] Graceful shutdown is handled
+- [ ] Logging is configured (consider structured JSON logs for production)
+- [ ] Error handling is in place (global exception filters)
+
+<Callout type="info">
+Congratulations -- you have completed the Getting Started guide! Explore the individual package docs for deeper dives: [@ambrosia/core](/docs/core), [@ambrosia/http](/docs/http), [@ambrosia/config](/docs/config), [@ambrosia/events](/docs/events).
+</Callout>

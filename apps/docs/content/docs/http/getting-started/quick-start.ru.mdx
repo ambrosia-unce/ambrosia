@@ -1,0 +1,314 @@
+---
+title: "Быстрый старт"
+description: "Создайте ваш первый HTTP сервер за 5 минут"
+---
+
+# Быстрый старт
+
+Создайте полноценный HTTP сервер с валидацией, guards и DI за несколько минут.
+
+## Шаг 1: Установка
+
+```bash
+bun add @ambrosia/http @ambrosia/http-elysia @ambrosia/core @sinclair/typebox
+```
+
+## Шаг 2: Создайте DTO
+
+Создайте файл `src/dto/create-user.dto.ts`:
+
+```typescript title="src/dto/create-user.dto.ts"
+import { Type } from '@sinclair/typebox';
+
+export class CreateUserDto {
+  // TypeBox схема для валидации
+  static schema = Type.Object({
+    name: Type.String({ minLength: 2, maxLength: 50 }),
+    email: Type.String({ format: 'email' }),
+    age: Type.Number({ minimum: 18, maximum: 120 })
+  });
+
+  name!: string;
+  email!: string;
+  age!: number;
+}
+```
+
+## Шаг 3: Создайте сервис
+
+Создайте файл `src/services/user.service.ts`:
+
+```typescript title="src/services/user.service.ts"
+import { Injectable } from '@ambrosia/core';
+import type { CreateUserDto } from '../dto/create-user.dto.ts';
+
+@Injectable()
+export class UserService {
+  private users: any[] = [];
+  private idCounter = 1;
+
+  findAll() {
+    return this.users;
+  }
+
+  findById(id: string) {
+    return this.users.find(u => u.id === id);
+  }
+
+  create(dto: CreateUserDto) {
+    const user = {
+      id: String(this.idCounter++),
+      ...dto,
+      createdAt: new Date().toISOString()
+    };
+    this.users.push(user);
+    return user;
+  }
+
+  delete(id: string) {
+    const index = this.users.findIndex(u => u.id === id);
+    if (index === -1) return false;
+    this.users.splice(index, 1);
+    return true;
+  }
+}
+```
+
+## Шаг 4: Создайте контроллер
+
+Создайте файл `src/controllers/user.controller.ts`:
+
+```typescript title="src/controllers/user.controller.ts"
+import { 
+  Controller, 
+  Http, 
+  Body, 
+  Param, 
+  Status,
+  NotFoundException 
+} from '@ambrosia/http';
+import { UserService } from '../services/user.service.ts';
+import { CreateUserDto } from '../dto/create-user.dto.ts';
+
+@Controller('/users')
+export class UserController {
+  constructor(private userService: UserService) {}
+
+  @Http.Get('/')
+  findAll() {
+    return this.userService.findAll();
+  }
+
+  @Http.Get('/:id')
+  findOne(@Param('id') id: string) {
+    const user = this.userService.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return user;
+  }
+
+  @Http.Post('/')
+  @Status(201)
+  create(@Body() dto: CreateUserDto) {
+    // ValidationPipe автоматически валидирует dto
+    return this.userService.create(dto);
+  }
+
+  @Http.Delete('/:id')
+  @Status(204)
+  delete(@Param('id') id: string) {
+    const deleted = this.userService.delete(id);
+    if (!deleted) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+  }
+}
+```
+
+## Шаг 5: Создайте главный файл
+
+Создайте файл `src/main.ts`:
+
+```typescript title="src/main.ts"
+import { HttpApplication, ValidationPipe } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalPipes: [ValidationPipe], // Автоматическая валидация
+  port: 3000,
+  prefix: '/api' // Глобальный префикс
+});
+
+await app.listen();
+```
+
+## Шаг 6: Запуск
+
+```bash
+bun run src/main.ts
+```
+
+Вы увидите:
+
+```
+[Ambrosia] Registered 4 routes from 1 controllers
+🚀 Ambrosia HTTP Server running on http://localhost:3000
+```
+
+## Шаг 7: Тестирование
+
+### Создание пользователя
+
+```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Иван Иванов",
+    "email": "ivan@example.com",
+    "age": 25
+  }'
+```
+
+Ответ:
+
+```json
+{
+  "id": "1",
+  "name": "Иван Иванов",
+  "email": "ivan@example.com",
+  "age": 25,
+  "createdAt": "2024-02-03T12:00:00.000Z"
+}
+```
+
+### Валидация работает!
+
+Попробуйте невалидные данные:
+
+```bash
+curl -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "A",
+    "email": "not-an-email",
+    "age": 15
+  }'
+```
+
+Получите ошибку валидации:
+
+```json
+{
+  "statusCode": 422,
+  "error": "Validation Failed",
+  "message": "Validation failed",
+  "errors": [
+    {
+      "property": "/name",
+      "constraints": {
+        "minLength": "String must have at least 2 characters"
+      },
+      "value": "A"
+    },
+    {
+      "property": "/email",
+      "constraints": {
+        "format": "String does not match email format"
+      },
+      "value": "not-an-email"
+    },
+    {
+      "property": "/age",
+      "constraints": {
+        "minimum": "Number must be greater than or equal to 18"
+      },
+      "value": 15
+    }
+  ],
+  "timestamp": "2024-02-03T12:00:00.000Z",
+  "path": "/api/users"
+}
+```
+
+### Получение всех пользователей
+
+```bash
+curl http://localhost:3000/api/users
+```
+
+### Получение одного пользователя
+
+```bash
+curl http://localhost:3000/api/users/1
+```
+
+### Удаление пользователя
+
+```bash
+curl -X DELETE http://localhost:3000/api/users/1
+```
+
+## Что мы создали?
+
+✅ **RESTful API** с CRUD операциями  
+✅ **Автоматическая валидация** с TypeBox  
+✅ **Dependency Injection** - UserService внедряется автоматически  
+✅ **Обработка ошибок** - NotFoundException автоматически возвращает 404  
+✅ **HTTP status коды** - @Status(201) для создания, @Status(204) для удаления  
+✅ **Детальные ошибки валидации** - ValidationError с массивом ошибок  
+
+## Добавление Guard
+
+Защитим наши маршруты с помощью guard:
+
+```typescript title="src/guards/auth.guard.ts"
+import { Injectable } from '@ambrosia/core';
+import { 
+  Guard, 
+  ExecutionContext, 
+  UnauthorizedException 
+} from '@ambrosia/http';
+
+@Injectable()
+export class AuthGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers['authorization'];
+
+    if (!token) {
+      throw new UnauthorizedException('Authorization token required');
+    }
+
+    // Проверка токена (упрощенно)
+    if (!token.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Invalid token format');
+    }
+
+    return true;
+  }
+}
+```
+
+Примените к контроллеру:
+
+```typescript {1,3}
+import { UseGuard } from '@ambrosia/http';
+
+@UseGuard(AuthGuard)
+@Controller('/users')
+export class UserController {
+  // ...
+}
+```
+
+Теперь все маршруты требуют Authorization заголовок!
+
+## Следующие шаги
+
+- [Основные концепции](/docs/http/getting-started/concepts) - Поймите архитектуру
+- [Контроллеры](/docs/http/guides/controllers) - Подробнее о контроллерах
+- [Guards](/docs/http/guides/guards) - Защита маршрутов
+- [Interceptors](/docs/http/guides/interceptors) - Трансформация запросов
+- [Примеры](/docs/http/examples/rest-api) - Больше примеров

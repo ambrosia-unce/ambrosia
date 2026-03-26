@@ -1,0 +1,223 @@
+---
+title: "Scope API"
+description: "Reference for scopes, ScopeManager, and RequestScopeStorage"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Scope API
+
+Scopes define the lifecycle of instances - how long they live and when they are recreated.
+
+## Enum Scope
+
+```typescript
+import { Scope } from "@ambrosia/core";
+
+enum Scope {
+  SINGLETON  = "singleton",
+  TRANSIENT  = "transient",
+  REQUEST    = "request",
+}
+```
+
+### Scope.SINGLETON
+
+One instance for the entire container. Created on first `resolve()` and cached permanently.
+
+```typescript
+@Injectable() // scope defaults to SINGLETON
+class DatabasePool {
+  constructor() {
+    console.log("Pool created"); // Printed once
+  }
+}
+
+const a = container.resolve(DatabasePool);
+const b = container.resolve(DatabasePool);
+console.log(a === b); // true
+```
+
+**When to use:**
+- Stateless services (most services)
+- Resources expensive to create (connection pools, caches)
+- Configuration
+
+### Scope.TRANSIENT
+
+New instance on every `resolve()` call. Never cached.
+
+```typescript
+@Injectable({ scope: Scope.TRANSIENT })
+class RequestLogger {
+  private id = crypto.randomUUID();
+
+  constructor() {
+    console.log(`Logger ${this.id} created`); // New each time
+  }
+}
+
+const a = container.resolve(RequestLogger);
+const b = container.resolve(RequestLogger);
+console.log(a === b); // false
+```
+
+<Callout type="warn">
+`onDestroy()` is **not called** for transient instances, since the container does not hold references to them. Manage cleanup manually.
+</Callout>
+
+### Scope.REQUEST
+
+One instance per request context. Uses `AsyncLocalStorage` for isolation.
+
+```typescript
+@Injectable({ scope: Scope.REQUEST })
+class RequestContext {
+  userId?: string;
+  startedAt = Date.now();
+}
+
+await container.requestStorage.runAsync(async () => {
+  const ctx = container.resolve(RequestContext);
+  ctx.userId = "user-123";
+
+  const same = container.resolve(RequestContext);
+  console.log(ctx === same); // true
+});
+```
+
+<Callout type="warn">
+Resolving a REQUEST-scoped provider outside a `requestStorage.run()` context throws `NoRequestScopeError`.
+</Callout>
+
+---
+
+## Scope Comparison
+
+| Characteristic | SINGLETON | TRANSIENT | REQUEST |
+|---|---|---|---|
+| Caching | Permanent | None | For request duration |
+| `a === b` (two resolves) | `true` | `false` | `true` (in same request) |
+| `onDestroy()` | Yes | No | Yes |
+| Performance | Best | Worst | Medium |
+| Requires context | No | No | Yes (`requestStorage.run`) |
+
+---
+
+## DEFAULT_SCOPE
+
+```typescript
+import { DEFAULT_SCOPE } from "@ambrosia/core";
+
+console.log(DEFAULT_SCOPE); // "singleton"
+```
+
+Used when scope is not explicitly specified in a provider.
+
+---
+
+## RequestScopeStorage
+
+Manages request-scoped instances via `AsyncLocalStorage`.
+
+```typescript
+const storage = container.requestStorage;
+```
+
+### run()
+
+Executes a synchronous callback in a new request context.
+
+```typescript
+run<T>(callback: () => T): T
+```
+
+### runAsync()
+
+Executes an asynchronous callback in a new request context.
+
+```typescript
+runAsync<T>(callback: () => Promise<T>): Promise<T>
+```
+
+### hasActiveScope()
+
+Checks whether there is an active request context.
+
+```typescript
+hasActiveScope(): boolean
+```
+
+### get() / set() / has()
+
+Low-level methods for working with the current request context cache.
+
+```typescript
+get(token: Token): unknown | undefined
+set(token: Token, instance: unknown): void
+has(token: Token): boolean
+```
+
+### clear()
+
+Clears all instances in the current request context.
+
+```typescript
+clear(): void
+```
+
+### size()
+
+Number of cached instances in the current context.
+
+```typescript
+size(): number
+```
+
+---
+
+## Example: HTTP Server with Request Scope
+
+```typescript
+import { Injectable, Inject, InjectionToken, Scope, Container } from "@ambrosia/core";
+
+const USER_ID = new InjectionToken<string>("UserId");
+
+@Injectable({ scope: Scope.REQUEST })
+class AuditLogger {
+  constructor(@Inject(USER_ID) private userId: string) {}
+
+  log(action: string) {
+    console.log(`[${this.userId}] ${action}`);
+  }
+}
+
+@Injectable()
+class UserService {
+  constructor(private audit: AuditLogger) {}
+
+  deleteUser(targetId: string) {
+    this.audit.log(`Deleted user ${targetId}`);
+  }
+}
+
+const container = new Container();
+
+// For each HTTP request:
+async function handleRequest(req: Request) {
+  return container.requestStorage.runAsync(async () => {
+    container.registerValue(USER_ID, req.headers.get("x-user-id")!);
+
+    const userService = container.resolve(UserService);
+    userService.deleteUser("target-456");
+    // Log: [user-123] Deleted user target-456
+  });
+}
+```
+
+## Next Steps
+
+- [Container API](/docs/core/api-reference/container) - Container management
+- [Scopes Guide](/docs/core/guides/scopes) - In-depth usage
+- [Error Types](/docs/core/api-reference/errors) - NoRequestScopeError and others

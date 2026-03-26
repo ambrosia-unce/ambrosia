@@ -1,0 +1,148 @@
+---
+title: "Getting Started"
+description: "Installation and basic usage of @ambrosia/validator"
+---
+
+# Getting Started
+
+## Installation
+
+```bash
+bun add @ambrosia/validator
+```
+
+## Setup
+
+Add to your `bunfig.toml`:
+
+```toml
+preload = ["@ambrosia/validator/preload"]
+```
+
+This activates the Bun plugin that will automatically transform your code.
+
+## Basic Usage
+
+### validate() - returns a result
+
+```typescript
+import { validate } from '@ambrosia/validator';
+
+interface User {
+  name: string;
+  email: string;
+  age: number;
+}
+
+const result = validate<User>(data);
+
+if (result.success) {
+  console.log(result.data.name); // data is typed as User
+} else {
+  console.error(result.errors);
+  // errors: ValidationErrorDetail[]
+}
+```
+
+### assert() - throws an exception
+
+```typescript
+import { assert } from '@ambrosia/validator';
+
+try {
+  const user = assert<User>(data);
+  console.log(user.name); // user is typed as User
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.error(error.errors);
+  }
+}
+```
+
+### is() - type guard
+
+```typescript
+import { is } from '@ambrosia/validator';
+
+if (is<User>(data)) {
+  // data has type User in this block
+  console.log(data.name);
+} else {
+  console.log('Invalid data');
+}
+```
+
+## Result Types
+
+### ValidationResult
+
+```typescript
+type ValidationResult =
+  | { success: true; data: T }
+  | { success: false; errors: ValidationErrorDetail[] };
+```
+
+### ValidationErrorDetail
+
+```typescript
+interface ValidationErrorDetail {
+  path: string;        // "email" or "user.address.city"
+  message: string;     // "must be a valid email"
+  value?: unknown;     // Actual value
+  expected?: string;   // "string" or "number >= 18"
+}
+```
+
+### ValidationError
+
+```typescript
+class ValidationError extends Error {
+  errors: ValidationErrorDetail[];
+  statusCode: number; // 422 (Unprocessable Entity)
+}
+```
+
+## Supported Types
+
+- Primitives: `string`, `number`, `boolean`, `null`, `undefined`
+- Objects: `{ key: type }`
+- Arrays: `type[]`, `Array<type>`
+- Unions: `string | number`
+- Optional: `string?`, `field?: type`
+- Branded types: `Email`, `UUID`, `PositiveInt`, etc.
+- JSDoc constraints: `@minLength`, `@pattern`, `@minimum`, etc.
+
+## Performance
+
+Since validation is generated at compile time:
+
+- Zero startup overhead
+- Optimized inline code
+- No runtime reflection
+- Smaller bundle size (no schemas)
+
+## Debugging
+
+To view the generated code, enable debug mode:
+
+```typescript
+// validator-config.ts
+import { plugin } from "bun";
+import { createValidatorPlugin } from "@ambrosia/validator/plugin";
+
+plugin(createValidatorPlugin({
+  debug: true, // Log transformations
+}));
+```
+
+Then in `bunfig.toml`:
+
+```toml
+preload = ["./validator-config.ts"]
+```
+
+## Next Steps
+
+- [Branded Types](./branded-types) - specialized types with validation
+- [JSDoc Constraints](./jsdoc-constraints) - constraints via JSDoc tags
+- [HTTP Integration](./http-integration) - usage with @ambrosia/http

@@ -1,0 +1,249 @@
+---
+title: "Quick Start"
+description: "Create your first DI container in 5 minutes"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps } from 'fumadocs-ui/components/steps';
+
+# Quick Start
+
+Get started with @ambrosia/core in 5 minutes. This guide will teach you the basics of dependency injection with a simple example.
+
+## What We'll Build
+
+A simple user management system with:
+- **DatabaseService** - Handles database connections
+- **UserRepository** - Manages user data
+- **UserService** - Business logic
+
+## Step-by-Step Guide
+
+<Steps>
+
+### Create the DatabaseService
+
+First, create a service for database operations:
+
+```typescript title="src/services/database.service.ts"
+import { Injectable } from '@ambrosia/core';
+
+@Injectable()
+export class DatabaseService {
+  private connected = false;
+
+  connect() {
+    if (!this.connected) {
+      console.log('Connecting to database...');
+      this.connected = true;
+    }
+    return this.connected;
+  }
+
+  query(sql: string) {
+    if (!this.connected) {
+      throw new Error('Database not connected');
+    }
+    console.log(`Executing query: ${sql}`);
+    return [];
+  }
+}
+```
+
+<Callout type="info">
+  The `@Injectable()` decorator marks the class as available for dependency injection.
+</Callout>
+
+### Create the UserRepository
+
+Create a repository that depends on the database service:
+
+```typescript title="src/repositories/user.repository.ts"
+import { Injectable } from '@ambrosia/core';
+import { DatabaseService } from '../services/database.service.ts';
+
+@Injectable()
+export class UserRepository {
+  // DatabaseService is automatically injected via the constructor
+  constructor(private db: DatabaseService) {}
+
+  findById(id: string) {
+    this.db.connect();
+    const results = this.db.query(`SELECT * FROM users WHERE id = '${id}'`);
+    return results[0] || null;
+  }
+
+  findAll() {
+    this.db.connect();
+    return this.db.query('SELECT * FROM users');
+  }
+
+  create(userData: { name: string; email: string }) {
+    this.db.connect();
+    this.db.query(`INSERT INTO users VALUES ('${userData.name}', '${userData.email}')`);
+    return { id: '123', ...userData };
+  }
+}
+```
+
+<Callout type="success">
+  **Automatic dependency resolution**: The container automatically determines that `UserRepository` needs `DatabaseService` and injects it.
+</Callout>
+
+### Create the UserService
+
+Create a service layer that depends on the repository:
+
+```typescript title="src/services/user.service.ts"
+import { Injectable } from '@ambrosia/core';
+import { UserRepository } from '../repositories/user.repository.ts';
+
+@Injectable()
+export class UserService {
+  constructor(private userRepo: UserRepository) {}
+
+  getUser(id: string) {
+    console.log(`Getting user ${id}`);
+    return this.userRepo.findById(id);
+  }
+
+  getAllUsers() {
+    console.log('Getting all users');
+    return this.userRepo.findAll();
+  }
+
+  createUser(name: string, email: string) {
+    console.log(`Creating user: ${name}`);
+
+    // Business logic validation
+    if (!email.includes('@')) {
+      throw new Error('Invalid email address');
+    }
+
+    return this.userRepo.create({ name, email });
+  }
+}
+```
+
+### Create the Container
+
+Set up the DI container:
+
+```typescript title="src/container.ts"
+import { Container } from '@ambrosia/core';
+
+// Create a container with production mode for better performance
+export const container = new Container({
+  mode: 'production',
+  autoRegister: true, // Automatically register @Injectable classes
+});
+```
+
+<Callout type="info">
+  **Production mode**: Enables optimizations such as skipping cycle checks for cached singletons and disabling debug logging.
+</Callout>
+
+### Use Your Services
+
+Now use the services in your application:
+
+```typescript title="src/index.ts"
+import { container } from './container.ts';
+import { UserService } from './services/user.service.ts';
+
+// Resolve UserService - the container automatically resolves all dependencies
+const userService = container.resolve(UserService);
+
+// Use the service
+const newUser = userService.createUser('John Doe', 'john@example.com');
+console.log('Created:', newUser);
+
+const user = userService.getUser('123');
+console.log('Found:', user);
+
+const allUsers = userService.getAllUsers();
+console.log('All users:', allUsers);
+```
+
+### Run the Application
+
+```bash
+bun run src/index.ts
+```
+
+Expected output:
+```
+Connecting to database...
+Creating user: John Doe
+Executing query: INSERT INTO users VALUES ('John Doe', 'john@example.com')
+Created: { id: '123', name: 'John Doe', email: 'john@example.com' }
+Getting user 123
+Executing query: SELECT * FROM users WHERE id = '123'
+Found: null
+Getting all users
+Executing query: SELECT * FROM users
+All users: []
+```
+
+</Steps>
+
+## What Happened?
+
+1. **DatabaseService** was marked with `@Injectable()`
+2. **UserRepository** declared `DatabaseService` as a constructor dependency
+3. **UserService** declared `UserRepository` as a constructor dependency
+4. **Container** automatically resolved the entire dependency tree:
+   ```
+   UserService → UserRepository → DatabaseService
+   ```
+5. All instances were cached as **singletons** (the default scope)
+
+## Key Concepts
+
+### The @Injectable() Decorator
+
+Marks a class as injectable:
+
+```typescript
+@Injectable()
+class MyService {}
+```
+
+### Constructor Injection
+
+Dependencies are injected through constructor parameters:
+
+```typescript
+@Injectable()
+class ServiceA {
+  constructor(private serviceB: ServiceB) {}
+}
+```
+
+<Callout type="info">
+  `emitDecoratorMetadata` in TypeScript allows the container to automatically determine parameter types.
+</Callout>
+
+### Singleton Scope (Default)
+
+By default, all services are **singletons** - only one instance is created and reused:
+
+```typescript
+const service1 = container.resolve(UserService);
+const service2 = container.resolve(UserService);
+
+console.log(service1 === service2); // true
+```
+
+## Next Steps
+
+<Callout type="success">
+  **Congratulations!** You've created your first DI container.
+</Callout>
+
+Now explore more advanced features:
+
+1. [Core Concepts](/docs/core/getting-started/concepts) - Understand the fundamental principles of DI
+2. [Scopes Guide](/docs/core/guides/scopes) - Deep dive into scope management
+3. [Circular Dependencies](/docs/core/guides/circular-dependencies) - Handling circular references
+4. [Plugins](/docs/core/guides/plugins) - Extend capabilities with logging, telemetry, etc.

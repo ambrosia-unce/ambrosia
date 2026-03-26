@@ -1,0 +1,51 @@
+---
+title: "WebSocket Packs"
+description: "Composing WebSocket modules through the pack system"
+---
+
+# WebSocket Packs
+
+WebSocket gateways integrate into the pack system via `WsPackDefinition`.
+
+## WsPackDefinition
+
+Extends the standard `PackDefinition` with a `gateways` field:
+
+```typescript title="chat.pack.ts"
+import { type WsPackDefinition } from "@ambrosia/websocket";
+import { ChatGateway } from "./chat.gateway";
+import { ChatService } from "./chat.service";
+
+export const ChatPack: WsPackDefinition = {
+  name: "chat",
+  providers: [ChatService],
+  gateways: [ChatGateway],
+  exports: [ChatService],
+};
+```
+
+## Usage
+
+```typescript title="main.ts"
+const wsApp = await WsApplication.create({
+  provider: wsProvider,
+  container: httpApp.getContainer(),
+  packs: [ChatPack, NotificationPack],
+});
+```
+
+## Shared DI Container
+
+By passing the `container` from the HTTP application, WebSocket gateways gain access to the same services:
+
+```typescript
+// HTTP and WS share the same container
+const httpApp = await HttpApplication.create({ ... });
+const wsApp = await WsApplication.create({
+  provider: wsProvider,
+  container: httpApp.getContainer(), // Shared container
+  packs: [ChatPack],
+});
+
+// ChatGateway can inject UserService from HTTP packs
+```

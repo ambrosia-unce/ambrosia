@@ -1,0 +1,130 @@
+---
+title: "What is Ambrosia?"
+description: "A TypeScript framework for Bun with decorator-based DI and a provider-agnostic HTTP layer"
+---
+
+import {Card, Cards} from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# What is Ambrosia?
+
+**Ambrosia** is a TypeScript framework built for the [Bun](https://bun.sh) runtime. It combines a powerful dependency injection container with a provider-agnostic HTTP layer, giving you the structure of enterprise frameworks with the speed of Bun.
+
+## Why Ambrosia?
+
+Most TypeScript backend frameworks force you to choose between speed and architecture. Ambrosia gives you both:
+
+- **Decorator-based DI** -- familiar patterns if you have used NestJS or Spring, but designed for Bun from day one
+- **Provider-agnostic HTTP** -- swap Elysia for any other HTTP engine without changing your business logic
+- **Pack system** -- modular architecture with encapsulation, not just folder conventions
+- **Compile-time validation** -- zero-runtime-cost type validation via a TypeScript transformer
+- **Event-driven** -- built-in event bus for decoupled communication between services
+
+## Who is it for?
+
+Ambrosia is a good fit if you:
+
+- Build production APIs and microservices with TypeScript
+- Want strong architectural patterns without the boilerplate
+- Need real dependency injection, not just a service locator
+- Care about performance and want to leverage Bun's speed
+- Prefer decorator-based APIs with full type safety
+
+## Architecture at a Glance
+
+```
+@ambrosia/core          -- Standalone DI container (no HTTP coupling)
+@ambrosia/http          -- Provider-agnostic HTTP layer (controllers, guards, pipes, interceptors)
+@ambrosia/http-elysia   -- Elysia.js adapter for @ambrosia/http
+@ambrosia/config        -- Type-safe environment configuration
+@ambrosia/events        -- High-performance event bus
+@ambrosia/validator     -- Compile-time type validation
+@ambrosia/cli           -- Project scaffolding and code generation
+```
+
+The core DI container has no HTTP dependencies -- you can use it in CLI tools, workers, or any TypeScript application. The HTTP layer is a separate package that plugs into the core via the pack system.
+
+## What You Will Build
+
+This guide walks you through building a REST API step by step:
+
+<Cards>
+    <Card
+        title="Installation"
+        description="Install the CLI, create a new project, and understand the file structure"
+        href="/docs/getting-started/installation"
+    />
+    <Card
+        title="First API"
+        description="Build a complete CRUD API with controllers, services, validation, config, and events"
+        href="/docs/getting-started/first-api"
+    />
+    <Card
+        title="Packs"
+        description="Organize your code into reusable, encapsulated modules"
+        href="/docs/getting-started/packs"
+    />
+    <Card
+        title="Deployment"
+        description="Build for production and deploy your Ambrosia application"
+        href="/docs/getting-started/deployment"
+    />
+</Cards>
+
+## Quick Preview
+
+Here is a taste of what an Ambrosia API looks like:
+
+```ts
+import { Injectable, definePack } from '@ambrosia/core';
+import { Controller, Http, Body, Param, Status } from '@ambrosia/http';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+
+@Injectable()
+class PostsService {
+  private posts = [{ id: '1', title: 'Hello Ambrosia' }];
+
+  findAll() {
+    return this.posts;
+  }
+
+  create(title: string) {
+    const post = { id: crypto.randomUUID(), title };
+    this.posts.push(post);
+    return post;
+  }
+}
+
+@Controller('/posts')
+class PostsController {
+  constructor(private posts: PostsService) {}
+
+  @Http.Get()
+  findAll() {
+    return this.posts.findAll();
+  }
+
+  @Http.Post()
+  @Status(201)
+  create(@Body() body: { title: string }) {
+    return this.posts.create(body.title);
+  }
+}
+
+const AppPack = definePack({
+  providers: [PostsService],
+});
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  controllers: [PostsController],
+});
+
+await app.listen(3000);
+```
+
+<Callout type="info">
+Ready to get started? Head to the [Installation](/docs/getting-started/installation) page.
+</Callout>

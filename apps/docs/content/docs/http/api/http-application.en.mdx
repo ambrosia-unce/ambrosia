@@ -1,0 +1,416 @@
+---
+title: HttpApplication
+description: The main Ambrosia HTTP application class
+---
+
+# HttpApplication
+
+`HttpApplication` is the main class for creating HTTP applications based on Ambrosia.
+
+## Creating an Application
+
+### HttpApplication.create()
+
+Creates and initializes an HTTP application.
+
+```typescript
+static async create<T extends HttpProvider>(
+  options: HttpApplicationOptions<T>
+): Promise<HttpApplication<T>>
+```
+
+**Parameters:**
+
+```typescript
+interface HttpApplicationOptions<TProvider extends HttpProvider = any> {
+  // HTTP Provider (Elysia, Hono, etc.)
+  provider: new () => TProvider;
+
+  // DI Container (optional, created automatically)
+  container?: Container;
+
+  // Exclude specific controllers from registration
+  excludeControllers?: Constructor[];
+
+  // Global lifecycle components
+  globalMiddleware?: Constructor<Middleware>[];
+  globalGuards?: Constructor<Guard>[];
+  globalInterceptors?: Constructor<Interceptor>[];
+  globalPipes?: Constructor<Pipe>[];
+  globalFilters?: Constructor<ExceptionFilter>[];
+
+  // Server settings
+  port?: number;
+  prefix?: string; // Global prefix for all routes
+}
+```
+
+**Returns:** `Promise<HttpApplication<T>>`
+
+**Example:**
+
+```typescript
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  port: 3000,
+  prefix: '/api/v1',
+  globalGuards: [AuthGuard],
+  globalInterceptors: [LoggingInterceptor],
+  globalPipes: [ValidationPipe],
+  globalFilters: [GlobalExceptionFilter]
+});
+```
+
+## Instance Methods
+
+### listen()
+
+Starts the HTTP server on the specified port.
+
+```typescript
+async listen(port?: number): Promise<void>
+```
+
+**Parameters:**
+- `port` - port to listen on (optional, uses the port from options or 3000 by default)
+
+**Example:**
+
+```typescript
+await app.listen(3000);
+console.log('Server running on http://localhost:3000');
+```
+
+### getNativeApp()
+
+Returns the provider's native application (Elysia, Hono, etc.).
+
+```typescript
+getNativeApp(): any
+```
+
+**Example:**
+
+```typescript
+const elysiaApp = app.getNativeApp();
+
+// Use native Elysia methods
+elysiaApp.get('/native-route', (c) => {
+  return { message: 'Native route' };
+});
+```
+
+### getContainer()
+
+Returns the DI Container.
+
+```typescript
+getContainer(): Container
+```
+
+**Example:**
+
+```typescript
+const container = app.getContainer();
+
+// Register a service manually
+container.register(CustomService);
+
+// Resolve a service
+const service = container.resolve(CustomService);
+```
+
+### getProvider()
+
+Returns the HTTP provider instance.
+
+```typescript
+getProvider(): TProvider
+```
+
+**Example:**
+
+```typescript
+const provider = app.getProvider();
+console.log(provider.name); // "elysia"
+```
+
+## Full Example
+
+```typescript
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import {
+  ValidationPipe,
+  LoggingInterceptor,
+  AuthGuard
+} from './shared';
+
+async function bootstrap() {
+  // Create the application
+  const app = await HttpApplication.create({
+    provider: ElysiaProvider,
+    port: 3000,
+    prefix: '/api',
+
+    // Global components
+    globalMiddleware: [CorsMiddleware, LoggerMiddleware],
+    globalGuards: [AuthGuard],
+    globalInterceptors: [LoggingInterceptor, TransformInterceptor],
+    globalPipes: [ValidationPipe],
+    globalFilters: [GlobalExceptionFilter],
+
+    // Exclude test controllers
+    excludeControllers: [TestController, MockController]
+  });
+
+  // Get container for manual registration
+  const container = app.getContainer();
+  container.register(DatabaseService, { lifecycle: 'SINGLETON' });
+
+  // Get native app for advanced configuration
+  const nativeApp = app.getNativeApp();
+  nativeApp.onError((error) => {
+    console.error('Native error handler:', error);
+  });
+
+  // Start the server
+  await app.listen();
+
+  console.log('Application started');
+  console.log(`URL: http://localhost:3000/api`);
+}
+
+bootstrap().catch(console.error);
+```
+
+## Automatic Controller Registration
+
+`HttpApplication` automatically registers all controllers marked with the `@Controller()` decorator:
+
+```typescript
+// user.controller.ts
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')
+  async list() {
+    return [];
+  }
+}
+
+// post.controller.ts
+@Controller('/posts')
+export class PostController {
+  @Http.Get('/')
+  async list() {
+    return [];
+  }
+}
+
+// main.ts
+const app = await HttpApplication.create({
+  provider: ElysiaProvider
+});
+
+// UserController and PostController are automatically registered
+await app.listen(3000);
+```
+
+## Excluding Controllers
+
+Use `excludeControllers` to exclude specific controllers:
+
+```typescript
+@Controller('/test')
+export class TestController {
+  @Http.Get('/')
+  async test() {
+    return { test: true };
+  }
+}
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  excludeControllers: [TestController] // TestController will not be registered
+});
+```
+
+## Global Prefix
+
+Add a prefix to all routes:
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  prefix: '/api/v1'
+});
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')
+  async list() {}
+  // Route: GET /api/v1/users/
+}
+```
+
+## Global Components
+
+### Middleware
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalMiddleware: [
+    LoggerMiddleware,
+    CorsMiddleware,
+    CompressionMiddleware
+  ]
+});
+```
+
+Global middleware executes for all requests before controller middleware.
+
+### Guards
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalGuards: [AuthGuard]
+});
+```
+
+Global guards execute for all routes before controller guards.
+
+### Interceptors
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalInterceptors: [
+    LoggingInterceptor,
+    TransformInterceptor
+  ]
+});
+```
+
+Global interceptors execute for all routes.
+
+### Pipes
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalPipes: [ValidationPipe, TrimPipe]
+});
+```
+
+Global pipes apply to all parameters of all routes.
+
+### Exception Filters
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalFilters: [GlobalExceptionFilter]
+});
+```
+
+The `DefaultExceptionFilter` is used by default if no globalFilters are specified.
+
+## Custom Container
+
+You can pass an existing DI Container:
+
+```typescript
+import { Container } from '@ambrosia/core';
+
+const container = new Container();
+
+// Pre-register services
+container.register(DatabaseService, { lifecycle: 'SINGLETON' });
+container.register(CacheService, { lifecycle: 'SINGLETON' });
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  container // Use existing container
+});
+```
+
+## Performance
+
+`HttpApplication` is optimized for performance:
+
+1. **Handler Pre-compilation**: Lifecycle components are assembled once during initialization
+2. **Parameter Resolver Compilation**: An optimized function is generated for parameter extraction
+3. **WeakMap Caching**: All metadata operations are cached
+4. **Direct Provider Passthrough**: Minimal overhead over the native provider
+5. **Controller Caching**: SINGLETON controllers are cached after first resolve
+
+## Environment Configuration
+
+Use environment variables for configuration:
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  port: parseInt(process.env.PORT || '3000'),
+  prefix: process.env.API_PREFIX || '/api',
+
+  // Conditional global components
+  globalInterceptors: process.env.NODE_ENV === 'development'
+    ? [LoggingInterceptor]
+    : []
+});
+```
+
+## Graceful Shutdown
+
+```typescript
+async function bootstrap() {
+  const app = await HttpApplication.create({
+    provider: ElysiaProvider,
+    port: 3000
+  });
+
+  await app.listen();
+
+  // Handle termination signals
+  process.on('SIGTERM', async () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    // Close DB connections, release resources, etc.
+    process.exit(0);
+  });
+
+  process.on('SIGINT', async () => {
+    console.log('SIGINT received, shutting down gracefully');
+    process.exit(0);
+  });
+}
+
+bootstrap();
+```
+
+## TypeScript Types
+
+`HttpApplication` is fully typed with Generics:
+
+```typescript
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import type { Elysia } from 'elysia';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider
+});
+
+// TypeScript knows the native app type
+const nativeApp: Elysia = app.getNativeApp();
+```
+
+## See Also
+
+- [Quick Start](/docs/http/getting-started/quick-start) - Creating your first application
+- [Providers](/docs/http/api/providers) - HTTP Providers
+- [Controllers](/docs/http/guides/controllers) - Working with controllers

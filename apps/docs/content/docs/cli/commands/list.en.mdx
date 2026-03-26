@@ -1,0 +1,80 @@
+---
+title: "ambrosia list"
+description: "Command for viewing installed packs in a project"
+---
+
+# ambrosia list
+
+Displays a list of all installed packs in the current project with versions, registries, and installation dates.
+
+## Usage
+
+```bash
+ambrosia list
+```
+
+The command takes no arguments or flags.
+
+## Output Format
+
+Results are displayed as a table:
+
+```
+$ ambrosia list
+
+◆  ambrosia list
+│
+│ Installed packs
+│
+│ Name        Version  Registry  Installed At
+│ ──────────  ───────  ────────  ────────────────────────
+│ jwt-auth    0.2.1    default   2026-02-19T12:00:00.000Z
+│ redis-cache 0.1.3    default   2026-02-20T10:30:00.000Z
+│ orm         0.1.0    corp      2026-03-01T08:15:00.000Z
+│
+└
+```
+
+If no packs are installed:
+
+```
+◆  ambrosia list
+│
+ℹ  No packs installed.
+│
+└
+```
+
+## Data Source
+
+Information is taken from the `packs` section of `ambrosia.json`:
+
+```json title="ambrosia.json"
+{
+  "packs": {
+    "jwt-auth": {
+      "version": "0.2.1",
+      "registry": "default",
+      "installedAt": "2026-02-19T12:00:00.000Z",
+      "files": [...]
+    }
+  }
+}
+```
+
+## Errors
+
+### No ambrosia.json
+
+```
+✗  No ambrosia.json found. Run "ambrosia init" to create one.
+```
+
+Initialize the project with `ambrosia init`.
+
+## See Also
+
+- [ambrosia add](/docs/cli/commands/add) — installing packs
+- [ambrosia remove](/docs/cli/commands/remove) — removing packs
+- [ambrosia update](/docs/cli/commands/update) — updating packs
+- [ambrosia.json Configuration](/docs/cli/getting-started/configuration)

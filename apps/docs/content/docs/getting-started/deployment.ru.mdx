@@ -1,0 +1,251 @@
+---
+title: "Деплой"
+description: "Сборка и деплой приложения на Ambrosia в продакшен"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Деплой
+
+Приложения на Ambrosia работают на Bun, поэтому деплой прост -- этап транспиляции не требуется. Bun исполняет TypeScript напрямую.
+
+## Сборка для продакшена
+
+### Вариант 1: Запуск TypeScript напрямую
+
+Самый простой подход -- Bun нативно исполняет `.ts`-файлы:
+
+```bash
+NODE_ENV=production bun run src/main.ts
+```
+
+Этого достаточно для большинства деплоев. Исполнение TypeScript в Bun быстрое и с минимальным оверхедом.
+
+### Вариант 2: Компиляция в единый бинарник
+
+Bun может скомпилировать приложение в самодостаточный исполняемый файл без внешних зависимостей:
+
+```bash
+bun build --compile src/main.ts --outfile my-api
+```
+
+На выходе -- единый бинарник, включающий рантайм Bun. Результат можно деплоить на любую совместимую систему без установки Bun.
+
+```bash
+./my-api
+```
+
+<Callout type="info">
+Скомпилированный бинарник включает рантайм Bun, поэтому работает на машинах без установленного Bun. Размер бинарника обычно 50-80 МБ.
+</Callout>
+
+## Конфигурация окружения
+
+Используйте `@ambrosia/config` для управления настройками среды. Никогда не коммитьте секреты в систему контроля версий.
+
+### `.env`-файлы
+
+Создайте файлы для разных окружений:
+
+```
+.env                # Значения по умолчанию (коммитится)
+.env.local          # Локальные переопределения (в gitignore)
+.env.production     # Продакшен-значения (в gitignore)
+```
+
+Передайте нужный env-файл через `ConfigModule.forRoot()`:
+
+```ts
+ConfigModule.forRoot({
+  schema: AppConfig,
+  envPath: `.env.${process.env.NODE_ENV || 'development'}`,
+  validate: true,
+})
+```
+
+### Переменные окружения
+
+В продакшене предпочитайте реальные переменные окружения вместо `.env`-файлов. `@ambrosia/config` по умолчанию читает из `process.env` -- `.env`-файл является наложением поверх него.
+
+```bash
+PORT=8080 NODE_ENV=production bun run src/main.ts
+```
+
+## Docker
+
+### Dockerfile
+
+```dockerfile
+FROM oven/bun:1 AS base
+WORKDIR /app
+
+# Установка зависимостей
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+
+# Копирование исходного кода
+COPY src/ src/
+COPY bunfig.toml tsconfig.json ./
+
+# Запуск
+ENV NODE_ENV=production
+EXPOSE 3000
+CMD ["bun", "run", "src/main.ts"]
+```
+
+### Docker Compose
+
+```yaml
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+```
+
+Сборка и запуск:
+
+```bash
+docker compose up -d
+```
+
+## Health Check
+
+Добавьте эндпоинт проверки здоровья для балансировщиков нагрузки и оркестраторов:
+
+```ts
+import { Controller, Http } from '@ambrosia/http';
+
+@Controller('/health')
+export class HealthController {
+  @Http.Get()
+  check() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
+}
+```
+
+Зарегистрируйте его в корневом паке или напрямую в `HttpApplication.create()`:
+
+```ts
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  controllers: [HealthController],
+});
+```
+
+## Глобальный префикс
+
+Если API работает за реверс-прокси на подпути, используйте опцию `prefix`:
+
+```ts
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+  prefix: '/api/v1',
+});
+```
+
+Все маршруты будут с префиксом: `GET /api/v1/posts`, `POST /api/v1/posts` и т.д.
+
+## Graceful Shutdown
+
+Обработайте сигналы процесса для корректного освобождения ресурсов (подключения к БД, слушатели событий) при завершении:
+
+```ts
+import 'reflect-metadata';
+import { HttpApplication } from '@ambrosia/http';
+import { ElysiaProvider } from '@ambrosia/http-elysia';
+import { AppPack } from './app.pack.ts';
+
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [AppPack],
+});
+
+await app.listen(3000);
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Завершение...');
+  await app.close();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('Завершение...');
+  await app.close();
+  process.exit(0);
+});
+```
+
+Метод `app.close()` вызывает хуки `onDestroy` на всех паках, давая сервисам возможность корректно завершить работу.
+
+## Платформы для деплоя
+
+<Tabs items={['VPS / VM', 'Docker / Kubernetes', 'Railway / Fly.io']}>
+  <Tab value="VPS / VM">
+    1. Установите Bun на сервер
+    2. Клонируйте или загрузите проект
+    3. Запустите `bun install --production`
+    4. Установите переменные окружения
+    5. Запустите через менеджер процессов:
+
+    ```bash
+    # Используя pm2
+    pm2 start --interpreter bun src/main.ts --name my-api
+
+    # Или через systemd
+    # Создайте /etc/systemd/system/my-api.service
+    ```
+  </Tab>
+  <Tab value="Docker / Kubernetes">
+    Соберите Docker-образ и задеплойте в оркестратор контейнеров:
+
+    ```bash
+    docker build -t my-api:latest .
+    docker push registry.example.com/my-api:latest
+    ```
+
+    Для Kubernetes создайте Deployment с readiness и liveness пробами, направленными на `/health`.
+  </Tab>
+  <Tab value="Railway / Fly.io">
+    Обе платформы нативно поддерживают Bun.
+
+    **Railway:**
+    ```bash
+    railway init
+    railway up
+    ```
+
+    **Fly.io:**
+    ```bash
+    fly launch
+    fly deploy
+    ```
+
+    Установите переменные окружения через дашборд или CLI платформы.
+  </Tab>
+</Tabs>
+
+## Чек-лист перед деплоем
+
+Перед деплоем проверьте:
+
+- [ ] `NODE_ENV` установлен в `production`
+- [ ] Все секреты -- в переменных окружения, а не в коде
+- [ ] `ConfigModule.forRoot({ validate: true })` ловит отсутствующий конфиг при старте
+- [ ] Эндпоинт health check доступен
+- [ ] Graceful shutdown обработан
+- [ ] Логирование настроено (для продакшена рекомендуется структурированный JSON)
+- [ ] Обработка ошибок на месте (глобальные exception-фильтры)
+
+<Callout type="info">
+Поздравляем -- вы завершили руководство по быстрому старту! Изучайте документацию отдельных пакетов: [@ambrosia/core](/docs/core), [@ambrosia/http](/docs/http), [@ambrosia/config](/docs/config), [@ambrosia/events](/docs/events).
+</Callout>

@@ -1,0 +1,79 @@
+---
+title: "Installation"
+description: "Install @ambrosia/cli and get started with Pack Registry"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Installation
+
+## Requirements
+
+- **Bun** 1.3.6 or higher
+- An existing Ambrosia project or a new project
+
+<Callout type="info">
+  **@ambrosia/cli** runs exclusively on **Bun runtime**. Node.js is not supported.
+</Callout>
+
+## Global Installation
+
+```bash
+bun add -g @ambrosia/cli
+```
+
+After installation, two commands are available:
+
+```bash
+ambrosia --version    # full command
+amb --version         # short alias
+```
+
+## Verify Installation
+
+```bash
+ambrosia --help
+```
+
+Expected output:
+
+```
+  Usage: ambrosia <command> [options]
+
+  Commands:
+    new <name>              Create a new Ambrosia project
+    init                    Initialize ambrosia.json in current project
+    add <pack...>           Add packs from the registry
+    generate|g <type> <n>   Generate a resource
+
+  Generators:
+    pack <name>             Create a standalone pack project
+
+  Options:
+    --arch <pattern>        Architecture pattern: modular, layered, clean, cqrs
+    --registry <name>       Registry to use for add (default: "default")
+    --help, -h              Show this help message
+    --version, -v           Show version
+```
+
+## Run Without Installing
+
+If you prefer not to install the CLI globally, use `bunx`:
+
+```bash
+bunx @ambrosia/cli new my-app
+bunx @ambrosia/cli init
+bunx @ambrosia/cli add jwt-auth
+```
+
+## Updating
+
+```bash
+bun add -g @ambrosia/cli@latest
+```
+
+## Next Steps
+
+1. [Configure ambrosia.json](/docs/cli/getting-started/configuration) in your project
+2. Explore the [Pack Registry](/docs/cli/registry/overview)
+3. Add your first pack: [`ambrosia add`](/docs/cli/commands/add)

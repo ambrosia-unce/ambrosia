@@ -1,0 +1,319 @@
+---
+title: "Creating Packs"
+description: "Step-by-step guide to creating your own pack for Ambrosia Pack Registry"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps } from 'fumadocs-ui/components/steps';
+
+# Creating Packs
+
+A pack is a set of source files (services, guards, controllers) that live inside your project. When published through a registry, they are copied as source code into the consumer's project.
+
+## Quick Start with the Generator
+
+<Steps>
+
+### Generate a Template
+
+```bash
+ambrosia generate pack my-cache
+# or short alias
+ambrosia g pack my-cache
+```
+
+The CLI will create source files in the `{packsDir}/my-cache/` directory of your project (default: `src/packs/`):
+
+```
+src/packs/my-cache/
+├── index.ts               ← barrel export
+├── my-cache.pack.ts       ← PackDefinition with forRoot/forRootAsync
+├── my-cache.service.ts    ← main service
+└── types.ts               ← config interface + InjectionToken
+```
+
+<Callout type="info">
+  Only **source files** are created — no package.json, build.ts, or README. The pack lives as part of your project.
+</Callout>
+
+### Implement the Logic
+
+Edit the generated files to suit your needs.
+
+### Publish (optional)
+
+If you want to share the pack via a registry — see [Publishing](/docs/cli/registry/publishing).
+
+</Steps>
+
+## Pack Structure
+
+Every pack follows the standard Ambrosia structure:
+
+### types.ts — Types and Tokens
+
+Define the config interface and `InjectionToken`:
+
+```typescript title="src/packs/my-cache/types.ts"
+import { InjectionToken } from '@ambrosia/core';
+
+export interface MyCacheConfig {
+  /** Redis address */
+  host: string;
+  /** Port */
+  port: number;
+  /** Default TTL (in seconds) */
+  defaultTtl: number;
+}
+
+export const MY_CACHE_CONFIG = new InjectionToken<MyCacheConfig>('MyCacheConfig');
+```
+
+<Callout type="info">
+  `InjectionToken` provides type-safe config injection. The string identifier must be unique.
+</Callout>
+
+### Services — Business Logic
+
+```typescript title="src/packs/my-cache/my-cache.service.ts"
+import { Injectable, Inject } from '@ambrosia/core';
+import type { MyCacheConfig } from './types';
+import { MY_CACHE_CONFIG } from './types';
+
+@Injectable()
+export class MyCacheService {
+  private store = new Map<string, { value: unknown; expiresAt: number }>();
+
+  constructor(@Inject(MY_CACHE_CONFIG) private config: MyCacheConfig) {}
+
+  async get<T>(key: string): Promise<T | null> {
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.store.delete(key);
+      return null;
+    }
+    return entry.value as T;
+  }
+
+  async set(key: string, value: unknown, ttl?: number): Promise<void> {
+    const expiresAt = Date.now() + (ttl ?? this.config.defaultTtl) * 1000;
+    this.store.set(key, { value, expiresAt });
+  }
+
+  async delete(key: string): Promise<boolean> {
+    return this.store.delete(key);
+  }
+}
+```
+
+### Pack — Module Definition
+
+A pack is a class with static methods `forRoot` and optionally `forRootAsync`:
+
+```typescript title="src/packs/my-cache/my-cache.pack.ts"
+import type { PackDefinition, AsyncPackOptions } from '@ambrosia/core';
+import { createAsyncProvider } from '@ambrosia/core';
+import { MyCacheService } from './my-cache.service';
+import type { MyCacheConfig } from './types';
+import { MY_CACHE_CONFIG } from './types';
+
+export class MyCachePack {
+  /**
+   * Synchronous configuration — values are known ahead of time.
+   */
+  static forRoot(config: MyCacheConfig): PackDefinition {
+    return {
+      meta: { name: 'my-cache', version: '0.1.0' },
+      providers: [
+        { token: MY_CACHE_CONFIG, useValue: config },
+        MyCacheService,
+      ],
+      exports: [MyCacheService],
+    };
+  }
+
+  /**
+   * Asynchronous configuration — values depend on other services.
+   */
+  static forRootAsync(options: AsyncPackOptions<MyCacheConfig>): PackDefinition {
+    return {
+      meta: { name: 'my-cache-async' },
+      providers: [
+        createAsyncProvider(MY_CACHE_CONFIG, options),
+        MyCacheService,
+      ],
+      exports: [MyCacheService],
+    };
+  }
+}
+```
+
+### index.ts — Barrel Export
+
+```typescript title="src/packs/my-cache/index.ts"
+export { MyCachePack } from './my-cache.pack';
+export { MyCacheService } from './my-cache.service';
+export type { MyCacheConfig } from './types';
+export { MY_CACHE_CONFIG } from './types';
+```
+
+## Patterns
+
+### Interceptor
+
+```typescript title="src/packs/my-cache/cache.interceptor.ts"
+import { Injectable } from '@ambrosia/core';
+import type { Interceptor, ExecutionContext, CallHandler } from '@ambrosia/http';
+import { MyCacheService } from './my-cache.service';
+
+@Injectable()
+export class CacheInterceptor implements Interceptor {
+  constructor(private cache: MyCacheService) {}
+
+  async intercept(context: ExecutionContext, next: CallHandler) {
+    const req = context.switchToHttp().getRequest();
+    const key = `${req.method}:${req.url}`;
+
+    const cached = await this.cache.get(key);
+    if (cached) return cached;
+
+    const result = await next.handle();
+    await this.cache.set(key, result);
+    return result;
+  }
+}
+```
+
+### Lifecycle Hooks
+
+A pack can use lifecycle hooks for initialization and cleanup:
+
+```typescript title="src/packs/my-cache/my-cache.pack.ts"
+import type { PackDefinition } from '@ambrosia/core';
+import { MyCacheService } from './my-cache.service';
+import type { MyCacheConfig } from './types';
+import { MY_CACHE_CONFIG } from './types';
+
+export class MyCachePack {
+  static forRoot(config: MyCacheConfig): PackDefinition {
+    return {
+      meta: { name: 'my-cache' },
+      providers: [
+        { token: MY_CACHE_CONFIG, useValue: config },
+        MyCacheService,
+      ],
+      exports: [MyCacheService],
+      onInit: async (container) => {
+        const cache = container.resolve(MyCacheService);
+        await cache.connect();
+      },
+      onDestroy: async (container) => {
+        const cache = container.resolve(MyCacheService);
+        await cache.disconnect();
+      },
+    };
+  }
+}
+```
+
+### HTTP Pack with Controllers
+
+If a pack contains controllers, use `HttpPackDefinition`:
+
+```typescript title="src/packs/health/health.pack.ts"
+import type { HttpPackDefinition } from '@ambrosia/http';
+import { HealthController } from './health.controller';
+import { HealthService } from './health.service';
+
+export class HealthPack {
+  static forRoot(): HttpPackDefinition {
+    return {
+      meta: { name: 'health' },
+      controllers: [HealthController],
+      providers: [HealthService],
+      exports: [HealthService],
+    };
+  }
+}
+```
+
+## Dependencies Between Packs
+
+If your pack depends on another pack from the registry, specify this in `registryDependencies` when publishing:
+
+```json
+{
+  "name": "rbac-pack",
+  "registryDependencies": ["jwt-auth"],
+  "ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+}
+```
+
+When installing `ambrosia add rbac-pack`, the CLI will automatically install `jwt-auth` first.
+
+<Callout type="warn">
+  Make sure the dependent pack actually exists in the registry. Circular dependencies between packs are forbidden — the CLI will throw an error.
+</Callout>
+
+## Naming
+
+File naming recommendations:
+
+| File | Purpose | Example |
+|---|---|---|
+| `{name}.pack.ts` | PackDefinition | `jwt-auth.pack.ts` |
+| `{name}.service.ts` | Main service | `jwt-auth.service.ts` |
+| `{name}.guard.ts` | Guard | `jwt-auth.guard.ts` |
+| `{name}.interceptor.ts` | Interceptor | `cache.interceptor.ts` |
+| `{name}.controller.ts` | Controller | `health.controller.ts` |
+| `types.ts` | Types and tokens | `types.ts` |
+| `index.ts` | Barrel export | `index.ts` |
+
+## Testing
+
+Use `TestingPackFactory` from `@ambrosia/core` for testing:
+
+```typescript title="src/packs/my-cache/__tests__/my-cache.test.ts"
+import { TestingPackFactory } from '@ambrosia/core';
+import { MyCachePack } from '../my-cache.pack';
+import { MyCacheService } from '../my-cache.service';
+
+describe('MyCachePack', () => {
+  let cacheService: MyCacheService;
+
+  beforeEach(async () => {
+    const pack = await TestingPackFactory.create(
+      MyCachePack.forRoot({
+        host: 'localhost',
+        port: 6379,
+        defaultTtl: 60,
+      })
+    );
+    cacheService = pack.get(MyCacheService);
+  });
+
+  it('should set and get values', async () => {
+    await cacheService.set('key', 'value');
+    const result = await cacheService.get('key');
+    expect(result).toBe('value');
+  });
+
+  it('should return null for expired keys', async () => {
+    await cacheService.set('key', 'value', 0);
+    const result = await cacheService.get('key');
+    expect(result).toBeNull();
+  });
+});
+```
+
+Running tests:
+
+```bash
+bun test
+```
+
+## Next Steps
+
+1. [Publish the pack](/docs/cli/registry/publishing) to a registry via `registry.json` + `ambrosia build`
+2. Explore [Custom Registry](/docs/cli/registry/custom-registry) for private packs

@@ -1,0 +1,70 @@
+---
+title: "Introduction"
+description: "Type-safe environment configuration for Ambrosia with zero runtime overhead"
+---
+
+import {Card, Cards} from 'fumadocs-ui/components/card';
+
+# @ambrosia/config
+
+**@ambrosia/config** is a type-safe configuration module for the Ambrosia Framework. All environment variables are parsed **once** at application startup into a frozen object. After initialization -- zero runtime overhead, O(1) access via Map.
+
+## Key Features
+
+<Cards>
+    <Card
+        title="Zero Runtime Overhead"
+        description="All env variables are parsed once at startup. No Proxies, getters, or lazy evaluation -- direct property access after initialization."
+    />
+    <Card
+        title="Configuration Schema"
+        description="Declarative configuration definition via defineConfig() with typing, default values, and validation."
+    />
+    <Card
+        title="6 Built-in Parsers"
+        description="string, int, float, bool, array, json -- automatic parsing of env variables into the correct data type."
+    />
+    <Card
+        title="Fail-fast Validation"
+        description="Validation of all required fields at startup. The application won't start with invalid configuration."
+    />
+</Cards>
+
+## Quick Start
+
+```ts
+import { defineConfig, ConfigModule, ConfigService } from '@ambrosia/config';
+import { definePack, Injectable, Inject } from '@ambrosia/core';
+
+// 1. Define the schema
+const AppConfig = defineConfig({
+  port: { env: 'PORT', type: 'int', default: 3000 },
+  debug: { env: 'DEBUG', type: 'bool', default: false },
+  secret: { env: 'JWT_SECRET', required: true },
+});
+
+// 2. Register the module
+const AppPack = definePack({
+  imports: [
+    ConfigModule.forRoot({ schema: AppConfig, validate: true }),
+  ],
+});
+
+// 3. Inject ConfigService
+@Injectable()
+class MyService {
+  constructor(private config: ConfigService) {
+    const port = this.config.get<number>('port');       // 3000
+    const secret = this.config.getOrThrow('secret');    // throws if not set
+  }
+}
+```
+
+## Architecture
+
+The module follows the **parse once, read many** principle:
+
+1. When `ConfigModule.forRoot()` is called, all env variables are parsed according to the schema
+2. The result is stored in a `Map<string, unknown>` and frozen
+3. `ConfigService` provides O(1) access via `get()` / `getOrThrow()`
+4. Invalid configuration raises an error **before** the application starts

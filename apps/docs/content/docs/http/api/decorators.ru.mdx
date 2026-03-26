@@ -1,0 +1,642 @@
+---
+title: Декораторы
+description: Полный справочник по декораторам Ambrosia HTTP
+---
+
+# Декораторы
+
+Полный справочник по всем доступным декораторам в @ambrosia/http.
+
+## Декораторы контроллеров
+
+### @Controller()
+
+Определяет класс как HTTP контроллер.
+
+```typescript
+@Controller(prefix?: string)
+```
+
+**Параметры:**
+- `prefix` - префикс пути для всех маршрутов контроллера (опционально)
+
+**Пример:**
+
+```typescript
+@Controller('/users')
+export class UserController {
+  // Все маршруты будут начинаться с /users
+}
+```
+
+## Декораторы HTTP методов
+
+### @Http.Get()
+
+Определяет GET endpoint.
+
+```typescript
+@Http.Get(path?: string)
+```
+
+**Параметры:**
+- `path` - путь маршрута (опционально, по умолчанию '/')
+
+**Пример:**
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')          // GET /users/
+  async list() {}
+  
+  @Http.Get('/:id')       // GET /users/:id
+  async getOne() {}
+}
+```
+
+### @Http.Post()
+
+Определяет POST endpoint.
+
+```typescript
+@Http.Post(path?: string)
+```
+
+**Пример:**
+
+```typescript
+@Http.Post('/')
+async create(@Body() dto: CreateUserDto) {
+  return this.userService.create(dto);
+}
+```
+
+### @Http.Put()
+
+Определяет PUT endpoint для полного обновления ресурса.
+
+```typescript
+@Http.Put(path?: string)
+```
+
+**Пример:**
+
+```typescript
+@Http.Put('/:id')
+async update(
+  @Param('id') id: string,
+  @Body() dto: UpdateUserDto
+) {
+  return this.userService.update(id, dto);
+}
+```
+
+### @Http.Patch()
+
+Определяет PATCH endpoint для частичного обновления ресурса.
+
+```typescript
+@Http.Patch(path?: string)
+```
+
+**Пример:**
+
+```typescript
+@Http.Patch('/:id')
+async partialUpdate(
+  @Param('id') id: string,
+  @Body() dto: Partial<UpdateUserDto>
+) {
+  return this.userService.patch(id, dto);
+}
+```
+
+### @Http.Delete()
+
+Определяет DELETE endpoint.
+
+```typescript
+@Http.Delete(path?: string)
+```
+
+**Пример:**
+
+```typescript
+@Http.Delete('/:id')
+async remove(@Param('id') id: string) {
+  await this.userService.remove(id);
+  return { deleted: true };
+}
+```
+
+### @Http.Options()
+
+Определяет OPTIONS endpoint.
+
+```typescript
+@Http.Options(path?: string)
+```
+
+### @Http.Head()
+
+Определяет HEAD endpoint.
+
+```typescript
+@Http.Head(path?: string)
+```
+
+## Декораторы параметров
+
+### @Body()
+
+Извлекает тело запроса.
+
+```typescript
+@Body(key?: string, ...pipes: Constructor<Pipe>[])
+```
+
+**Параметры:**
+- `key` - ключ для извлечения конкретного поля из body (опционально)
+- `pipes` - pipes для преобразования/валидации (опционально)
+
+**Примеры:**
+
+```typescript
+// Весь body
+@Http.Post('/')
+async create(@Body() dto: CreateUserDto) {}
+
+// Конкретное поле
+@Http.Post('/')
+async create(@Body('email') email: string) {}
+
+// С pipes
+@Http.Post('/')
+async create(@Body(ValidationPipe) dto: CreateUserDto) {}
+```
+
+### @Query()
+
+Извлекает query параметры.
+
+```typescript
+@Query(key?: string, ...pipes: Constructor<Pipe>[])
+```
+
+**Примеры:**
+
+```typescript
+// Все query параметры
+@Http.Get('/')
+async list(@Query() query: any) {}
+
+// Конкретный параметр
+@Http.Get('/')
+async list(@Query('page') page: string) {}
+
+// С pipe
+@Http.Get('/')
+async list(@Query('page', ParseIntPipe) page: number) {}
+```
+
+### @Param()
+
+Извлекает параметры пути.
+
+```typescript
+@Param(key?: string, ...pipes: Constructor<Pipe>[])
+```
+
+**Примеры:**
+
+```typescript
+// Все параметры пути
+@Http.Get('/:id/:slug')
+async get(@Param() params: { id: string; slug: string }) {}
+
+// Конкретный параметр
+@Http.Get('/:id')
+async get(@Param('id') id: string) {}
+
+// С pipe
+@Http.Get('/:id')
+async get(@Param('id', ParseIntPipe) id: number) {}
+```
+
+### @Headers()
+
+Извлекает все headers.
+
+```typescript
+@Headers()
+```
+
+**Пример:**
+
+```typescript
+@Http.Get('/')
+async list(@Headers() headers: Record<string, string>) {
+  console.log(headers['user-agent']);
+}
+```
+
+### @Header()
+
+Извлекает конкретный header.
+
+```typescript
+@Header(name: string)
+```
+
+**Пример:**
+
+```typescript
+@Http.Get('/')
+async list(@Header('authorization') token: string) {
+  // token = значение Authorization header
+}
+```
+
+### @Ctx()
+
+Извлекает полный HttpContext.
+
+```typescript
+@Ctx()
+```
+
+**Пример:**
+
+```typescript
+@Http.Get('/')
+async list(@Ctx() context: HttpContext) {
+  const { request, response } = context;
+}
+```
+
+### @Req() / @Request()
+
+Извлекает объект request.
+
+```typescript
+@Req() или @Request()
+```
+
+**Пример:**
+
+```typescript
+@Http.Get('/')
+async list(@Req() req: IHttpRequest) {
+  console.log(req.method, req.url);
+}
+```
+
+### @Res() / @Response()
+
+Извлекает объект response.
+
+```typescript
+@Res() или @Response()
+```
+
+**Пример:**
+
+```typescript
+@Http.Get('/')
+async list(@Res() res: IHttpResponse) {
+  res.setHeader('X-Custom', 'value');
+}
+```
+
+### @Session()
+
+Извлекает session данные.
+
+```typescript
+@Session()
+```
+
+**Пример:**
+
+```typescript
+@Http.Get('/profile')
+async getProfile(@Session() session: any) {
+  return { userId: session.userId };
+}
+```
+
+### @Cookie()
+
+Извлекает cookies.
+
+```typescript
+@Cookie(key?: string)
+```
+
+**Примеры:**
+
+```typescript
+// Все cookies
+@Http.Get('/')
+async list(@Cookie() cookies: Record<string, string>) {}
+
+// Конкретный cookie
+@Http.Get('/')
+async list(@Cookie('sessionId') sessionId: string) {}
+```
+
+### @Ip()
+
+Извлекает IP адрес клиента.
+
+```typescript
+@Ip()
+```
+
+**Пример:**
+
+```typescript
+@Http.Get('/')
+async list(@Ip() ip: string) {
+  console.log(`Request from: ${ip}`);
+}
+```
+
+### @UploadedFile()
+
+Извлекает загруженный файл.
+
+```typescript
+@UploadedFile(fieldName: string)
+```
+
+**Пример:**
+
+```typescript
+@Http.Post('/upload')
+async uploadAvatar(@UploadedFile('avatar') file: UploadedFile) {
+  return {
+    filename: file.originalname,
+    size: file.size,
+    mimetype: file.mimetype
+  };
+}
+```
+
+### @UploadedFiles()
+
+Извлекает массив загруженных файлов.
+
+```typescript
+@UploadedFiles(fieldName?: string)
+```
+
+**Примеры:**
+
+```typescript
+// Все файлы
+@Http.Post('/upload')
+async uploadMultiple(@UploadedFiles() files: UploadedFile[]) {}
+
+// Файлы из конкретного поля
+@Http.Post('/upload')
+async uploadPhotos(@UploadedFiles('photos') photos: UploadedFile[]) {}
+```
+
+## Декораторы жизненного цикла
+
+### @UseGuard()
+
+Применяет guards к контроллеру или методу.
+
+```typescript
+@UseGuard(...guards: Constructor<Guard>[])
+```
+
+**Применение:**
+- ClassDecorator - применяется ко всем методам
+- MethodDecorator - применяется к конкретному методу
+
+**Примеры:**
+
+```typescript
+// На уровне контроллера
+@Controller('/admin')
+@UseGuard(AuthGuard, AdminGuard)
+export class AdminController {}
+
+// На уровне метода
+@Http.Delete('/:id')
+@UseGuard(OwnershipGuard)
+async delete(@Param('id') id: string) {}
+```
+
+### @UseInterceptor()
+
+Применяет interceptors к контроллеру или методу.
+
+```typescript
+@UseInterceptor(...interceptors: Constructor<Interceptor>[])
+```
+
+**Применение:**
+- ClassDecorator - применяется ко всем методам
+- MethodDecorator - применяется к конкретному методу
+
+**Примеры:**
+
+```typescript
+// На уровне контроллера
+@Controller('/api')
+@UseInterceptor(LoggingInterceptor, TransformInterceptor)
+export class ApiController {}
+
+// На уровне метода
+@Http.Get('/cached')
+@UseInterceptor(CacheInterceptor)
+async getCached() {}
+```
+
+### @UsePipe()
+
+Применяет pipes к контроллеру или методу.
+
+```typescript
+@UsePipe(...pipes: Constructor<Pipe>[])
+```
+
+**Применение:**
+- ClassDecorator - применяется ко всем параметрам всех методов
+- MethodDecorator - применяется ко всем параметрам метода
+
+**Примеры:**
+
+```typescript
+// На уровне контроллера
+@Controller('/users')
+@UsePipe(ValidationPipe)
+export class UserController {}
+
+// На уровне метода
+@Http.Post('/')
+@UsePipe(TrimPipe, ValidationPipe)
+async create(@Body() dto: CreateUserDto) {}
+```
+
+### @UseMiddleware()
+
+Применяет middleware к контроллеру.
+
+```typescript
+@UseMiddleware(...middleware: Constructor<Middleware>[])
+```
+
+**Применение:**
+- ClassDecorator only - применяется ко всем методам контроллера
+
+**Пример:**
+
+```typescript
+@Controller('/api')
+@UseMiddleware(LoggerMiddleware, RateLimitMiddleware)
+export class ApiController {}
+```
+
+### @UseFilter()
+
+Применяет exception filters к контроллеру или методу.
+
+```typescript
+@UseFilter(...filters: Constructor<ExceptionFilter>[])
+```
+
+**Применение:**
+- ClassDecorator - применяется ко всем методам
+- MethodDecorator - применяется к конкретному методу
+
+**Примеры:**
+
+```typescript
+// На уровне контроллера
+@Controller('/api')
+@UseFilter(ApiExceptionFilter)
+export class ApiController {}
+
+// На уровне метода
+@Http.Get('/database')
+@UseFilter(DatabaseExceptionFilter)
+async getDatabaseData() {}
+```
+
+## Декораторы response
+
+### @Status()
+
+Устанавливает HTTP status code для успешного ответа.
+
+```typescript
+@Status(code: number)
+```
+
+**Применение:**
+- MethodDecorator only
+
+**Пример:**
+
+```typescript
+@Http.Post('/')
+@Status(201)
+async create(@Body() dto: CreateUserDto) {
+  // Ответ будет иметь status 201 Created
+  return this.userService.create(dto);
+}
+```
+
+### @Header()
+
+Устанавливает HTTP header в ответе.
+
+```typescript
+@Header(name: string, value: string)
+```
+
+**Применение:**
+- MethodDecorator only
+
+**Пример:**
+
+```typescript
+@Http.Get('/download')
+@Header('Content-Type', 'application/pdf')
+@Header('Content-Disposition', 'attachment; filename="document.pdf"')
+async download() {
+  return this.fileService.getPdf();
+}
+```
+
+## Композиция декораторов
+
+Декораторы можно комбинировать:
+
+```typescript
+@Controller('/api/v1/users')
+@UseGuard(AuthGuard)
+@UseInterceptor(LoggingInterceptor)
+@UsePipe(ValidationPipe)
+@UseMiddleware(RateLimitMiddleware)
+export class UserController {
+  @Http.Post('/')
+  @Status(201)
+  @UseGuard(RoleGuard)
+  @UseInterceptor(TransformInterceptor)
+  async create(
+    @Body(TrimPipe) dto: CreateUserDto,
+    @Header('x-api-key') apiKey: string
+  ) {
+    return this.userService.create(dto);
+  }
+}
+```
+
+## Кастомные декораторы
+
+Вы можете создавать собственные декораторы на основе встроенных:
+
+```typescript
+import { SetMetadata } from '@ambrosia/core';
+
+// Декоратор для ролей
+export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
+
+// Декоратор для разрешений
+export const Permissions = (...permissions: string[]) => 
+  SetMetadata('permissions', permissions);
+
+// Композитный декоратор
+export function Auth(roles: string[]) {
+  return function (
+    target: any,
+    propertyKey?: string,
+    descriptor?: PropertyDescriptor
+  ) {
+    UseGuard(AuthGuard, RoleGuard)(target, propertyKey!, descriptor!);
+    Roles(...roles)(target, propertyKey!, descriptor!);
+  };
+}
+
+// Использование
+@Controller('/admin')
+export class AdminController {
+  @Http.Get('/users')
+  @Auth(['admin', 'moderator'])
+  async getUsers() {}
+}
+```
+
+## См. также
+
+- [Controllers](/docs/http/guides/controllers) - Руководство по контроллерам
+- [Guards](/docs/http/guides/guards) - Защита маршрутов
+- [Interceptors](/docs/http/guides/interceptors) - Преобразование запросов
+- [Pipes](/docs/http/guides/pipes) - Валидация и преобразование

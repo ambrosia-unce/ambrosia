@@ -1,0 +1,10 @@
+{
+  "title": "Pack Registry",
+  "pages": [
+    "overview",
+    "registry-item",
+    "creating-packs",
+    "publishing",
+    "custom-registry"
+  ]
+}

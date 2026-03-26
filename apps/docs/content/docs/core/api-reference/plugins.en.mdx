@@ -1,0 +1,141 @@
+---
+title: "Plugin API"
+description: "Reference for the plugin system: interfaces, hooks, built-in plugins"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Plugin API
+
+The plugin system lets you extend the container without modifying its core. Plugins hook into lifecycle events for monitoring, transformation, and validation.
+
+## Plugin Interface
+
+```typescript
+interface Plugin {
+  /** Unique plugin name */
+  name: string;
+  /** Version (optional) */
+  version?: string;
+
+  // Lifecycle hooks
+  onContainerCreate?(container: IContainer): void;
+  onBeforeResolve?(token: Token, context: ResolutionContext): void;
+  onAfterResolve?(token: Token, instance: unknown, context: ResolutionContext): void;
+  onError?(error: Error, context: ResolutionContext): void;
+
+  // Init hooks
+  onBeforeInit?(token: Token, instance: unknown, context: ResolutionContext): void;
+  onAfterInit?(token: Token, instance: unknown, context: ResolutionContext): void;
+
+  // Provider hooks
+  onRegisterProvider?(provider: Provider): Provider;
+
+  // Custom scopes
+  registerCustomScope?(name: string, handler: ScopeHandler): void;
+}
+```
+
+## Lifecycle Hooks
+
+| Hook | When Called | Returns |
+|------|-----------|---------|
+| `onContainerCreate` | On `new Container()` | `void` |
+| `onRegisterProvider` | On `register()` | `Provider` (can transform) |
+| `onBeforeResolve` | Before each `resolve()` | `void` |
+| `onAfterResolve` | After successful `resolve()` | `void` |
+| `onBeforeInit` | Before instance's `onInit()` | `void` |
+| `onAfterInit` | After instance's `onInit()` | `void` |
+| `onError` | On resolution error | `void` |
+
+<Callout type="info">
+`onBeforeInit` / `onAfterInit` are called **only** for `ClassProvider` instances implementing the `OnInit` interface. Value, Factory, and Existing providers do not trigger these hooks.
+</Callout>
+
+## ResolutionContext
+
+Context passed to all resolution hooks.
+
+```typescript
+interface ResolutionContext {
+  /** Token being resolved */
+  token: Token;
+  /** Resolution scope */
+  scope: Scope;
+  /** Depth in the dependency graph (0 = root resolve) */
+  depth: number;
+  /** Parent token (if this is a nested dependency) */
+  parent?: Token;
+  /** Resolution start time (performance.now()) */
+  startTime: number;
+  /** Whether the resolution is optional */
+  optional: boolean;
+}
+```
+
+## PluginPriority
+
+Controls the execution order of hooks when multiple plugins are present.
+
+```typescript
+enum PluginPriority {
+  HIGHEST = 100,   // Executes first
+  HIGH    = 75,
+  NORMAL  = 50,    // Default
+  LOW     = 25,
+  LOWEST  = 0,     // Executes last
+}
+```
+
+## PluginManager
+
+```typescript
+// Via container (recommended)
+container.use(plugin, priority?);
+container.getPlugins();
+container.hasPlugin("plugin-name");
+```
+
+## ScopeHandler
+
+Interface for implementing custom scopes via plugins.
+
+```typescript
+interface ScopeHandler {
+  get(token: Token): unknown | undefined;
+  set(token: Token, instance: unknown): void;
+  has(token: Token): boolean;
+  clear(): void;
+}
+```
+
+## Built-in Plugins
+
+### LoggingPlugin
+
+```typescript
+import { LoggingPlugin } from "@ambrosia/core";
+
+container.use(new LoggingPlugin({
+  logger: customLogger,              // default: ConsoleLogger
+  logResolutionTiming: true,         // Log resolve timing (default: false)
+  logProviderRegistration: true,     // Log provider registration (default: false)
+}));
+```
+
+### Built-in Loggers
+
+```typescript
+import { ConsoleLogger, SilentLogger, setGlobalLogger } from "@ambrosia/core";
+
+const logger = new ConsoleLogger();
+const silent = new SilentLogger();
+setGlobalLogger(new SilentLogger());
+```
+
+## Next Steps
+
+- [Plugin Development](/docs/core/advanced/plugin-development) - Step-by-step guide
+- [Container API](/docs/core/api-reference/container) - Plugin registration
+- [Error Types](/docs/core/api-reference/errors) - Error handling in plugins

@@ -1,0 +1,60 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+/* Override fumadocs dark theme to match pack-market */
+.dark {
+  --color-fd-background: oklch(0.13 0.004 260) !important;
+  --color-fd-foreground: oklch(0.97 0.005 260) !important;
+  --color-fd-card: oklch(0.17 0.006 260) !important;
+  --color-fd-card-foreground: oklch(0.97 0.005 260) !important;
+  --color-fd-muted: oklch(0.22 0.008 260) !important;
+  --color-fd-muted-foreground: oklch(0.65 0.015 260 / 80%) !important;
+  --color-fd-border: oklch(1 0 0 / 8%) !important;
+  --color-fd-primary: oklch(0.72 0.14 200) !important;
+  --color-fd-primary-foreground: oklch(0.15 0.01 200) !important;
+  --color-fd-accent: oklch(0.20 0.008 260 / 50%) !important;
+  --color-fd-accent-foreground: oklch(0.97 0.005 260) !important;
+  --color-fd-popover: oklch(0.15 0.005 260) !important;
+  --color-fd-popover-foreground: oklch(0.97 0.005 260) !important;
+  --color-fd-secondary: oklch(0.20 0.008 260) !important;
+  --color-fd-secondary-foreground: oklch(0.97 0.005 260) !important;
+  --color-fd-ring: oklch(0.72 0.14 200) !important;
+  --color-fd-overlay: oklch(0 0 0 / 40%) !important;
+}
+
+/* Also override sidebar in dark mode */
+.dark #nd-sidebar {
+  --color-fd-muted: oklch(0.20 0.006 260) !important;
+  --color-fd-secondary: oklch(0.22 0.008 260) !important;
+  --color-fd-muted-foreground: oklch(0.72 0.01 260) !important;
+}
+
+@layer utilities {
+  .glow-sm {
+    box-shadow:
+      0 0 10px oklch(0.72 0.14 200 / 6%),
+      0 0 30px oklch(0.72 0.14 200 / 3%);
+  }
+  .glow-md {
+    box-shadow:
+      0 0 15px oklch(0.72 0.14 200 / 10%),
+      0 0 45px oklch(0.72 0.14 200 / 5%);
+  }
+  .text-gradient {
+    background: linear-gradient(135deg, oklch(0.82 0.12 200), oklch(0.72 0.18 260));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .bg-dot-pattern {
+    background-image: radial-gradient(circle, oklch(1 0 0 / 4%) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(oklch(1 0 0 / 3%) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(1 0 0 / 3%) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+}

@@ -1,0 +1,634 @@
+---
+title: Pipes
+description: Validating and transforming data with Pipes in Ambrosia HTTP
+---
+
+# Pipes
+
+Pipes transform and validate input data before passing it to the handler. They execute after guards and interceptors, but before the handler is called.
+
+## Basics
+
+A Pipe is a class with a `transform()` method that receives a value and metadata:
+
+```typescript
+import { Injectable } from '@ambrosia/core';
+import { Pipe, BadRequestException } from '@ambrosia/http';
+
+@Injectable()
+export class ParseIntPipe implements Pipe {
+  transform(value: any, metadata?: any): number {
+    const parsed = parseInt(value, 10);
+
+    if (isNaN(parsed)) {
+      throw new BadRequestException(`"${value}" is not a number`);
+    }
+
+    return parsed;
+  }
+}
+```
+
+## Built-in Pipes
+
+Ambrosia HTTP provides several built-in pipes:
+
+### ValidationPipe
+
+Automatically validates DTOs using TypeBox:
+
+```typescript
+import { Type, Static } from '@sinclair/typebox';
+import { Body, Http, Controller } from '@ambrosia/http';
+
+class CreateUserDto {
+  static schema = Type.Object({
+    name: Type.String({ minLength: 1, maxLength: 100 }),
+    email: Type.String({ format: 'email' }),
+    age: Type.Number({ minimum: 0, maximum: 150 })
+  });
+
+  name!: string;
+  email!: string;
+  age!: number;
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  async create(@Body() dto: CreateUserDto) {
+    // dto is already validated through ValidationPipe
+    return { id: 1, ...dto };
+  }
+}
+```
+
+ValidationPipe is automatically applied to `@Body()` parameters if the class has a static `schema` property.
+
+### ParseIntPipe
+
+Converts a string to a number:
+
+```typescript
+import { Http, Param, ParseIntPipe } from '@ambrosia/http';
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  async getOne(@Param('id', ParseIntPipe) id: number) {
+    // id is guaranteed to be a number
+    return { id };
+  }
+}
+```
+
+### ParseBoolPipe
+
+Converts a string to a boolean:
+
+```typescript
+import { Http, Query, ParseBoolPipe } from '@ambrosia/http';
+
+@Controller('/posts')
+export class PostController {
+  @Http.Get('/')
+  async list(@Query('published', ParseBoolPipe) published?: boolean) {
+    // published: true | false | undefined
+    return [];
+  }
+}
+```
+
+### ParseFloatPipe
+
+Converts a string to a floating-point number:
+
+```typescript
+import { Http, Query, ParseFloatPipe } from '@ambrosia/http';
+
+@Controller('/products')
+export class ProductController {
+  @Http.Get('/')
+  async list(@Query('minPrice', ParseFloatPipe) minPrice: number) {
+    // minPrice is guaranteed to be a number (float)
+    return { minPrice };
+  }
+}
+```
+
+### ParseUUIDPipe
+
+Validates UUID v4 format:
+
+```typescript
+import { Http, Param, ParseUUIDPipe } from '@ambrosia/http';
+
+@Controller('/orders')
+export class OrderController {
+  @Http.Get('/:id')
+  async getOne(@Param('id', ParseUUIDPipe) id: string) {
+    // id is guaranteed to be a valid UUID v4
+    return { id };
+  }
+}
+```
+
+If the value is not a valid UUID v4, a `BadRequestException` is thrown.
+
+### DefaultValuePipe
+
+A factory function that returns a pipe for setting a default value:
+
+```typescript
+import { Http, Query, DefaultValuePipe, ParseIntPipe } from '@ambrosia/http';
+
+@Controller('/posts')
+export class PostController {
+  @Http.Get('/')
+  async list(
+    @Query('page', DefaultValuePipe('1'), ParseIntPipe) page: number,
+    @Query('limit', DefaultValuePipe('10'), ParseIntPipe) limit: number
+  ) {
+    // page = 1, limit = 10 if not provided in query
+    return { page, limit };
+  }
+}
+```
+
+`DefaultValuePipe(defaultValue)` substitutes `defaultValue` if the input value is `undefined`, `null`, or an empty string.
+
+### ParseEnumPipe
+
+A factory function that validates a value against an enum:
+
+```typescript
+import { Http, Query, ParseEnumPipe } from '@ambrosia/http';
+
+enum SortOrder {
+  ASC = 'asc',
+  DESC = 'desc',
+}
+
+@Controller('/products')
+export class ProductController {
+  @Http.Get('/')
+  async list(
+    @Query('sort', DefaultValuePipe('asc'), ParseEnumPipe(SortOrder)) sort: SortOrder
+  ) {
+    // sort is guaranteed to be one of the SortOrder values
+    return { sort };
+  }
+}
+```
+
+If the value is not among the allowed enum values, a `BadRequestException` is thrown listing the allowed options.
+
+## Applying Pipes
+
+### At the Parameter Level
+
+```typescript
+@Http.Get('/:id')
+async getOne(
+  @Param('id', ParseIntPipe) id: number,
+  @Query('limit', ParseIntPipe) limit: number = 10
+) {
+  return { id, limit };
+}
+```
+
+### At the Method Level
+
+```typescript
+import { UsePipe } from '@ambrosia/http';
+
+@Http.Post('/')
+@UsePipe(ValidationPipe, SanitizePipe)
+async create(@Body() dto: CreateUserDto) {
+  // All parameters are processed through ValidationPipe and SanitizePipe
+  return dto;
+}
+```
+
+### At the Controller Level
+
+```typescript
+@Controller('/users')
+@UsePipe(ValidationPipe)
+export class UserController {
+  // ValidationPipe applies to all methods
+
+  @Http.Post('/')
+  async create(@Body() dto: CreateUserDto) {
+    return dto;
+  }
+
+  @Http.Put('/:id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateUserDto
+  ) {
+    return { id, ...dto };
+  }
+}
+```
+
+### Global Pipes
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalPipes: [ValidationPipe],
+  port: 3000
+});
+```
+
+## Custom Pipes
+
+### Trim Pipe
+
+```typescript
+@Injectable()
+export class TrimPipe implements Pipe {
+  transform(value: any): any {
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+
+    if (value && typeof value === 'object') {
+      return this.trimObject(value);
+    }
+
+    return value;
+  }
+
+  private trimObject(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.transform(item));
+    }
+
+    const result: any = {};
+    for (const key of Object.keys(obj)) {
+      result[key] = this.transform(obj[key]);
+    }
+    return result;
+  }
+}
+```
+
+### Default Value Pipe
+
+```typescript
+@Injectable()
+export class DefaultValuePipe implements Pipe {
+  constructor(private readonly defaultValue: any) {}
+
+  transform(value: any): any {
+    if (value === undefined || value === null || value === '') {
+      return this.defaultValue;
+    }
+    return value;
+  }
+}
+
+// Usage
+@Http.Get('/')
+async list(@Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number) {
+  // page defaults to 1, then parsed as number
+  return { page };
+}
+```
+
+### Uppercase Pipe
+
+```typescript
+@Injectable()
+export class UpperCasePipe implements Pipe {
+  transform(value: any): any {
+    if (typeof value === 'string') {
+      return value.toUpperCase();
+    }
+    return value;
+  }
+}
+
+@Http.Get('/:code')
+async getByCode(@Param('code', UpperCasePipe) code: string) {
+  // code is always uppercase
+  return { code };
+}
+```
+
+### Sanitize HTML Pipe
+
+```typescript
+@Injectable()
+export class SanitizeHtmlPipe implements Pipe {
+  transform(value: any): any {
+    if (typeof value === 'string') {
+      return this.sanitize(value);
+    }
+
+    if (value && typeof value === 'object') {
+      return this.sanitizeObject(value);
+    }
+
+    return value;
+  }
+
+  private sanitize(html: string): string {
+    // Basic sanitization (use a library in production)
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      .replace(/on\w+="[^"]*"/gi, '');
+  }
+
+  private sanitizeObject(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.transform(item));
+    }
+
+    const result: any = {};
+    for (const key of Object.keys(obj)) {
+      result[key] = this.transform(obj[key]);
+    }
+    return result;
+  }
+}
+```
+
+## Dependency Injection
+
+Pipes support full DI:
+
+```typescript
+@Injectable()
+export class DatabaseValidationPipe implements Pipe {
+  constructor(private userRepository: UserRepository) {}
+
+  async transform(value: any, metadata?: any): Promise<any> {
+    // Check existence in DB
+    if (metadata?.data === 'userId') {
+      const exists = await this.userRepository.existsById(value);
+      if (!exists) {
+        throw new NotFoundException(`User ${value} not found`);
+      }
+    }
+
+    return value;
+  }
+}
+
+// Usage
+@Http.Delete('/:userId')
+async deleteUser(
+  @Param('userId', DatabaseValidationPipe, ParseIntPipe) userId: number
+) {
+  // userId exists in DB and is a number
+  return { deleted: true };
+}
+```
+
+## Validation with TypeBox
+
+### Basic Validation
+
+```typescript
+import { Type } from '@sinclair/typebox';
+
+class CreatePostDto {
+  static schema = Type.Object({
+    title: Type.String({ minLength: 1, maxLength: 200 }),
+    content: Type.String({ minLength: 10 }),
+    tags: Type.Array(Type.String(), { minItems: 1, maxItems: 10 }),
+    published: Type.Boolean()
+  });
+
+  title!: string;
+  content!: string;
+  tags!: string[];
+  published!: boolean;
+}
+```
+
+### Nested Validation
+
+```typescript
+import { Type } from '@sinclair/typebox';
+
+class AddressDto {
+  static schema = Type.Object({
+    street: Type.String(),
+    city: Type.String(),
+    zipCode: Type.String({ pattern: '^\\d{5}$' })
+  });
+
+  street!: string;
+  city!: string;
+  zipCode!: string;
+}
+
+class CreateUserDto {
+  static schema = Type.Object({
+    name: Type.String({ minLength: 1 }),
+    email: Type.String({ format: 'email' }),
+    address: AddressDto.schema
+  });
+
+  name!: string;
+  email!: string;
+  address!: AddressDto;
+}
+```
+
+### Optional Fields
+
+```typescript
+class UpdateUserDto {
+  static schema = Type.Object({
+    name: Type.Optional(Type.String({ minLength: 1 })),
+    email: Type.Optional(Type.String({ format: 'email' })),
+    age: Type.Optional(Type.Number({ minimum: 0 }))
+  });
+
+  name?: string;
+  email?: string;
+  age?: number;
+}
+```
+
+### Union Types
+
+```typescript
+class CreateItemDto {
+  static schema = Type.Object({
+    type: Type.Union([
+      Type.Literal('article'),
+      Type.Literal('video'),
+      Type.Literal('image')
+    ]),
+    content: Type.String()
+  });
+
+  type!: 'article' | 'video' | 'image';
+  content!: string;
+}
+```
+
+### Custom Validation
+
+```typescript
+import { Type } from '@sinclair/typebox';
+
+// Custom validation via TypeBox Transform
+class RegisterDto {
+  static schema = Type.Object({
+    username: Type.String({
+      minLength: 3,
+      maxLength: 20,
+      pattern: '^[a-zA-Z0-9_]+$'
+    }),
+    password: Type.String({ minLength: 8 }),
+    confirmPassword: Type.String()
+  });
+
+  username!: string;
+  password!: string;
+  confirmPassword!: string;
+}
+
+// Additional validation in a Pipe
+@Injectable()
+export class PasswordMatchPipe implements Pipe {
+  transform(value: RegisterDto): RegisterDto {
+    if (value.password !== value.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+    return value;
+  }
+}
+
+// Usage
+@Http.Post('/register')
+async register(@Body(PasswordMatchPipe) dto: RegisterDto) {
+  // dto is validated and passwords match
+  return { username: dto.username };
+}
+```
+
+## Validation Error Handling
+
+ValidationPipe throws a `ValidationError` (extends `UnprocessableEntityException`):
+
+```typescript
+// Automatic response on validation error:
+{
+  "statusCode": 422,
+  "error": "Unprocessable Entity",
+  "message": "Validation failed",
+  "errors": [
+    {
+      "path": "/email",
+      "message": "Expected string to match 'email', expected email to match email format",
+      "value": "invalid-email"
+    },
+    {
+      "path": "/age",
+      "message": "Expected number to be greater or equal to 0",
+      "value": -5
+    }
+  ]
+}
+```
+
+## Pipe Chains
+
+Pipes execute sequentially:
+
+```typescript
+@Http.Post('/')
+async create(
+  @Body(TrimPipe, SanitizeHtmlPipe, ValidationPipe) dto: CreatePostDto
+) {
+  // 1. TrimPipe - trims whitespace
+  // 2. SanitizeHtmlPipe - sanitizes HTML
+  // 3. ValidationPipe - validates the schema
+  return dto;
+}
+```
+
+## Execution Order
+
+Pipes execute in the following order:
+
+1. Global pipes
+2. Controller-level pipes
+3. Method-level pipes
+4. Parameter-level pipes (for a specific parameter)
+
+```typescript
+const app = await HttpApplication.create({
+  globalPipes: [TrimPipe], // 1. For all parameters
+});
+
+@Controller('/users')
+@UsePipe(SanitizePipe) // 2. For all controller methods
+export class UserController {
+  @Http.Post('/')
+  @UsePipe(ValidationPipe) // 3. For all method parameters
+  async create(
+    @Body(UpperCasePipe) dto: CreateUserDto // 4. Only for @Body
+  ) {
+    return dto;
+  }
+}
+```
+
+## Best Practices
+
+1. **Validate at the boundary**: Always validate input data through ValidationPipe
+2. **Specific pipes for parameters**: Use ParseIntPipe for IDs, ParseBoolPipe for flags
+3. **Compose pipes**: Combine simple pipes for complex logic
+4. **Fail early**: Throw exceptions as early as possible
+5. **Type safety**: Use TypeScript types for transform() results
+6. **Immutability**: Don't mutate the original value, return a new one
+7. **Test in isolation**: Write unit tests for pipes
+8. **Document schemas**: Add descriptions to TypeBox schemas for API documentation
+
+## Performance
+
+Pipes execute for every parameter of every request, so performance matters:
+
+```typescript
+// ❌ BAD - new RegExp created every time
+@Injectable()
+export class EmailPipe implements Pipe {
+  transform(value: string): string {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      throw new BadRequestException('Invalid email');
+    }
+    return value.toLowerCase();
+  }
+}
+
+// ✅ GOOD - RegExp created once
+@Injectable()
+export class EmailPipe implements Pipe {
+  private readonly emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  transform(value: string): string {
+    if (!this.emailRegex.test(value)) {
+      throw new BadRequestException('Invalid email');
+    }
+    return value.toLowerCase();
+  }
+}
+```
+
+## See Also
+
+- [TypeBox Validation](https://github.com/sinclairzx81/typebox) - Official TypeBox documentation
+- [Controllers](/docs/http/guides/controllers) - Parameters and decorators
+- [Guards](/docs/http/guides/guards) - Route protection
+- [Exception Filters](/docs/http/guides/exception-filters) - Error handling

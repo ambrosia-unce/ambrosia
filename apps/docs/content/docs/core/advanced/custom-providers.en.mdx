@@ -1,0 +1,309 @@
+---
+title: "Custom Providers"
+description: "Advanced techniques: conditional, multi, lazy, and scoped providers"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Custom Providers
+
+Advanced techniques for creating providers for complex scenarios.
+
+## 4 Provider Types
+
+```mermaid
+sequenceDiagram
+    participant C as Container
+    participant P as Provider
+
+    Note over C,P: ClassProvider
+    C->>P: resolve(UserService)
+    P->>P: resolveParams -> [DatabaseService]
+    P->>P: new UserService(db)
+    P-->>C: instance
+
+    Note over C,P: FactoryProvider
+    C->>P: resolve(DB_POOL)
+    P->>P: useFactory(container)
+    P->>P: createPool(config)
+    P-->>C: pool
+
+    Note over C,P: ValueProvider
+    C->>P: resolve(APP_CONFIG)
+    P-->>C: useValue (as-is)
+
+    Note over C,P: ExistingProvider
+    C->>P: resolve(ILogger)
+    P->>C: resolve(ConsoleLogger)
+    C-->>P: consoleLogger
+    P-->>C: consoleLogger
+```
+
+### ClassProvider - Creation via Constructor
+
+```typescript
+import { Container, Injectable, Scope } from "@ambrosia/core";
+
+@Injectable({ scope: Scope.SINGLETON })
+class CacheService {
+  private store = new Map<string, { value: unknown; expires: number }>();
+
+  set(key: string, value: unknown, ttl = 3600) {
+    this.store.set(key, { value, expires: Date.now() + ttl * 1000 });
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.store.get(key);
+    if (!entry || entry.expires < Date.now()) {
+      this.store.delete(key);
+      return null;
+    }
+    return entry.value as T;
+  }
+}
+
+// Auto-registration via @Injectable
+const cache = container.resolve(CacheService);
+
+// Or manual registration
+container.register({
+  token: CacheService,
+  useClass: CacheService,
+  scope: Scope.SINGLETON,
+});
+```
+
+### FactoryProvider - Custom Creation Logic
+
+```typescript
+import { Container, InjectionToken, Scope } from "@ambrosia/core";
+
+const DB_POOL = new InjectionToken<ConnectionPool>("DbPool");
+
+container.register({
+  token: DB_POOL,
+  useFactory: (c) => {
+    const config = c.resolve(ConfigService);
+    return createPool({
+      host: config.get("DB_HOST"),
+      port: Number(config.get("DB_PORT")),
+      max: Number(config.get("DB_POOL_SIZE") ?? "10"),
+      ssl: config.get("DB_SSL") === "true",
+    });
+  },
+  scope: Scope.SINGLETON,
+});
+```
+
+### ValueProvider - Ready-Made Value
+
+```typescript
+import { InjectionToken } from "@ambrosia/core";
+
+interface AppConfig {
+  apiUrl: string;
+  timeout: number;
+  debug: boolean;
+}
+
+const APP_CONFIG = new InjectionToken<AppConfig>("AppConfig");
+
+container.register({
+  token: APP_CONFIG,
+  useValue: {
+    apiUrl: process.env.API_URL ?? "https://api.example.com",
+    timeout: Number(process.env.TIMEOUT ?? 5000),
+    debug: process.env.DEBUG === "true",
+  },
+});
+```
+
+### ExistingProvider - Token Alias
+
+```typescript
+import { Injectable, Implements } from "@ambrosia/core";
+
+abstract class Logger {
+  abstract log(msg: string): void;
+  abstract error(msg: string): void;
+}
+
+@Injectable()
+@Implements(Logger)
+class ConsoleLogger extends Logger {
+  log(msg: string) { console.log(`[LOG] ${msg}`); }
+  error(msg: string) { console.error(`[ERR] ${msg}`); }
+}
+
+// Alias: resolve(Logger) -> resolve(ConsoleLogger)
+container.register({
+  token: Logger,
+  useExisting: ConsoleLogger,
+});
+```
+
+## Conditional Provider
+
+Creating different instances depending on conditions:
+
+```typescript
+import { Container, InjectionToken, Injectable } from "@ambrosia/core";
+
+abstract class CacheProvider {
+  abstract get(key: string): Promise<string | null>;
+  abstract set(key: string, value: string, ttl?: number): Promise<void>;
+}
+
+@Injectable()
+class RedisCacheProvider extends CacheProvider {
+  async get(key: string) { /* Redis GET */ return null; }
+  async set(key: string, value: string) { /* Redis SET */ }
+}
+
+@Injectable()
+class MemoryCacheProvider extends CacheProvider {
+  private store = new Map<string, string>();
+  async get(key: string) { return this.store.get(key) ?? null; }
+  async set(key: string, value: string) { this.store.set(key, value); }
+}
+
+// Conditional: Redis in prod, Memory in dev
+container.register({
+  token: CacheProvider,
+  useFactory: () => {
+    if (process.env.NODE_ENV === "production") {
+      return new RedisCacheProvider();
+    }
+    return new MemoryCacheProvider();
+  },
+});
+```
+
+## Multi-Provider
+
+Multiple implementations under one token (via array):
+
+```typescript
+import { InjectionToken, Injectable } from "@ambrosia/core";
+
+interface HealthCheck {
+  name: string;
+  check(): Promise<boolean>;
+}
+
+const HEALTH_CHECKS = new InjectionToken<HealthCheck[]>("HealthChecks");
+
+@Injectable()
+class DatabaseHealthCheck implements HealthCheck {
+  name = "database";
+  async check() { /* ping DB */ return true; }
+}
+
+@Injectable()
+class RedisHealthCheck implements HealthCheck {
+  name = "redis";
+  async check() { /* ping Redis */ return true; }
+}
+
+// Register as array
+container.register({
+  token: HEALTH_CHECKS,
+  useFactory: (c) => [
+    c.resolve(DatabaseHealthCheck),
+    c.resolve(RedisHealthCheck),
+  ],
+});
+
+// Usage
+@Injectable()
+class HealthService {
+  constructor(@Inject(HEALTH_CHECKS) private checks: HealthCheck[]) {}
+
+  async checkAll() {
+    const results = await Promise.all(
+      this.checks.map(async (check) => ({
+        name: check.name,
+        healthy: await check.check(),
+      })),
+    );
+    return {
+      status: results.every((r) => r.healthy) ? "healthy" : "unhealthy",
+      checks: results,
+    };
+  }
+}
+```
+
+## Lazy Provider
+
+Deferred initialization of heavy resources:
+
+```typescript
+import { Container, InjectionToken, Scope } from "@ambrosia/core";
+
+const S3_CLIENT = new InjectionToken<S3Client>("S3Client");
+
+// Lazy: created only on first resolve
+container.register({
+  token: S3_CLIENT,
+  useFactory: () => {
+    console.log("Creating S3 client..."); // Only on first call
+    return new S3Client({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY!,
+        secretAccessKey: process.env.AWS_SECRET_KEY!,
+      },
+    });
+  },
+  scope: Scope.SINGLETON, // Created once, on first resolve
+});
+
+// S3 client is NOT created at startup
+// Created only when someone calls resolve(S3_CLIENT)
+```
+
+## Scoped Factory
+
+A factory that creates different instances depending on scope:
+
+```typescript
+import { Injectable, Scope, InjectionToken } from "@ambrosia/core";
+
+const TRACE_ID = new InjectionToken<string>("TraceId");
+
+// Unique trace ID for each request
+container.register({
+  token: TRACE_ID,
+  useFactory: () => crypto.randomUUID(),
+  scope: Scope.REQUEST, // New ID for each request context
+});
+
+@Injectable()
+class AuditService {
+  constructor(@Inject(TRACE_ID) private traceId: string) {}
+
+  log(action: string) {
+    console.log(`[${this.traceId}] ${action}`);
+  }
+}
+```
+
+## Best Practices
+
+1. **Use `InjectionToken<T>`** for type-safe configuration tokens
+2. **Prefer `ClassProvider`** for regular services - the container will resolve dependencies automatically
+3. **Use `FactoryProvider`** for complex initialization, conditional creation, or external SDKs
+4. **`ValueProvider`** is ideal for configs and constants
+5. **`ExistingProvider`** - for polymorphism (abstract class -> concrete implementation)
+
+<Callout type="success">
+**Principle:** The simplest provider is the best. `@Injectable()` class > FactoryProvider > ValueProvider. Use factories only when automatic resolution is insufficient.
+</Callout>
+
+## Next Steps
+
+- [Lazy Loading](/docs/core/advanced/lazy-loading) - Proxy-based lazy initialization
+- [API: Container](/docs/core/api-reference/container) - Registration methods
+- [Basic Usage](/docs/core/guides/basic-usage) - Registration patterns

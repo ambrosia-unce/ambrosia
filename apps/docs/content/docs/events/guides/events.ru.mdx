@@ -1,0 +1,185 @@
+---
+title: "События и слушатели"
+description: "Определение событий и регистрация обработчиков"
+---
+
+# События и слушатели
+
+## Определение событий
+
+Событие — это обычный TypeScript-класс. Конструктор класса используется как ключ в `Map` для поиска обработчиков. Строковые имена не используются — это быстрее и типобезопаснее.
+
+```ts
+// Событие с данными
+class UserRegisteredEvent {
+  constructor(
+    public readonly userId: string,
+    public readonly email: string,
+  ) {}
+}
+
+// Событие без данных — тоже класс
+class ApplicationStartedEvent {}
+
+// Событие с вложенными объектами
+class PaymentProcessedEvent {
+  constructor(
+    public readonly payment: {
+      id: string;
+      amount: number;
+      currency: string;
+    },
+  ) {}
+}
+```
+
+## Декоратор @OnEvent
+
+`@OnEvent(EventClass, options?)` — помечает метод как обработчик события.
+
+```ts
+import { Injectable } from '@ambrosia/core';
+import { OnEvent } from '@ambrosia/events';
+
+@Injectable()
+class EmailListener {
+  @OnEvent(UserRegisteredEvent)
+  async sendWelcomeEmail(event: UserRegisteredEvent) {
+    await sendEmail(event.email, 'Welcome!');
+  }
+
+  @OnEvent(UserRegisteredEvent, { priority: 10 })
+  logRegistration(event: UserRegisteredEvent) {
+    console.log(`User registered: ${event.userId}`);
+  }
+}
+```
+
+### Несколько обработчиков одного события
+
+Один класс может содержать несколько обработчиков одного и того же события:
+
+```ts
+@Injectable()
+class OrderListener {
+  @OnEvent(OrderPlacedEvent, { priority: 100 })
+  validateOrder(event: OrderPlacedEvent) {
+    // Выполнится первым (priority: 100)
+  }
+
+  @OnEvent(OrderPlacedEvent, { priority: 0 })
+  sendConfirmation(event: OrderPlacedEvent) {
+    // Выполнится вторым (priority: 0)
+  }
+}
+```
+
+### Несколько классов на одно событие
+
+Разные сервисы могут слушать одно и то же событие:
+
+```ts
+@Injectable()
+class EmailService {
+  @OnEvent(UserRegisteredEvent)
+  async sendWelcome(event: UserRegisteredEvent) { /* ... */ }
+}
+
+@Injectable()
+class AnalyticsService {
+  @OnEvent(UserRegisteredEvent)
+  trackRegistration(event: UserRegisteredEvent) { /* ... */ }
+}
+
+@Injectable()
+class AuditService {
+  @OnEvent(UserRegisteredEvent)
+  logEvent(event: UserRegisteredEvent) { /* ... */ }
+}
+```
+
+## Emit событий
+
+### emit() — с ожиданием
+
+`emit()` вызывает все обработчики и возвращает `Promise<void>` (или `void`, если все обработчики синхронные):
+
+```ts
+@Injectable()
+class UserService {
+  constructor(private bus: EventBus) {}
+
+  async register(email: string) {
+    const user = await this.db.createUser(email);
+
+    // Ожидает завершения ВСЕХ обработчиков
+    await this.bus.emit(new UserRegisteredEvent(user.id, email));
+
+    return user;
+  }
+}
+```
+
+### emitAsync() — fire and forget
+
+`emitAsync()` вызывает обработчики, но НЕ ожидает их завершения:
+
+```ts
+@Injectable()
+class UserService {
+  constructor(private bus: EventBus) {}
+
+  async register(email: string) {
+    const user = await this.db.createUser(email);
+
+    // Не ждёт — обработчики выполнятся в фоне
+    this.bus.emitAsync(new UserRegisteredEvent(user.id, email));
+
+    return user; // Возвращается немедленно
+  }
+}
+```
+
+## Интроспекция
+
+EventBus предоставляет методы для проверки состояния:
+
+```ts
+@Injectable()
+class DiagnosticService {
+  constructor(private bus: EventBus) {}
+
+  check() {
+    // Есть ли обработчики для события?
+    console.log(this.bus.hasHandlers(UserRegisteredEvent)); // true/false
+
+    // Сколько обработчиков?
+    console.log(this.bus.getHandlerCount(UserRegisteredEvent)); // 3
+
+    // Какие события зарегистрированы?
+    console.log(this.bus.getRegisteredEvents()); // [UserRegisteredEvent, ...]
+  }
+}
+```
+
+## Регистрация слушателей
+
+Слушатели (классы с `@OnEvent`) должны быть зарегистрированы как провайдеры в паках:
+
+```ts
+const NotificationPack = definePack({
+  meta: { name: 'notifications' },
+  providers: [EmailService, SmsService, PushService],
+  exports: [EmailService, SmsService, PushService],
+});
+
+const AppPack = definePack({
+  imports: [
+    EventBusModule.forRoot(),
+    NotificationPack,
+  ],
+  providers: [UserService, OrderService],
+});
+```
+
+`EventBusModule` автоматически сканирует все провайдеры из всех импортированных паков при инициализации.

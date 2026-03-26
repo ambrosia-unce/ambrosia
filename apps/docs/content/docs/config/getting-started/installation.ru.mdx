@@ -1,0 +1,125 @@
+---
+title: "Установка"
+description: "Установка и настройка @ambrosia/config"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Установка
+
+## Требования
+
+<Callout type="info">
+  **@ambrosia/config** требует **@ambrosia/core** как peer-зависимость. Убедитесь, что core уже установлен в вашем проекте.
+</Callout>
+
+- Bun 1.3.6 или выше
+- TypeScript 5.0 или выше
+- @ambrosia/core 0.1.0 или выше
+
+## Установка пакета
+
+```bash
+bun add @ambrosia/config
+```
+
+## Настройка tsconfig
+
+Убедитесь, что в вашем `tsconfig.json` включены декораторы:
+
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+## Базовая настройка
+
+### 1. Создайте схему конфигурации
+
+```ts title="src/config/app.config.ts"
+import { defineConfig } from '@ambrosia/config';
+
+export const AppConfig = defineConfig({
+  port: { env: 'PORT', type: 'int', default: 3000 },
+  host: { env: 'HOST', type: 'string', default: 'localhost' },
+  debug: { env: 'DEBUG', type: 'bool', default: false },
+  jwtSecret: { env: 'JWT_SECRET', required: true },
+});
+```
+
+### 2. Зарегистрируйте модуль в паке
+
+```ts title="src/app.pack.ts"
+import { definePack } from '@ambrosia/core';
+import { ConfigModule } from '@ambrosia/config';
+import { AppConfig } from './config/app.config.ts';
+
+export const AppPack = definePack({
+  imports: [
+    ConfigModule.forRoot({
+      schema: AppConfig,
+      envPath: '.env',      // опционально
+      validate: true,        // по умолчанию true
+    }),
+  ],
+});
+```
+
+### 3. Используйте ConfigService
+
+```ts title="src/services/app.service.ts"
+import { Injectable } from '@ambrosia/core';
+import { ConfigService } from '@ambrosia/config';
+
+@Injectable()
+export class AppService {
+  constructor(private config: ConfigService) {}
+
+  getPort(): number {
+    return this.config.get<number>('port')!;
+  }
+
+  getSecret(): string {
+    return this.config.getOrThrow<string>('jwtSecret');
+  }
+}
+```
+
+### 4. Создайте файл .env
+
+```bash title=".env"
+PORT=8080
+HOST=0.0.0.0
+DEBUG=true
+JWT_SECRET=my-super-secret-key
+```
+
+<Callout type="warn">
+  Если `envPath` не указан, `@ambrosia/config` читает переменные напрямую из `process.env` / `Bun.env`. Файл `.env` используется только если явно указан путь через `envPath`.
+</Callout>
+
+## Асинхронная конфигурация
+
+Для случаев, когда конфигурация зависит от других сервисов (менеджеры секретов, удалённые конфиги):
+
+```ts
+import { ConfigModule } from '@ambrosia/config';
+import { definePack } from '@ambrosia/core';
+
+const AppPack = definePack({
+  imports: [
+    ConfigModule.forRootAsync({
+      useFactory: async () => ({
+        schema: AppConfig,
+        envPath: '.env',
+        validate: true,
+      }),
+    }),
+  ],
+});
+```

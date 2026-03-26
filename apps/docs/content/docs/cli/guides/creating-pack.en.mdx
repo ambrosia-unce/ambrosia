@@ -1,0 +1,208 @@
+---
+title: "Creating a Pack"
+description: "Complete guide to creating your own pack for Ambrosia — from project structure to publishing"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps } from 'fumadocs-ui/components/steps';
+
+# Creating a Pack
+
+A pack is a set of source files (services, guards, middleware, controllers) that are distributed through Pack Registry as source code. This guide covers the full cycle: from creation to publishing.
+
+## Pack Project Structure
+
+Each pack lives in a dedicated directory inside your project:
+
+```
+src/packs/my-pack/
+├── index.ts               # Barrel export
+├── my-pack.pack.ts        # PackDefinition with forRoot/forRootAsync
+├── my-pack.service.ts     # Main service
+├── my-pack.guard.ts       # Guard (optional)
+├── my-pack.middleware.ts   # Middleware (optional)
+└── types.ts               # Config interfaces, InjectionToken
+```
+
+Use the generator for a quick start:
+
+```bash
+ambrosia generate pack my-pack
+# or short alias
+ambrosia g pack my-pack
+```
+
+## The registry.json Manifest
+
+To publish a pack to a registry, you need a `registry.json` file in the project root. It describes the pack's metadata and files.
+
+### Full Format
+
+```json title="registry.json"
+{
+  "$schema": "https://ambrosia.dev/schemas/registry.json",
+  "name": "my-registry",
+  "items": [
+    {
+      "name": "my-pack",
+      "version": "0.1.0",
+      "description": "Description for the marketplace",
+      "author": "your-name",
+      "tags": ["tag1", "tag2"],
+      "category": "utils",
+      "files": [
+        { "path": "src/packs/my-pack/index.ts", "type": "index" },
+        { "path": "src/packs/my-pack/types.ts", "type": "types" },
+        { "path": "src/packs/my-pack/my-pack.pack.ts", "type": "pack" },
+        { "path": "src/packs/my-pack/my-pack.service.ts", "type": "service" }
+      ],
+      "dependencies": {},
+      "devDependencies": {},
+      "registryDependencies": [],
+      "ambrosiaDependencies": ["@ambrosia/core"]
+    }
+  ]
+}
+```
+
+### Field Descriptions
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `string` | Slug name for the pack (lowercase, hyphen-separated) |
+| `version` | `string` | Semver version (`"0.1.0"`, `"1.0.0-beta.1"`) |
+| `description` | `string` | Description for search and marketplace |
+| `author` | `string` | Author or organization |
+| `tags` | `string[]` | Tags for search (`ambrosia search`) |
+| `category` | `PackCategory` | One of: `http`, `database`, `auth`, `cache`, `logging`, `validation`, `testing`, `utils`, `microservices` |
+| `files` | `array` | Pack source files (path + type) |
+| `dependencies` | `object` | npm runtime dependencies with versions |
+| `devDependencies` | `object` | npm dev dependencies |
+| `registryDependencies` | `string[]` | Dependencies on other packs from the registry |
+| `ambrosiaDependencies` | `string[]` | Required `@ambrosia/*` packages |
+
+### File Types
+
+The `type` field in `files[]` is used for categorization:
+
+| Type | Description | Example |
+|---|---|---|
+| `pack` | PackDefinition | `my-pack.pack.ts` |
+| `service` | Services (`@Injectable`) | `my-pack.service.ts` |
+| `controller` | HTTP controllers | `my-pack.controller.ts` |
+| `guard` | Guards | `my-pack.guard.ts` |
+| `interceptor` | Interceptors | `cache.interceptor.ts` |
+| `pipe` | Pipes | `validation.pipe.ts` |
+| `filter` | Exception filters | `error.filter.ts` |
+| `middleware` | HTTP middleware | `logger.middleware.ts` |
+| `types` | Types and tokens | `types.ts` |
+| `index` | Barrel export | `index.ts` |
+| `test` | Test files | `my-pack.test.ts` |
+| `other` | Other | — |
+
+<Callout type="info">
+  The `type` field does not affect the installation process — all files are copied identically. It is used for display in the marketplace.
+</Callout>
+
+## Dependencies
+
+### npm Dependencies
+
+Specify all npm packages required for the pack:
+
+```json
+{
+  "dependencies": {
+    "jose": "^5.0.0",
+    "ioredis": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.0.0"
+  }
+}
+```
+
+During installation (`ambrosia add`), the CLI automatically runs `bun add` for each package.
+
+### Registry Dependencies
+
+If your pack depends on another pack from the registry:
+
+```json
+{
+  "registryDependencies": ["jwt-auth", "config-pack"]
+}
+```
+
+The CLI will recursively download and install dependent packs depth-first. Circular dependencies between packs are forbidden.
+
+### Ambrosia Dependencies
+
+Framework packages required for operation:
+
+```json
+{
+  "ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+}
+```
+
+## Publishing
+
+<Steps>
+
+### Prepare Source Files
+
+Make sure all pack files are implemented and tested.
+
+### Create registry.json
+
+Describe the pack in the `registry.json` manifest with all metadata and file paths.
+
+### Build
+
+```bash
+ambrosia build
+```
+
+The command reads `registry.json`, loads the contents of each file, and generates JSON:
+
+```
+dist/registry/
+├── index.json        # Index (metadata without code)
+└── my-pack.json      # Full RegistryItem with content
+```
+
+### Host
+
+Host the contents of `dist/registry/` on an HTTP server:
+
+- **GitHub Pages** — free for public repositories
+- **Cloudflare Pages** / **Vercel** — free tiers with CDN
+- **S3 + CloudFront** — for enterprise use
+
+### Consumer Installation
+
+After hosting the registry, consumers can install the pack:
+
+```bash
+ambrosia add my-pack --registry your-registry
+```
+
+</Steps>
+
+## Best Practices
+
+1. **Single responsibility** — one pack solves one problem (authentication, caching, logging)
+2. **forRoot / forRootAsync** — always provide both configuration methods for flexibility
+3. **Export consciously** — include only what the consumer needs in `exports`
+4. **Document configuration** — describe each field of the `Config` interface with JSDoc
+5. **Test with TestingPackFactory** — isolated tests without spinning up an HTTP server
+6. **Use InjectionToken** — instead of string tokens for type-safe injections
+7. **File naming** — follow the `{name}.{type}.ts` convention (e.g., `auth.guard.ts`)
+
+## See Also
+
+- [Registry Item Schema](/docs/cli/registry/registry-item) — full format specification
+- [Publishing Packs](/docs/cli/registry/publishing) — detailed instructions
+- [Custom Registry](/docs/cli/registry/custom-registry) — private registries
+- [ambrosia build](/docs/cli/commands/build) — build command

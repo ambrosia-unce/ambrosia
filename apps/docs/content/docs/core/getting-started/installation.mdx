@@ -1,0 +1,46 @@
+---
+title: "Installation"
+description: "Install and configure @ambrosia/core"
+---
+
+# Installation
+
+Install @ambrosia/core using your preferred package manager.
+
+## Requirements
+
+- Bun 1.0+
+- TypeScript 5.0+
+
+## Install
+
+```bash
+bun add @ambrosia/core
+```
+
+## TypeScript Configuration
+
+Enable decorators in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+## Verify Installation
+
+```typescript
+import { Container, Injectable } from '@ambrosia/core';
+
+@Injectable()
+class TestService {}
+
+const container = new Container();
+const service = container.resolve(TestService);
+
+console.log('Installation successful!');
+```

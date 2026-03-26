@@ -1,0 +1,265 @@
+---
+title: "Паки"
+description: "Организуйте приложение на Ambrosia в переиспользуемые инкапсулированные модули с помощью системы паков"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Паки
+
+Паки -- это фундаментальная единица композиции в Ambrosia. Они позволяют группировать связанные провайдеры, контроллеры и импорты в самодостаточные модули с четкими границами.
+
+## Зачем нужны паки?
+
+Без паков каждый сервис глобально доступен, и любой файл может зависеть от любого другого. С ростом приложения это быстро становится неуправляемым. Паки решают эту проблему через инкапсуляцию:
+
+- **Провайдеры приватны по умолчанию** -- только то, что вы явно указали в `exports`, доступно другим пакам
+- **Импорты явные** -- пак заранее декларирует свои зависимости
+- **Каждый пак -- это граница фичи** -- аутентификация, посты, платежи и т.д.
+
+## Анатомия пака
+
+Пак -- это обычный объект, реализующий интерфейс `PackDefinition` (или `HttpPackDefinition`):
+
+```ts
+import { definePack } from '@ambrosia/core';
+import type { HttpPackDefinition } from '@ambrosia/http';
+
+export const UsersPack: HttpPackDefinition = {
+  ...definePack({
+    // Сервисы, доступные внутри этого пака
+    providers: [UsersService, UsersRepository],
+
+    // Сервисы, видимые пакам, которые импортируют этот
+    exports: [UsersService],
+
+    // Другие паки, от которых зависит этот пак
+    imports: [DatabasePack],
+  }),
+
+  // HTTP-контроллеры (только в HttpPackDefinition)
+  controllers: [UsersController],
+};
+```
+
+### `providers`
+
+Классы или провайдеры значений/фабрик, зарегистрированные в DI-контейнере. Провайдеры ограничены этим паком -- другие паки не могут к ним обращаться, если они не экспортированы.
+
+```ts
+providers: [
+  UsersService,                               // Классовый провайдер (сокращенная форма)
+  { token: 'API_KEY', useValue: 'secret' },   // Провайдер значения
+  {
+    token: UsersRepository,                    // Фабричный провайдер
+    useFactory: (db: DatabaseService) => new UsersRepository(db),
+    inject: [DatabaseService],
+  },
+],
+```
+
+### `exports`
+
+Токены, которые становятся доступными любому паку, который импортирует этот. Если вы не экспортируете провайдер, он остается внутренним.
+
+```ts
+exports: [UsersService],  // Только UsersService виден снаружи
+```
+
+### `imports`
+
+Другие паки, чьи экспортированные провайдеры должны быть доступны в этом паке. Порядок импорта определяет порядок обработки.
+
+```ts
+imports: [DatabasePack, CachePack],
+```
+
+### `controllers`
+
+HTTP-контроллеры для регистрации в приложении. Это поле специфично для `HttpPackDefinition` и недоступно в базовом `PackDefinition`.
+
+```ts
+controllers: [UsersController, AdminController],
+```
+
+### Хуки жизненного цикла
+
+Паки поддерживают хуки `onInit` и `onDestroy` для логики инициализации и очистки:
+
+```ts
+export const DatabasePack = definePack({
+  providers: [DatabaseService],
+  exports: [DatabaseService],
+  onInit: async (container) => {
+    const db = container.resolve(DatabaseService);
+    await db.connect();
+  },
+  onDestroy: async (container) => {
+    const db = container.resolve(DatabaseService);
+    await db.disconnect();
+  },
+});
+```
+
+## Композиция паков
+
+### Импорт паков
+
+Паки образуют дерево. Корневой пак импортирует feature-паки, которые могут импортировать общие паки:
+
+```ts
+// src/app.pack.ts
+import { definePack } from '@ambrosia/core';
+import { ConfigModule } from '@ambrosia/config';
+import { AppConfig } from './config/app.config.ts';
+import { UsersPack } from './users/users.pack.ts';
+import { PostsPack } from './posts/posts.pack.ts';
+import { AuthPack } from './auth/auth.pack.ts';
+
+export const AppPack = definePack({
+  imports: [
+    ConfigModule.forRoot({ schema: AppConfig }),
+    AuthPack,
+    UsersPack,
+    PostsPack,
+  ],
+});
+```
+
+### Инкапсуляция на практике
+
+Рассмотрим сценарий:
+
+```ts
+// database.pack.ts
+export const DatabasePack = definePack({
+  providers: [DatabaseService, MigrationRunner],
+  exports: [DatabaseService],  // MigrationRunner остается внутренним
+});
+
+// users.pack.ts
+export const UsersPack: HttpPackDefinition = {
+  ...definePack({
+    imports: [DatabasePack],
+    providers: [UsersService],
+    exports: [UsersService],
+  }),
+  controllers: [UsersController],
+};
+```
+
+В этой конфигурации:
+- `UsersService` может инжектить `DatabaseService` (экспортирован из `DatabasePack`)
+- `UsersService` **не может** инжектить `MigrationRunner` (не экспортирован)
+- Любой пак, импортирующий `UsersPack`, может использовать `UsersService`, но **не** `DatabaseService` (он не реэкспортирован)
+
+### Реэкспорт
+
+Если нужно прокинуть зависимость из импортированного пака:
+
+```ts
+export const UsersPack = definePack({
+  imports: [DatabasePack],
+  providers: [UsersService],
+  exports: [UsersService, DatabaseService],  // Реэкспорт DatabaseService
+});
+```
+
+Теперь паки, импортирующие `UsersPack`, тоже получат доступ к `DatabaseService` без прямого импорта `DatabasePack`.
+
+## Условные паки
+
+Массив `packs` в `HttpApplication.create()` принимает falsy-значения, что упрощает условную загрузку паков:
+
+```ts
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  packs: [
+    AppPack,
+    process.env.NODE_ENV === 'development' && DevToolsPack,
+    config.get('ENABLE_METRICS') && MetricsPack,
+  ],
+});
+```
+
+## Ленивые импорты
+
+Для циклических зависимостей между паками используйте `lazyImports`:
+
+```ts
+export const PackA = definePack({
+  providers: [ServiceA],
+  exports: [ServiceA],
+  lazyImports: [() => PackB],  // Разрешается позже, избегая циклического импорта
+});
+```
+
+<Callout type="warn">
+Ленивые импорты -- крайняя мера. Если два пака нуждаются друг в друге, рассмотрите выделение общей зависимости в третий пак.
+</Callout>
+
+## Структура реального приложения
+
+Рекомендуемая структура для среднего приложения:
+
+```
+src/
+  config/
+    app.config.ts
+  auth/
+    auth.controller.ts
+    auth.service.ts
+    auth.guard.ts
+    auth.pack.ts
+  users/
+    users.controller.ts
+    users.service.ts
+    users.repository.ts
+    users.pack.ts
+  posts/
+    posts.controller.ts
+    posts.service.ts
+    posts.pack.ts
+    dto/
+      create-post.dto.ts
+    events/
+      post-created.event.ts
+    listeners/
+      post-created.listener.ts
+  shared/
+    database/
+      database.service.ts
+      database.pack.ts
+    cache/
+      cache.service.ts
+      cache.pack.ts
+  app.pack.ts
+  main.ts
+```
+
+Каждая фича -- самодостаточный пак. Общая инфраструктура (база данных, кеш) находится в `shared/` и импортируется feature-паками по необходимости.
+
+## Тестирование паков
+
+Ambrosia предоставляет `TestingPackFactory` для юнит-тестирования паков в изоляции:
+
+```ts
+import { TestingPackFactory } from '@ambrosia/core';
+import { PostsPack } from './posts.pack.ts';
+
+const testingPack = await TestingPackFactory.create(PostsPack);
+
+// Замена провайдера моком
+testingPack.overrideValue(DatabaseService, {
+  query: () => Promise.resolve([]),
+});
+
+const postsService = testingPack.get(PostsService);
+const posts = postsService.findAll();
+```
+
+Это создает изолированный DI-контейнер только с провайдерами из указанного пака, позволяя тестировать каждый feature-модуль независимо.
+
+<Callout type="info">
+Далее: узнайте, как [задеплоить](/docs/getting-started/deployment) приложение на Ambrosia в продакшен.
+</Callout>

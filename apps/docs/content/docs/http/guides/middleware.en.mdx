@@ -1,0 +1,619 @@
+---
+title: Middleware
+description: HTTP-level request processing with Middleware in Ambrosia HTTP
+---
+
+# Middleware
+
+Middleware executes first in the request processing chain, before guards, interceptors, and the handler. Middleware operates at the HTTP protocol level and is ideal for common request processing tasks.
+
+## Basics
+
+A Middleware is a class with a `use()` method that receives the request, response, and a `next` function:
+
+```typescript
+import { Injectable } from '@ambrosia/core';
+import { Middleware, IHttpRequest, IHttpResponse } from '@ambrosia/http';
+
+@Injectable()
+export class LoggerMiddleware implements Middleware {
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+
+    // Pass control to the next middleware or handler
+    await next();
+
+    console.log(`[${new Date().toISOString()}] Response sent`);
+  }
+}
+```
+
+## Applying Middleware
+
+### At the Controller Level
+
+```typescript
+import { Controller, UseMiddleware } from '@ambrosia/http';
+
+@Controller('/users')
+@UseMiddleware(LoggerMiddleware, AuthMiddleware)
+export class UserController {
+  // Middleware applies to all controller methods
+
+  @Http.Get('/')
+  async list() {
+    return [];
+  }
+}
+```
+
+### At the Method Level
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')
+  async list() {
+    return []; // No additional middleware
+  }
+
+  @Http.Post('/')
+  @UseMiddleware(ValidationMiddleware)
+  async create(@Body() dto: CreateUserDto) {
+    // ValidationMiddleware only for this method
+    return dto;
+  }
+}
+```
+
+### Global Middleware
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalMiddleware: [LoggerMiddleware, CorsMiddleware],
+  port: 3000
+});
+```
+
+## Functional Middleware
+
+In addition to classes, you can use simple functions as middleware:
+
+```typescript
+import { IHttpRequest, IHttpResponse } from '@ambrosia/http';
+
+// Function instead of class
+const corsMiddleware = async (
+  req: IHttpRequest,
+  res: IHttpResponse,
+  next: () => Promise<void>
+) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  await next();
+};
+
+const loggerMiddleware = async (
+  req: IHttpRequest,
+  res: IHttpResponse,
+  next: () => Promise<void>
+) => {
+  console.log(`${req.method} ${req.url}`);
+  await next();
+};
+```
+
+Functional middleware can be used anywhere class-based middleware is accepted:
+
+```typescript
+// Globally
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalMiddleware: [loggerMiddleware, corsMiddleware],
+});
+
+// On a controller
+@Controller('/api')
+@UseMiddleware(loggerMiddleware)
+export class ApiController { }
+
+// On a method
+@Http.Get('/data')
+@UseMiddleware(corsMiddleware)
+async getData() { }
+```
+
+Functional middleware is useful for simple one-off operations where creating a separate class is excessive. For complex logic with DI dependencies, use class-based middleware.
+
+## Dependency Injection
+
+Middleware supports full DI:
+
+```typescript
+@Injectable()
+export class AuthMiddleware implements Middleware {
+  constructor(
+    private authService: AuthService,
+    private tokenService: TokenService
+  ) {}
+
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    const token = req.headers['authorization'];
+
+    if (!token) {
+      res.status(401).send({
+        error: 'Unauthorized',
+        message: 'Authorization required'
+      });
+      return; // Don't call next() - break the chain
+    }
+
+    try {
+      const payload = await this.tokenService.verify(token);
+      const user = await this.authService.findUserById(payload.userId);
+
+      // Attach user to request
+      req.user = user;
+
+      // Continue execution
+      await next();
+    } catch (error) {
+      res.status(401).send({
+        error: 'Unauthorized',
+        message: 'Invalid token'
+      });
+    }
+  }
+}
+```
+
+## Modifying Request and Response
+
+Middleware can modify the request and response:
+
+```typescript
+@Injectable()
+export class RequestIdMiddleware implements Middleware {
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    // Add requestId
+    const requestId = crypto.randomUUID();
+    req.requestId = requestId;
+
+    // Add header to response
+    res.setHeader('X-Request-Id', requestId);
+
+    await next();
+  }
+}
+```
+
+## Breaking the Chain
+
+Middleware can stop execution by not calling `next()`:
+
+```typescript
+@Injectable()
+export class MaintenanceMiddleware implements Middleware {
+  constructor(private configService: ConfigService) {}
+
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    const isMaintenanceMode = await this.configService.get('maintenance.enabled');
+
+    if (isMaintenanceMode) {
+      res.status(503).send({
+        error: 'Service Unavailable',
+        message: 'Service temporarily unavailable. Maintenance in progress.'
+      });
+      return; // Break - handler will not be called
+    }
+
+    await next();
+  }
+}
+```
+
+## Usage Patterns
+
+### CORS Middleware
+
+```typescript
+@Injectable()
+export class CorsMiddleware implements Middleware {
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Max-Age', '86400');
+
+    // Handle preflight request
+    if (req.method === 'OPTIONS') {
+      res.status(204).send('');
+      return;
+    }
+
+    await next();
+  }
+}
+```
+
+### Compression Middleware
+
+```typescript
+@Injectable()
+export class CompressionMiddleware implements Middleware {
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+
+    if (acceptEncoding.includes('gzip')) {
+      res.setHeader('Content-Encoding', 'gzip');
+    } else if (acceptEncoding.includes('deflate')) {
+      res.setHeader('Content-Encoding', 'deflate');
+    }
+
+    await next();
+  }
+}
+```
+
+### Rate Limiting Middleware
+
+```typescript
+@Injectable()
+export class RateLimitMiddleware implements Middleware {
+  private requests = new Map<string, { count: number; resetTime: number }>();
+  private readonly limit = 100; // 100 requests
+  private readonly windowMs = 60000; // per 1 minute
+
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    const key = req.ip || 'unknown';
+    const now = Date.now();
+
+    let record = this.requests.get(key);
+
+    if (!record || now > record.resetTime) {
+      // New window
+      record = {
+        count: 0,
+        resetTime: now + this.windowMs
+      };
+      this.requests.set(key, record);
+    }
+
+    record.count++;
+
+    // Set headers
+    res.setHeader('X-RateLimit-Limit', this.limit.toString());
+    res.setHeader('X-RateLimit-Remaining', Math.max(0, this.limit - record.count).toString());
+    res.setHeader('X-RateLimit-Reset', Math.ceil(record.resetTime / 1000).toString());
+
+    if (record.count > this.limit) {
+      res.status(429).send({
+        error: 'Too Many Requests',
+        message: 'Rate limit exceeded',
+        retryAfter: Math.ceil((record.resetTime - now) / 1000)
+      });
+      return;
+    }
+
+    await next();
+  }
+}
+```
+
+### Security Headers Middleware
+
+```typescript
+@Injectable()
+export class SecurityHeadersMiddleware implements Middleware {
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    // Helmet-like security headers
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Content-Security-Policy', "default-src 'self'");
+    res.setHeader('Referrer-Policy', 'no-referrer');
+
+    await next();
+  }
+}
+```
+
+### Request Timing Middleware
+
+```typescript
+@Injectable()
+export class TimingMiddleware implements Middleware {
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    const startTime = Date.now();
+
+    await next();
+
+    const duration = Date.now() - startTime;
+    res.setHeader('X-Response-Time', `${duration}ms`);
+  }
+}
+```
+
+### Body Parser Middleware
+
+```typescript
+@Injectable()
+export class BodyParserMiddleware implements Middleware {
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    const contentType = req.headers['content-type'];
+
+    if (contentType?.includes('application/json')) {
+      // Note: Actual parsing is typically done at the provider level
+      // This is an example to demonstrate the concept
+      if (typeof req.body === 'string') {
+        try {
+          req.body = JSON.parse(req.body);
+        } catch (error) {
+          res.status(400).send({
+            error: 'Bad Request',
+            message: 'Invalid JSON'
+          });
+          return;
+        }
+      }
+    }
+
+    await next();
+  }
+}
+```
+
+### IP Whitelist Middleware
+
+```typescript
+@Injectable()
+export class IpWhitelistMiddleware implements Middleware {
+  private whitelist = ['127.0.0.1', '::1', '192.168.1.0/24'];
+
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    const clientIp = req.ip;
+
+    if (!this.isWhitelisted(clientIp)) {
+      res.status(403).send({
+        error: 'Forbidden',
+        message: 'Access denied'
+      });
+      return;
+    }
+
+    await next();
+  }
+
+  private isWhitelisted(ip: string): boolean {
+    // Simplified check (use a CIDR library in production)
+    return this.whitelist.includes(ip);
+  }
+}
+```
+
+### User Agent Blocking Middleware
+
+```typescript
+@Injectable()
+export class UserAgentMiddleware implements Middleware {
+  private blockedPatterns = [
+    /bot/i,
+    /crawler/i,
+    /spider/i
+  ];
+
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    const userAgent = req.headers['user-agent'] || '';
+
+    const isBlocked = this.blockedPatterns.some(pattern =>
+      pattern.test(userAgent)
+    );
+
+    if (isBlocked) {
+      res.status(403).send({
+        error: 'Forbidden',
+        message: 'Access denied for this User-Agent'
+      });
+      return;
+    }
+
+    await next();
+  }
+}
+```
+
+## Execution Order
+
+Middleware executes in the following order:
+
+1. Global middleware (in registration order)
+2. Controller-level middleware (in declaration order)
+
+```typescript
+const app = await HttpApplication.create({
+  globalMiddleware: [
+    LoggerMiddleware,    // 1. First
+    CorsMiddleware,      // 2. Second
+    SecurityMiddleware   // 3. Third
+  ],
+});
+
+@Controller('/api')
+@UseMiddleware(AuthMiddleware, RateLimitMiddleware) // 4-5. After global
+export class ApiController {
+  @Http.Get('/data')
+  async getData() {
+    // 6. Handler executes last
+    return [];
+  }
+}
+```
+
+Full cycle:
+```
+Request
+  → Logger (global)
+    → CORS (global)
+      → Security (global)
+        → Auth (controller)
+          → RateLimit (controller)
+            → [Guards → Interceptors → Pipes → Handler]
+          ← RateLimit (controller)
+        ← Auth (controller)
+      ← Security (global)
+    ← CORS (global)
+  ← Logger (global)
+Response
+```
+
+## Middleware vs Guards vs Interceptors
+
+Choose the right tool:
+
+### Middleware
+- Operates at the HTTP protocol level
+- Access only to raw request/response
+- Executes first
+- Use for: CORS, logging, compression, security headers
+
+### Guards
+- Determines whether a request should be handled
+- Access to ExecutionContext with metadata
+- Executes after middleware, before interceptors
+- Use for: authentication, authorization, feature flags
+
+### Interceptors
+- Transforms request/response
+- Full control over handler execution
+- Executes after guards, around the handler
+- Use for: data transformation, caching, business logic logging
+
+```typescript
+// ❌ WRONG - complex business logic in middleware
+@Injectable()
+export class ComplexAuthMiddleware implements Middleware {
+  async use(req, res, next) {
+    // Complex role checking, permissions, etc.
+    // Use a Guard instead!
+  }
+}
+
+// ✅ RIGHT - simple check in middleware
+@Injectable()
+export class TokenMiddleware implements Middleware {
+  async use(req, res, next) {
+    // Just attach the token to request
+    req.token = req.headers['authorization'];
+    await next();
+  }
+}
+
+// ✅ RIGHT - business logic in guard
+@Injectable()
+export class RoleGuard implements Guard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Complex role and permission checking
+    const requiredRoles = context.getMetadata('roles');
+    const user = context.switchToHttp().getRequest().user;
+    return this.checkRoles(user, requiredRoles);
+  }
+}
+```
+
+## Error Handling in Middleware
+
+```typescript
+@Injectable()
+export class ErrorHandlingMiddleware implements Middleware {
+  constructor(private logger: LoggerService) {}
+
+  async use(
+    req: IHttpRequest,
+    res: IHttpResponse,
+    next: () => Promise<void>
+  ): Promise<void> {
+    try {
+      await next();
+    } catch (error) {
+      this.logger.error('Unhandled error in middleware chain', error);
+
+      // Send a generic error response
+      if (!res.headersSent) {
+        res.status(500).send({
+          error: 'Internal Server Error',
+          message: 'An unexpected error occurred'
+        });
+      }
+    }
+  }
+}
+```
+
+## Best Practices
+
+1. **Always call next()**: Unless intentionally breaking the chain, always call `await next()`
+2. **Order matters**: Place middleware in the correct order (CORS before Auth, Logger first)
+3. **Minimal logic**: Keep middleware simple -- move complex logic to Guards/Interceptors
+4. **Don't modify body directly**: Use Interceptors for data transformation
+5. **Use DI**: Inject services for logic implementation
+6. **Handle errors**: Always handle potential errors in middleware
+7. **Performance**: Middleware runs on every request -- optimize
+8. **Test in isolation**: Write unit tests for middleware
+9. **Document side effects**: If middleware modifies request/response, document it
+10. **Conditional execution**: Use configuration to enable/disable middleware
+
+## See Also
+
+- [Guards](/docs/http/guides/guards) - Route protection
+- [Interceptors](/docs/http/guides/interceptors) - Request and response transformation
+- [Concepts](/docs/http/getting-started/concepts) - Request lifecycle

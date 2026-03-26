@@ -1,0 +1,63 @@
+---
+title: "Installation"
+description: "Installing and configuring @ambrosia/websocket"
+---
+
+# Installation
+
+## Dependencies
+
+```bash
+bun add @ambrosia/websocket @ambrosia/websocket-elysia
+```
+
+`@ambrosia/websocket` is the core package (decorators, interfaces, testing). `@ambrosia/websocket-elysia` is the Elysia adapter.
+
+## Setup with Elysia
+
+```typescript title="main.ts"
+import "reflect-metadata";
+import { Elysia } from "elysia";
+import { HttpApplication } from "@ambrosia/http";
+import { ElysiaProvider } from "@ambrosia/http-elysia";
+import { WsApplication } from "@ambrosia/websocket";
+import { ElysiaWsProvider } from "@ambrosia/websocket-elysia";
+import { ChatGateway } from "./chat.gateway";
+
+// 1. Create the HTTP application
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  controllers: [...],
+});
+
+// 2. Attach WebSocket to the same Elysia instance
+const elysia = app.getNativeApp();
+const wsProvider = new ElysiaWsProvider(elysia);
+
+const wsApp = await WsApplication.create({
+  provider: wsProvider,
+  container: app.getContainer(), // Shared DI container
+  gateways: [ChatGateway],
+});
+
+// 3. Start
+await app.listen(3000);
+```
+
+## Project Structure
+
+```
+src/
+├── main.ts
+├── gateways/
+│   ├── chat.gateway.ts
+│   └── notification.gateway.ts
+├── services/
+│   └── chat.service.ts
+└── packs/
+    └── chat.pack.ts
+```
+
+## Next Steps
+
+- [Quick Start — your first gateway](/docs/websocket/getting-started/quick-start)

@@ -1,0 +1,10 @@
+{
+  "title": "@ambrosia/config",
+  "description": "Type-safe environment configuration for Ambrosia",
+  "pages": [
+    "index",
+    "getting-started",
+    "guides"
+  ],
+  "root": true
+}

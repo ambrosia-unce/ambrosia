@@ -1,0 +1,136 @@
+---
+title: "ambrosia update"
+description: "Команда обновления установленных паков до последних версий"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia update
+
+Проверяет наличие обновлений для установленных паков и обновляет их до последних версий из registry. Можно обновить конкретные паки или все сразу.
+
+## Использование
+
+```bash
+# Обновить все установленные паки
+ambrosia update
+
+# Обновить конкретные паки
+ambrosia update <pack...>
+```
+
+## Аргументы
+
+| Аргумент | Описание |
+|---|---|
+| `<pack...>` | Имена паков для обновления (опционально). Если не указаны — обновляются все |
+
+## Примеры
+
+```bash
+# Обновить один pack
+ambrosia update jwt-auth
+
+# Обновить несколько паков
+ambrosia update jwt-auth redis-cache
+
+# Обновить все установленные паки
+ambrosia update
+```
+
+## Что делает
+
+### 1. Проверка обновлений
+
+CLI сравнивает версии установленных паков с последними версиями в registry:
+
+```
+$ ambrosia update
+
+◆  ambrosia update
+│
+◒  Checking for updates...
+◇  Check complete
+```
+
+### 2. Отображение доступных обновлений
+
+Если найдены обновления, CLI показывает сравнение версий:
+
+```
+ℹ  Updates available:
+    jwt-auth: 0.2.1 → 0.3.0
+    redis-cache: 0.1.3 → 0.2.0
+```
+
+Если все паки актуальны:
+
+```
+ℹ  All packs are up to date.
+```
+
+### 3. Применение обновлений
+
+CLI загружает новые версии из registry и перезаписывает файлы:
+
+```
+◒  Updating packs...
+◇  Updated 2 pack(s)
+```
+
+### 4. Обновление ambrosia.json
+
+Версия, дата установки и список файлов обновляются в `ambrosia.json`:
+
+```json
+{
+  "packs": {
+    "jwt-auth": {
+      "version": "0.3.0",
+      "registry": "default",
+      "installedAt": "2026-03-26T12:00:00.000Z",
+      "files": [...]
+    }
+  }
+}
+```
+
+## Важные замечания
+
+<Callout type="warn">
+  Обновление **перезаписывает все файлы** пака. Если вы вносили локальные изменения в исходный код пака, они будут потеряны. Рекомендуется зафиксировать изменения в git перед обновлением.
+</Callout>
+
+<Callout type="info">
+  Каждый пак обновляется из того registry, из которого он был установлен (поле `registry` в `ambrosia.json`).
+</Callout>
+
+## Ошибки
+
+### Pack не установлен
+
+```
+✗  Pack(s) not installed: unknown-pack
+```
+
+Проверьте имя пака командой `ambrosia list`.
+
+### Registry недоступен
+
+```
+⚠  jwt-auth: Failed to fetch from https://registry.ambrosia.dev
+```
+
+При ошибке проверки отдельных паков CLI продолжает проверку остальных и выводит предупреждения.
+
+### Нет установленных паков
+
+```
+ℹ  No packs installed.
+```
+
+## Подробнее
+
+- [ambrosia list](/docs/cli/commands/list) — просмотр установленных паков
+- [ambrosia add](/docs/cli/commands/add) — установка новых паков
+- [ambrosia remove](/docs/cli/commands/remove) — удаление паков

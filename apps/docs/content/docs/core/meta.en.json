@@ -1,0 +1,14 @@
+{
+  "title": "@ambrosia/core",
+  "description": "DI Bun-based container",
+  "pages": [
+    "index",
+    "getting-started",
+    "guides",
+    "api-reference",
+    "advanced",
+    "examples",
+    "benchmarks"
+  ],
+  "root": true
+}

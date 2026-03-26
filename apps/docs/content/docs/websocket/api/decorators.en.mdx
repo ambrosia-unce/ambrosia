@@ -1,0 +1,92 @@
+---
+title: "Decorators"
+description: "API Reference for WebSocket decorators"
+---
+
+# Decorators
+
+## @WebSocketGateway(path?)
+
+Class decorator. Registers a class as a WebSocket gateway.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `path` | `string` | `"/ws"` | Path for WebSocket connections |
+
+```typescript
+@WebSocketGateway("/chat")
+class ChatGateway {}
+
+@WebSocketGateway() // path: "/ws"
+class DefaultGateway {}
+```
+
+Automatically applies `@Injectable()`.
+
+---
+
+## @SubscribeMessage(event)
+
+Method decorator. Subscribes a method to a specific WebSocket event.
+
+| Parameter | Type | Description |
+|---|---|---|
+| `event` | `string` | Event name to subscribe to |
+
+**Method parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `WsClient` | WebSocket client |
+| `data` | `any` | Data from the message's `data` field |
+
+**Return value:**
+- `{ event: string, data: any }` — sent to the client
+- `void` — no response is sent
+
+```typescript
+@SubscribeMessage("ping")
+handlePing(client: WsClient, data: any) {
+  return { event: "pong", data: { ts: Date.now() } };
+}
+```
+
+---
+
+## @OnConnection()
+
+Method decorator. Called when a new client connects.
+
+**Method parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `WsClient` | Connected client |
+
+```typescript
+@OnConnection()
+handleConnection(client: WsClient) {
+  client.data.connectedAt = Date.now();
+}
+```
+
+---
+
+## @OnDisconnection()
+
+Method decorator. Called when a client disconnects.
+
+**Method parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `client` | `WsClient` | Disconnected client |
+| `code` | `number` | WebSocket close code |
+| `reason` | `string` | Close reason |
+
+```typescript
+@OnDisconnection()
+handleDisconnection(client: WsClient, code: number, reason: string) {
+  console.log(`Closed: ${code} ${reason}`);
+}
+```

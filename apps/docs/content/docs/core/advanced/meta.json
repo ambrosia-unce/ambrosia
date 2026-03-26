@@ -1,0 +1,9 @@
+{
+  "title": "Продвинутое",
+  "pages": [
+    "custom-providers",
+    "lazy-loading",
+    "plugin-development",
+    "performance"
+  ]
+}

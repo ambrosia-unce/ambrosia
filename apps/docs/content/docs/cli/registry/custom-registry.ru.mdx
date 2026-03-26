@@ -1,0 +1,245 @@
+---
+title: "Custom Registry"
+description: "Как создать и подключить собственный приватный Pack Registry"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Custom Registry
+
+Ambrosia поддерживает подключение нескольких registry одновременно. Это позволяет использовать как официальный registry, так и приватные корпоративные.
+
+## Подключение custom registry
+
+Добавьте registry в `ambrosia.json`:
+
+```json title="ambrosia.json"
+{
+  "packsDir": "src/packs",
+  "registries": {
+    "default": "https://registry.ambrosia.dev",
+    "corp": "https://packs.mycompany.com",
+    "team": "https://my-team-registry.pages.dev"
+  },
+  "packs": {}
+}
+```
+
+Установка из конкретного registry:
+
+```bash
+# Из официального (default)
+ambrosia add jwt-auth
+
+# Из корпоративного
+ambrosia add internal-auth --registry corp
+
+# Из командного
+ambrosia add shared-utils --registry team
+```
+
+## Структура custom registry
+
+Registry — это HTTP-сервер (или статические файлы), отдающий JSON по предсказуемым URL:
+
+```
+https://packs.mycompany.com/
+  api/registry/
+    index.json              GET → RegistryIndex
+    internal-auth.json      GET → RegistryItem
+    shared-logger.json      GET → RegistryItem
+```
+
+### Минимальная реализация
+
+Для простейшего registry достаточно директории со статическими JSON-файлами:
+
+```
+registry/
+├── api/
+│   └── registry/
+│       ├── index.json
+│       ├── internal-auth.json
+│       └── shared-logger.json
+```
+
+**index.json** — индекс всех паков:
+
+```json title="api/registry/index.json"
+{
+  "packs": [
+    {
+      "name": "internal-auth",
+      "version": "1.0.0",
+      "description": "Корпоративная аутентификация через SSO",
+      "author": "platform-team",
+      "category": "auth",
+      "tags": ["sso", "ldap", "auth"]
+    },
+    {
+      "name": "shared-logger",
+      "version": "2.1.0",
+      "description": "Стандартизированное логирование для всех сервисов",
+      "author": "platform-team",
+      "category": "logging",
+      "tags": ["logging", "structured", "elk"]
+    }
+  ]
+}
+```
+
+**\{name\}.json** — полный pack с исходным кодом:
+
+```json title="api/registry/internal-auth.json"
+{
+  "name": "internal-auth",
+  "version": "1.0.0",
+  "description": "Корпоративная аутентификация через SSO",
+  "author": "platform-team",
+  "tags": ["sso", "ldap", "auth"],
+  "category": "auth",
+  "files": [
+    {
+      "path": "index.ts",
+      "type": "index",
+      "content": "export { InternalAuthPack } from './internal-auth.pack';\n..."
+    }
+  ],
+  "dependencies": {},
+  "devDependencies": {},
+  "registryDependencies": [],
+  "ambrosiaDependencies": ["@ambrosia/core"]
+}
+```
+
+## Варианты хостинга
+
+### GitHub Pages (бесплатно)
+
+Подходит для команд, хранящих паки в Git:
+
+```bash
+mkdir corp-registry && cd corp-registry
+git init
+mkdir -p api/registry
+
+# Добавьте паки
+# ...
+
+git add . && git commit -m "Init registry"
+git remote add origin git@github.com:mycompany/pack-registry.git
+git push -u origin main
+```
+
+Включите GitHub Pages → `https://mycompany.github.io/pack-registry`
+
+```json title="ambrosia.json"
+{
+  "registries": {
+    "corp": "https://mycompany.github.io/pack-registry"
+  }
+}
+```
+
+### Cloudflare Pages / Vercel / Netlify
+
+Аналогично — статический хостинг для директории с JSON-файлами.
+
+### Приватный HTTP-сервер
+
+Для закрытых сетей — любой HTTP-сервер, отдающий JSON:
+
+```typescript title="registry-server.ts"
+import { Elysia } from 'elysia';
+
+const packs = new Map<string, object>();
+
+// Загрузите паки из файлов или базы данных
+// ...
+
+new Elysia()
+  .get('/api/registry/index.json', () => {
+    return {
+      packs: Array.from(packs.entries()).map(([name, pack]) => ({
+        name,
+        // ... метаданные
+      })),
+    };
+  })
+  .get('/api/registry/:name', ({ params }) => {
+    const name = params.name.replace('.json', '');
+    const pack = packs.get(name);
+    if (!pack) return new Response('Not found', { status: 404 });
+    return pack;
+  })
+  .listen(8080);
+```
+
+### S3 + CloudFront (корпоративный)
+
+Для больших организаций:
+
+```bash
+# Загрузите JSON в S3
+aws s3 cp api/registry/ s3://company-pack-registry/api/registry/ \
+  --recursive \
+  --content-type "application/json"
+
+# Настройте CloudFront distribution
+# ...
+```
+
+## Зависимости между registry
+
+Pack из одного registry **не может** ссылаться на паки из другого registry через `registryDependencies`. Все `registryDependencies` разрешаются в рамках того же registry, из которого устанавливается pack.
+
+Если pack зависит от пака из другого registry, установите его отдельно:
+
+```bash
+# Сначала установите зависимость из официального registry
+ambrosia add jwt-auth
+
+# Затем pack из корпоративного registry
+ambrosia add extended-auth --registry corp
+```
+
+<Callout type="info">
+  Паки в `src/packs/` могут импортировать друг друга через обычные TypeScript imports — registry boundaries не влияют на runtime код.
+</Callout>
+
+## Приватность и безопасность
+
+### Закрытая сеть
+
+Для полностью закрытых registry используйте внутренний DNS:
+
+```json
+{
+  "registries": {
+    "corp": "https://packs.internal.mycompany.com"
+  }
+}
+```
+
+### Контроль версий registry
+
+Рекомендуется хранить registry в Git-репозитории:
+
+```
+corp-registry/
+├── api/registry/        ← генерируется из src/
+├── src/
+│   ├── internal-auth/   ← исходники паков
+│   └── shared-logger/
+├── scripts/
+│   └── build.ts         ← скрипт сборки JSON
+└── package.json
+```
+
+Скрипт сборки читает исходники и генерирует JSON-файлы для `api/registry/`.
+
+## Следующие шаги
+
+1. Вернитесь к [обзору Registry](/docs/cli/registry/overview)
+2. Изучите [формат Registry Item](/docs/cli/registry/registry-item)
+3. Посмотрите [команду ambrosia add](/docs/cli/commands/add)

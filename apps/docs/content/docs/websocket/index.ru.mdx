@@ -1,0 +1,79 @@
+---
+title: "@ambrosia/websocket"
+description: "Provider-agnostic WebSocket слой для Ambrosia Framework"
+---
+
+# @ambrosia/websocket
+
+Provider-agnostic WebSocket слой с декораторами для реализации real-time функциональности в Ambrosia приложениях.
+
+## Возможности
+
+- **Декоратор-подход** — `@WebSocketGateway`, `@SubscribeMessage`, `@OnConnection`, `@OnDisconnection`
+- **Полная DI интеграция** — Гейтвеи участвуют в dependency injection как любые другие сервисы
+- **Provider-agnostic** — Меняйте транспорт (Elysia, Bun.serve) без изменения бизнес-логики
+- **Pack система** — WebSocket модули компонуются через `WsPackDefinition`
+- **Тестирование** — `TestingWsFactory` и `MockWsClient` для unit/integration тестов без реального сервера
+
+## Быстрый старт
+
+```typescript title="chat.gateway.ts"
+import { Injectable } from "@ambrosia/core";
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  OnConnection,
+  OnDisconnection,
+} from "@ambrosia/websocket";
+import type { WsClient } from "@ambrosia/websocket";
+
+@WebSocketGateway("/chat")
+class ChatGateway {
+  constructor(private chatService: ChatService) {}
+
+  @OnConnection()
+  handleConnection(client: WsClient) {
+    console.log(`Client ${client.id} connected`);
+  }
+
+  @OnDisconnection()
+  handleDisconnection(client: WsClient) {
+    console.log(`Client ${client.id} disconnected`);
+  }
+
+  @SubscribeMessage("message")
+  handleMessage(client: WsClient, data: { text: string }) {
+    this.chatService.save(data.text);
+    return { event: "newMessage", data: { from: client.id, text: data.text } };
+  }
+}
+```
+
+## Архитектура
+
+```mermaid
+sequenceDiagram
+    participant Client as WS Client
+    participant Provider as WsProvider (Elysia)
+    participant App as WsApplication
+    participant Gateway as @WebSocketGateway
+    participant DI as DI Container
+
+    Client->>Provider: WebSocket connect
+    Provider->>App: onConnection(client)
+    App->>DI: resolve(Gateway)
+    DI-->>App: gateway instance
+    App->>Gateway: @OnConnection handler(client)
+
+    Client->>Provider: send({ event, data })
+    Provider->>App: onMessage(client, message)
+    App->>Gateway: @SubscribeMessage handler(client, data)
+    Gateway-->>Client: return { event, data }
+```
+
+## Следующие шаги
+
+- [Установка и настройка](/docs/websocket/getting-started/installation)
+- [Гайд по гейтвеям](/docs/websocket/guides/gateways)
+- [Тестирование](/docs/websocket/guides/testing)
+- [API Reference](/docs/websocket/api/decorators)

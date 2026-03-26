@@ -1,0 +1,114 @@
+---
+title: "ambrosia remove"
+description: "Command for removing installed packs from a project"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# ambrosia remove
+
+Removes installed packs from a project: deletes files, cleans up empty directories, and updates `ambrosia.json`.
+
+## Usage
+
+```bash
+ambrosia remove <pack...>
+```
+
+## Arguments
+
+| Argument | Description |
+|---|---|
+| `<pack...>` | One or more pack names to remove |
+
+## Examples
+
+```bash
+# Single pack
+ambrosia remove jwt-auth
+
+# Multiple packs
+ambrosia remove jwt-auth redis-cache
+```
+
+## What It Does
+
+### 1. Validation
+
+The CLI checks that all specified packs are installed. If a pack is not found in `ambrosia.json`:
+
+```
+✗  Pack(s) not installed: unknown-pack
+```
+
+### 2. File Removal
+
+The CLI deletes all files listed in the pack's entry in `ambrosia.json`:
+
+```
+$ ambrosia remove jwt-auth
+
+◆  ambrosia remove
+│
+◒  Removing packs...
+◇  Removed 1 pack(s)
+```
+
+Only files registered during installation are deleted. Files added manually to the pack directory are left in place.
+
+### 3. Directory Cleanup
+
+After removing files, the CLI attempts to delete any remaining empty directories (from deepest to shallowest). Non-empty directories are preserved.
+
+### 4. Updating ambrosia.json
+
+The removed pack's entry is deleted from the `packs` section:
+
+```json title="ambrosia.json (before)"
+{
+  "packs": {
+    "jwt-auth": { "version": "0.2.1", "registry": "default", ... },
+    "redis-cache": { "version": "0.1.3", "registry": "default", ... }
+  }
+}
+```
+
+```json title="ambrosia.json (after ambrosia remove jwt-auth)"
+{
+  "packs": {
+    "redis-cache": { "version": "0.1.3", "registry": "default", ... }
+  }
+}
+```
+
+## Important Notes
+
+<Callout type="warn">
+  The command **does not remove npm dependencies** that were installed alongside the pack. If the pack added `jose` or other packages, they will remain in `package.json`. Remove them manually if needed.
+</Callout>
+
+<Callout type="warn">
+  If other packs depend on the pack being removed (via `registryDependencies`), the CLI **will not warn** about this. Make sure the pack being removed is not used by other modules.
+</Callout>
+
+## Errors
+
+### Pack Not Installed
+
+```
+✗  Pack(s) not installed: unknown-pack
+```
+
+Check the pack name. Use `ambrosia list` to view installed packs.
+
+### No ambrosia.json
+
+```
+✗  No ambrosia.json found. Run "ambrosia init" to create one.
+```
+
+## See Also
+
+- [ambrosia list](/docs/cli/commands/list) — viewing installed packs
+- [ambrosia add](/docs/cli/commands/add) — reinstalling packs
+- [ambrosia update](/docs/cli/commands/update) — updating packs

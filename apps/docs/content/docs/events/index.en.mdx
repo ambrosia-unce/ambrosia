@@ -1,0 +1,79 @@
+---
+title: "Introduction"
+description: "High-performance event bus for Ambrosia"
+---
+
+import {Card, Cards} from 'fumadocs-ui/components/card';
+
+# @ambrosia/events
+
+**@ambrosia/events** is a high-performance event bus for the Ambrosia framework. It enables loosely-coupled communication between services through declarative event handlers.
+
+## Key Features
+
+<Cards>
+    <Card
+        title="Maximum Performance"
+        description="Pre-built Map with O(1) lookup. Handlers are bound and sorted at initialization -- zero allocations on emit()."
+    />
+    <Card
+        title="Type-safe Events"
+        description="Event classes instead of string names. Class constructor as key -- faster than string hashing."
+    />
+    <Card
+        title="Sync / Async Fast Path"
+        description="If all handlers are synchronous, Promise.all is not called. Zero async overhead for sync events."
+    />
+    <Card
+        title="Priorities"
+        description="Declarative execution order control via @OnEvent(Event, { priority: 10 }). Sorted once at startup."
+    />
+</Cards>
+
+## Quick Start
+
+```ts
+import { Injectable, definePack } from '@ambrosia/core';
+import { EventBus, EventBusModule, OnEvent } from '@ambrosia/events';
+
+// 1. Define an event as a class
+class UserRegisteredEvent {
+  constructor(public readonly userId: string, public readonly email: string) {}
+}
+
+// 2. Create a listener with @OnEvent
+@Injectable()
+class EmailListener {
+  @OnEvent(UserRegisteredEvent)
+  async onUserRegistered(event: UserRegisteredEvent) {
+    console.log(`Sending welcome email to ${event.email}`);
+  }
+}
+
+// 3. Connect EventBusModule
+const AppPack = definePack({
+  imports: [EventBusModule.forRoot()],
+  providers: [EmailListener],
+});
+
+// 4. Emit events via EventBus
+@Injectable()
+class UserService {
+  constructor(private bus: EventBus) {}
+
+  async register(email: string) {
+    const userId = crypto.randomUUID();
+    // ... save user ...
+    this.bus.emit(new UserRegisteredEvent(userId, email));
+  }
+}
+```
+
+## Architecture
+
+The event bus works on a "compile once, emit fast" principle:
+
+1. **Build time** -- `EventCollector` scans all `@OnEvent` decorators, binds (`.bind()`) methods to instances, sorts by priority
+2. **Runtime** -- `EventBus.emit()` performs `Map.get(constructor)` + a direct `for` loop over handlers
+
+No runtime registration, no middleware chains, no interceptors on events -- pure direct calls.

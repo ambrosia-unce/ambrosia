@@ -1,0 +1,515 @@
+---
+title: "Контроллеры"
+description: "Создание контроллеров и обработка HTTP маршрутов"
+---
+
+# Контроллеры
+
+Контроллеры отвечают за обработку HTTP запросов и возврат ответов клиенту.
+
+## Основы
+
+### Создание контроллера
+
+Используйте декоратор `@Controller()` для создания контроллера:
+
+```typescript
+import { Controller, Http } from '@ambrosia/http';
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')
+  findAll() {
+    return { users: [] };
+  }
+}
+```
+
+### Автоматическая регистрация
+
+Контроллеры автоматически регистрируются при использовании декоратора:
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  // Контроллеры регистрируются автоматически!
+});
+```
+
+Все классы с декоратором `@Controller()` будут найдены и зарегистрированы.
+
+## HTTP методы
+
+### Базовые методы
+
+```typescript
+@Controller('/posts')
+export class PostController {
+  @Http.Get('/')
+  findAll() {
+    return [];
+  }
+
+  @Http.Post('/')
+  create() {
+    return { id: 1 };
+  }
+
+  @Http.Put('/:id')
+  update() {
+    return { id: 1 };
+  }
+
+  @Http.Patch('/:id')
+  patch() {
+    return { id: 1 };
+  }
+
+  @Http.Delete('/:id')
+  delete() {
+    return { deleted: true };
+  }
+
+  @Http.Options('/')
+  options() {
+    return {};
+  }
+
+  @Http.Head('/')
+  head() {
+    return null;
+  }
+}
+```
+
+### Несколько путей
+
+Контроллер и методы могут иметь несколько путей:
+
+```typescript
+@Controller(['/api/v1/users', '/api/v2/users'])
+export class UserController {
+  @Http.Get(['/', '/list'])
+  findAll() {
+    return [];
+  }
+}
+
+// Создаст маршруты:
+// GET /api/v1/users
+// GET /api/v1/users/list
+// GET /api/v2/users
+// GET /api/v2/users/list
+```
+
+## Параметры запроса
+
+### Path параметры
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  findOne(@Param('id') id: string) {
+    return { id };
+  }
+
+  @Http.Get('/:userId/posts/:postId')
+  findPost(
+    @Param('userId') userId: string,
+    @Param('postId') postId: string
+  ) {
+    return { userId, postId };
+  }
+
+  // Все параметры
+  @Http.Get('/:id')
+  findOne(@Param() params: Record<string, string>) {
+    return params; // { id: '123' }
+  }
+}
+```
+
+### Query параметры
+
+```typescript
+@Controller('/search')
+export class SearchController {
+  @Http.Get('/')
+  search(
+    @Query('q') query: string,
+    @Query('limit') limit: string,
+    @Query('offset') offset: string
+  ) {
+    return { query, limit, offset };
+  }
+
+  // Все query параметры
+  @Http.Get('/')
+  searchAll(@Query() query: Record<string, string>) {
+    return query;
+  }
+
+  // С значениями по умолчанию
+  @Http.Get('/')
+  searchWithDefaults(
+    @Query('limit') limit: string = '10',
+    @Query('offset') offset: string = '0'
+  ) {
+    return { limit, offset };
+  }
+}
+```
+
+### Body
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  create(@Body() body: CreateUserDto) {
+    return body;
+  }
+}
+```
+
+### Headers
+
+```typescript
+@Controller('/auth')
+export class AuthController {
+  @Http.Get('/profile')
+  getProfile(@Header('authorization') token: string) {
+    return { token };
+  }
+
+  // Все заголовки
+  @Http.Get('/info')
+  getInfo(@Headers() headers: Record<string, string>) {
+    return headers;
+  }
+}
+```
+
+### Request и Response объекты
+
+```typescript
+@Controller('/custom')
+export class CustomController {
+  @Http.Get('/')
+  custom(
+    @Req() req: IHttpRequest,
+    @Res() res: IHttpResponse
+  ) {
+    console.log('Method:', req.method);
+    console.log('Path:', req.path);
+    
+    res.setHeader('X-Custom', 'value');
+    res.setStatus(200);
+    
+    return { message: 'OK' };
+  }
+}
+```
+
+### Дополнительные параметры
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Get('/me')
+  getMe(
+    @Ip() ip: string,
+    @Session() session: any,
+    @Cookie('token') token: string
+  ) {
+    return { ip, session, token };
+  }
+}
+```
+
+## Response customization
+
+### Status код
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  @Status(201)
+  create() {
+    return { id: 1 };
+  }
+
+  @Http.Delete('/:id')
+  @Status(204)
+  delete() {
+    // No content
+  }
+}
+```
+
+### Headers
+
+```typescript
+@Controller('/data')
+export class DataController {
+  @Http.Get('/download')
+  @Header('Content-Type', 'application/octet-stream')
+  @Header('Content-Disposition', 'attachment; filename="data.bin"')
+  download() {
+    return Buffer.from('data');
+  }
+}
+```
+
+## Dependency Injection
+
+### Внедрение сервисов
+
+```typescript
+@Injectable()
+class UserService {
+  findAll() {
+    return [];
+  }
+}
+
+@Controller('/users')
+export class UserController {
+  constructor(private userService: UserService) {}
+
+  @Http.Get('/')
+  findAll() {
+    return this.userService.findAll();
+  }
+}
+```
+
+### Несколько зависимостей
+
+```typescript
+@Controller('/posts')
+export class PostController {
+  constructor(
+    private postService: PostService,
+    private userService: UserService,
+    private logger: LoggerService
+  ) {}
+
+  @Http.Get('/')
+  async findAll() {
+    this.logger.log('Finding all posts');
+    const posts = await this.postService.findAll();
+    return posts;
+  }
+}
+```
+
+### Scope контроллера
+
+```typescript
+@Controller('/session')
+@Injectable({ scope: Scope.REQUEST })
+export class SessionController {
+  private requestId = Math.random();
+
+  @Http.Get('/')
+  getSessionInfo() {
+    return { requestId: this.requestId };
+  }
+}
+```
+
+## File uploads
+
+### Один файл
+
+```typescript
+@Controller('/upload')
+export class UploadController {
+  @Http.Post('/avatar')
+  uploadAvatar(@UploadedFile('avatar') file: UploadedFile) {
+    return {
+      filename: file.originalname,
+      size: file.size,
+      mimetype: file.mimetype
+    };
+  }
+}
+```
+
+### Несколько файлов
+
+```typescript
+@Controller('/upload')
+export class UploadController {
+  @Http.Post('/photos')
+  uploadPhotos(@UploadedFiles('photos') files: UploadedFile[]) {
+    return {
+      count: files.length,
+      totalSize: files.reduce((sum, f) => sum + f.size, 0)
+    };
+  }
+
+  @Http.Post('/documents')
+  uploadAll(@UploadedFiles() files: UploadedFile[]) {
+    // Все файлы из запроса
+    return files.map(f => f.originalname);
+  }
+}
+```
+
+## Error handling
+
+### Throwing exceptions
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  findOne(@Param('id') id: string) {
+    const user = this.userService.findById(id);
+    
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    
+    return user;
+  }
+
+  @Http.Post('/')
+  create(@Body() dto: CreateUserDto) {
+    if (this.userService.emailExists(dto.email)) {
+      throw new ConflictException('Email already exists');
+    }
+    
+    return this.userService.create(dto);
+  }
+}
+```
+
+### Try-catch
+
+```typescript
+@Controller('/external')
+export class ExternalController {
+  @Http.Get('/data')
+  async fetchData() {
+    try {
+      const data = await this.externalApi.fetch();
+      return data;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to fetch external data');
+    }
+  }
+}
+```
+
+## Async handlers
+
+```typescript
+@Controller('/users')
+export class UserController {
+  @Http.Get('/')
+  async findAll() {
+    const users = await this.userService.findAll();
+    return users;
+  }
+
+  @Http.Get('/:id')
+  async findOne(@Param('id') id: string) {
+    const user = await this.userService.findById(id);
+    if (!user) {
+      throw new NotFoundException();
+    }
+    return user;
+  }
+}
+```
+
+## Best practices
+
+### 1. Разделение ответственности
+
+```typescript
+// ❌ Плохо - бизнес логика в контроллере
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  create(@Body() dto: CreateUserDto) {
+    const hashedPassword = bcrypt.hashSync(dto.password, 10);
+    const user = { ...dto, password: hashedPassword };
+    database.insert(user);
+    return user;
+  }
+}
+
+// ✅ Хорошо - логика в сервисе
+@Controller('/users')
+export class UserController {
+  constructor(private userService: UserService) {}
+
+  @Http.Post('/')
+  create(@Body() dto: CreateUserDto) {
+    return this.userService.create(dto);
+  }
+}
+```
+
+### 2. Использование DTO
+
+```typescript
+// ✅ Хорошо - типизированный DTO
+class CreateUserDto {
+  static schema = Type.Object({
+    name: Type.String(),
+    email: Type.String({ format: 'email' })
+  });
+
+  name!: string;
+  email!: string;
+}
+
+@Controller('/users')
+export class UserController {
+  @Http.Post('/')
+  create(@Body() dto: CreateUserDto) {
+    return this.userService.create(dto);
+  }
+}
+```
+
+### 3. Явные status коды
+
+```typescript
+// ✅ Хорошо
+@Http.Post('/')
+@Status(201)
+create() {}
+
+@Http.Delete('/:id')
+@Status(204)
+delete() {}
+```
+
+### 4. Обработка ошибок
+
+```typescript
+// ✅ Хорошо - выбрасывайте специфичные исключения
+@Http.Get('/:id')
+findOne(@Param('id') id: string) {
+  const user = this.userService.findById(id);
+  if (!user) {
+    throw new NotFoundException(`User ${id} not found`);
+  }
+  return user;
+}
+```
+
+## Следующие шаги
+
+- [Guards](/docs/http/guides/guards) - Защита маршрутов
+- [Interceptors](/docs/http/guides/interceptors) - Трансформация запросов
+- [Pipes](/docs/http/guides/pipes) - Валидация данных
+- [Примеры](/docs/http/examples/rest-api) - REST API примеры

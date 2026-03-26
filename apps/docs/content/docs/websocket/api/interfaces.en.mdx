@@ -1,0 +1,105 @@
+---
+title: "Interfaces"
+description: "API Reference for WebSocket interfaces and types"
+---
+
+# Interfaces and Types
+
+## WsClient
+
+WebSocket client abstraction. Provided in event handlers.
+
+```typescript
+interface WsClient {
+  /** Unique client identifier */
+  id: string;
+
+  /** Client data store (persists between messages) */
+  data: Record<string, any>;
+
+  /** Send an event to the client */
+  send(event: string, data: any): void;
+
+  /** Send raw data */
+  sendRaw(data: string | ArrayBuffer): void;
+
+  /** Close the connection */
+  close(code?: number, reason?: string): void;
+}
+```
+
+---
+
+## WsMessage
+
+WebSocket message format.
+
+```typescript
+interface WsMessage<T = any> {
+  /** Event name */
+  event: string;
+  /** Message data */
+  data: T;
+}
+```
+
+---
+
+## WsProvider
+
+Interface for implementing WebSocket adapters. Implement this to support a new HTTP server.
+
+```typescript
+interface WsProvider {
+  readonly name: string;
+  registerGateway(config: WsGatewayConfig): void;
+  getClients(path: string): Set<WsClient>;
+  broadcast(path: string, event: string, data: any): void;
+}
+```
+
+---
+
+## WsGatewayConfig
+
+Gateway configuration passed to the provider.
+
+```typescript
+interface WsGatewayConfig {
+  path: string;
+  onConnection: (client: WsClient) => void | Promise<void>;
+  onDisconnection: (client: WsClient, code: number, reason: string) => void | Promise<void>;
+  onMessage: (client: WsClient, message: WsMessage) => any | Promise<any>;
+}
+```
+
+---
+
+## WsPackDefinition
+
+Extension of PackDefinition for WebSocket modules.
+
+```typescript
+interface WsPackDefinition extends PackDefinition {
+  gateways?: Constructor[];
+}
+```
+
+---
+
+## WsApplicationOptions
+
+Options for `WsApplication.create()`.
+
+```typescript
+interface WsApplicationOptions {
+  /** WebSocket provider */
+  provider: WsProvider;
+  /** Existing DI container */
+  container?: Container;
+  /** Gateway classes */
+  gateways?: Constructor[];
+  /** Packs with gateways */
+  packs?: (WsPackDefinition | null | undefined | false)[];
+}
+```

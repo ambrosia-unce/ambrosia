@@ -1,0 +1,198 @@
+---
+title: "Pack Registry Overview"
+description: "Architecture and principles behind Pack Registry — a system for distributing modules as source code"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import {Card, Cards} from 'fumadocs-ui/components/card';
+
+# Pack Registry Overview
+
+Pack Registry is a system for distributing ready-made modules (packs) for Ambrosia. Unlike npm packages, packs are **injected as source code** into your project. You get full control over the code and can modify it to suit your needs.
+
+## npm Packages vs Pack Registry
+
+| | npm Package | Ambrosia Pack |
+|---|---|---|
+| **Where code lives** | `node_modules/` | `src/packs/{name}/` |
+| **Ownership** | Closed, managed by the author | Your code, full control |
+| **Updates** | `npm update` | `ambrosia add` (overwrite) |
+| **Customization** | Fork or monkey-patch | Edit directly |
+| **Dependencies** | Transitive, in lockfile | Files + explicit npm deps |
+| **Size** | Can pull hundreds of deps | Only the files you need |
+
+## Architecture
+
+```
+┌─────────────────┐     HTTP/JSON      ┌──────────────────┐
+│   ambrosia CLI  │ ◄──────────────── │   Pack Registry   │
+│                 │                    │  (static JSON)    │
+│  ambrosia add   │     fetch pack     │                   │
+│  jwt-auth       │ ──────────────── │  /api/registry/   │
+│                 │                    │    jwt-auth.json  │
+└────────┬────────┘                    └──────────────────┘
+         │
+         │  writes files
+         ▼
+┌─────────────────┐
+│   Your project  │
+│                 │
+│  src/packs/     │
+│    jwt-auth/    │
+│      index.ts   │
+│      *.ts       │
+│                 │
+│  ambrosia.json  │  ◄── updates entry
+└─────────────────┘
+```
+
+## How It Works
+
+### 1. The Registry Stores Packs as JSON
+
+Each pack is a JSON file containing metadata and the **full source code** of all files:
+
+```json
+{
+  "name": "jwt-auth",
+  "version": "0.2.1",
+  "files": [
+    { "path": "index.ts", "content": "export { JwtAuthPack }..." },
+    { "path": "jwt-auth.service.ts", "content": "..." }
+  ],
+  "dependencies": { "jose": "^5.0.0" },
+  "registryDependencies": [],
+  "ambrosiaDependencies": ["@ambrosia/core", "@ambrosia/http"]
+}
+```
+
+### 2. The CLI Fetches and Resolves Dependencies
+
+When you run `ambrosia add jwt-auth`:
+
+1. The CLI reads `ambrosia.json` to determine the registry URL
+2. Makes a `GET {registry}/api/registry/jwt-auth.json` request
+3. Recursively resolves `registryDependencies` (other packs)
+4. Checks whether the pack is already installed
+
+### 3. Files Are Written to the Project
+
+Each file from `files[]` is written to `{packsDir}/{packName}/`:
+
+```
+src/packs/jwt-auth/
+├── index.ts               ◄── files[0].content
+├── jwt-auth.pack.ts       ◄── files[1].content
+├── jwt-auth.service.ts    ◄── files[2].content
+├── jwt-auth.guard.ts      ◄── files[3].content
+└── types.ts               ◄── files[4].content
+```
+
+### 4. npm Dependencies Are Installed Automatically
+
+The CLI runs `bun add` for all `dependencies` and `ambrosiaDependencies`, and `bun add -D` for `devDependencies`.
+
+### 5. ambrosia.json Is Updated
+
+The CLI records information about the installed pack in `ambrosia.json`:
+
+```json
+{
+  "packs": {
+    "jwt-auth": {
+      "version": "0.2.1",
+      "registry": "default",
+      "installedAt": "2026-02-19T12:00:00.000Z",
+      "files": ["src/packs/jwt-auth/index.ts", "..."]
+    }
+  }
+}
+```
+
+## The Registry Is Static JSON
+
+<Callout type="info">
+  A registry does not require a backend. It is a set of JSON files that can be hosted anywhere: CDN, GitHub Pages, S3, or any static hosting.
+</Callout>
+
+Registry URL structure:
+
+```
+https://registry.ambrosia.dev/
+  api/registry/
+    index.json              ◄── list of all packs
+    jwt-auth.json           ◄── full pack with files
+    redis-cache.json        ◄── another pack
+    config-pack.json        ◄── yet another pack
+```
+
+**`index.json`** — index of all available packs (without file contents):
+
+```json
+{
+  "packs": [
+    {
+      "name": "jwt-auth",
+      "version": "0.2.1",
+      "description": "JWT authentication with guards and RBAC",
+      "author": "community",
+      "category": "auth",
+      "tags": ["jwt", "auth", "guard"]
+    }
+  ]
+}
+```
+
+**`{name}.json`** — full pack description, including source code of the files.
+
+## Dependencies Between Packs
+
+A pack can depend on other packs via `registryDependencies`:
+
+```json
+{
+  "name": "rbac-pack",
+  "registryDependencies": ["jwt-auth"]
+}
+```
+
+When installing `ambrosia add rbac-pack`, the CLI will automatically install `jwt-auth` as well.
+
+Dependency resolution:
+- **Depth-first** — dependencies are installed before dependent packs
+- **Deduplication** — each pack is installed only once
+- **Cycle detection** — the CLI throws an error for circular dependencies
+
+## Pack Categories
+
+| Category | Description | Examples |
+|---|---|---|
+| `http` | HTTP layer, controllers, middleware | swagger-ui, rate-limit |
+| `database` | ORM, drivers, migrations | typeorm, drizzle |
+| `auth` | Authentication, authorization | jwt-auth, oauth |
+| `cache` | Caching | redis-cache |
+| `logging` | Logging | pino-logging |
+| `validation` | Data validation | schema-validation |
+| `testing` | Testing utilities | testing-utils |
+| `utils` | General utilities | config-pack |
+| `microservices` | gRPC, queues, events | rabbitmq, grpc |
+
+## Next
+
+<Cards>
+    <Card
+        title="Registry Item Schema"
+        description="Full pack format specification in the registry"
+        href="/docs/cli/registry/registry-item"
+    />
+    <Card
+        title="Creating Packs"
+        description="How to create your own pack"
+        href="/docs/cli/registry/creating-packs"
+    />
+    <Card
+        title="Custom Registry"
+        description="Set up your own private registry"
+        href="/docs/cli/registry/custom-registry"
+    />
+</Cards>

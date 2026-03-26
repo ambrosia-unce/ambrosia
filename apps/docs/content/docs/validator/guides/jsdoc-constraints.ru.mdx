@@ -1,0 +1,471 @@
+---
+title: "JSDoc Constraints"
+description: "Дополнительные ограничения валидации через JSDoc теги"
+---
+
+# JSDoc Constraints
+
+JSDoc constraints позволяют добавлять дополнительные правила валидации через комментарии JSDoc, не изменяя сами типы TypeScript.
+
+## Основы
+
+```typescript
+interface CreateProductDto {
+  /**
+   * @minLength 3
+   * @maxLength 100
+   */
+  name: string;
+
+  /**
+   * @minimum 0
+   */
+  price: number;
+}
+```
+
+## Доступные теги
+
+### Строковые ограничения
+
+#### @minLength
+Минимальная длина строки
+
+```typescript
+interface UserDto {
+  /**
+   * @minLength 3
+   */
+  username: string;
+}
+
+assert<UserDto>({ username: "ab" });    // ❌ Too short
+assert<UserDto>({ username: "alice" }); // ✅
+```
+
+#### @maxLength
+Максимальная длина строки
+
+```typescript
+interface UserDto {
+  /**
+   * @maxLength 50
+   */
+  name: string;
+}
+```
+
+#### @pattern
+Регулярное выражение
+
+```typescript
+interface UsernameDto {
+  /**
+   * @pattern ^[a-zA-Z0-9_]+$
+   */
+  username: string;
+}
+
+assert<UsernameDto>({ username: "user_123" }); // ✅
+assert<UsernameDto>({ username: "user@123" }); // ❌
+```
+
+**Важно:** Паттерн указывается без слешей `/pattern/` - только сам паттерн.
+
+#### @format
+Предопределенный формат строки
+
+```typescript
+interface ContactDto {
+  /**
+   * @format email
+   */
+  email: string;
+
+  /**
+   * @format url
+   */
+  website: string;
+
+  /**
+   * @format uuid
+   */
+  id: string;
+}
+```
+
+Доступные форматы:
+- `email` - email адрес
+- `url` - HTTP/HTTPS URL
+- `uuid` - UUID v4
+- `date` - ISO 8601 date (YYYY-MM-DD)
+- `datetime` - ISO 8601 datetime
+- `phone` - E.164 phone number
+- `ipv4` - IPv4 адрес
+- `ipv6` - IPv6 адрес
+- `hex-color` - hex цвет (#RGB или #RRGGBB)
+- `base64` - base64 строка
+- `json` - валидный JSON
+
+### Числовые ограничения
+
+#### @minimum
+Минимальное значение (включительно)
+
+```typescript
+interface AgeDto {
+  /**
+   * @minimum 18
+   */
+  age: number;
+}
+
+assert<AgeDto>({ age: 17 }); // ❌
+assert<AgeDto>({ age: 18 }); // ✅
+```
+
+#### @maximum
+Максимальное значение (включительно)
+
+```typescript
+interface ScoreDto {
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  score: number;
+}
+```
+
+#### @exclusiveMinimum
+Минимальное значение (исключительно)
+
+```typescript
+interface PriceDto {
+  /**
+   * @exclusiveMinimum 0
+   */
+  price: number;
+}
+
+assert<PriceDto>({ price: 0 });   // ❌
+assert<PriceDto>({ price: 0.01 }); // ✅
+```
+
+#### @exclusiveMaximum
+Максимальное значение (исключительно)
+
+```typescript
+interface DiscountDto {
+  /**
+   * @exclusiveMaximum 1
+   */
+  discount: number;
+}
+```
+
+#### @multipleOf
+Кратность числа
+
+```typescript
+interface QuantityDto {
+  /**
+   * @multipleOf 5
+   */
+  quantity: number;
+}
+
+assert<QuantityDto>({ quantity: 10 }); // ✅
+assert<QuantityDto>({ quantity: 7 });  // ❌
+```
+
+#### @integer
+Целое число
+
+```typescript
+interface PageDto {
+  /**
+   * @integer
+   * @minimum 1
+   */
+  page: number;
+}
+
+assert<PageDto>({ page: 1 });   // ✅
+assert<PageDto>({ page: 1.5 }); // ❌
+```
+
+### Массивы
+
+#### @minItems
+Минимальное количество элементов
+
+```typescript
+interface TeamDto {
+  /**
+   * @minItems 1
+   */
+  members: string[];
+}
+
+assert<TeamDto>({ members: [] });        // ❌
+assert<TeamDto>({ members: ["Alice"] }); // ✅
+```
+
+#### @maxItems
+Максимальное количество элементов
+
+```typescript
+interface TagsDto {
+  /**
+   * @maxItems 10
+   */
+  tags: string[];
+}
+```
+
+#### @uniqueItems
+Уникальные элементы массива
+
+```typescript
+interface UniqueIdsDto {
+  /**
+   * @uniqueItems
+   */
+  ids: number[];
+}
+
+assert<UniqueIdsDto>({ ids: [1, 2, 3] });    // ✅
+assert<UniqueIdsDto>({ ids: [1, 2, 2, 3] }); // ❌
+```
+
+### Объекты
+
+#### @required
+Обязательные поля (для опциональных свойств)
+
+```typescript
+interface ConfigDto {
+  /**
+   * @required
+   */
+  apiKey?: string; // Формально optional, но JSDoc требует её
+}
+```
+
+**Примечание:** Обычно лучше использовать TypeScript `!` для этого, но @required может быть полезен для динамической валидации.
+
+## Комбинирование ограничений
+
+Можно комбинировать несколько JSDoc тегов:
+
+```typescript
+interface CreatePostDto {
+  /**
+   * Заголовок поста
+   * @minLength 10
+   * @maxLength 200
+   * @pattern ^[a-zA-Zа-яА-Я0-9\s\-,!?\.]+$
+   */
+  title: string;
+
+  /**
+   * Текст поста
+   * @minLength 100
+   * @maxLength 10000
+   */
+  content: string;
+
+  /**
+   * Теги (максимум 5, уникальные)
+   * @maxItems 5
+   * @uniqueItems
+   */
+  tags: string[];
+
+  /**
+   * Рейтинг от 1 до 5
+   * @integer
+   * @minimum 1
+   * @maximum 5
+   */
+  rating: number;
+}
+```
+
+## JSDoc + Branded Types
+
+Комбинирование JSDoc constraints и branded types:
+
+```typescript
+import type { Email, PositiveInt } from '@ambrosia/validator/types';
+
+interface CreateUserDto {
+  /**
+   * @minLength 3
+   * @maxLength 50
+   * @pattern ^[a-zA-Z0-9_]+$
+   */
+  username: string;
+
+  email: Email; // Уже содержит валидацию email
+
+  /**
+   * @minimum 18
+   * @maximum 120
+   */
+  age: PositiveInt; // Комбинация branded type и JSDoc
+}
+```
+
+## Валидация вложенных объектов
+
+JSDoc constraints работают на всех уровнях вложенности:
+
+```typescript
+interface CreateOrderDto {
+  /**
+   * @minItems 1
+   */
+  items: {
+    /**
+     * @format uuid
+     */
+    productId: string;
+
+    /**
+     * @integer
+     * @minimum 1
+     */
+    quantity: number;
+  }[];
+
+  shippingAddress: {
+    /**
+     * @minLength 5
+     */
+    street: string;
+
+    /**
+     * @pattern ^\d{5}(-\d{4})?$
+     */
+    zipCode: string;
+  };
+}
+```
+
+## Кастомные сообщения об ошибках
+
+**Примечание:** В текущей версии кастомные сообщения не поддерживаются, но планируются в будущих версиях:
+
+```typescript
+// Будущая функциональность (НЕ работает сейчас):
+interface UserDto {
+  /**
+   * @minLength 3
+   * @errorMessage "Username must be at least 3 characters"
+   */
+  username: string;
+}
+```
+
+Пока сообщения генерируются автоматически:
+- `"username must be at least 3 characters"` для @minLength 3
+- `"age must be >= 18"` для @minimum 18
+- и т.д.
+
+## Производительность
+
+JSDoc constraints компилируются в inline код:
+
+```typescript
+// Исходный код:
+interface Dto {
+  /**
+   * @minLength 3
+   * @maxLength 10
+   */
+  name: string;
+}
+const dto = assert<Dto>(data);
+
+// Сгенерированный код:
+const dto = ((data) => {
+  if (typeof data !== "object" || data === null)
+    throw new ValidationError("must be an object");
+  if (typeof data.name !== "string")
+    throw new ValidationError("name must be string");
+  if (data.name.length < 3)
+    throw new ValidationError("name must be at least 3 characters");
+  if (data.name.length > 10)
+    throw new ValidationError("name must be at most 10 characters");
+  return data;
+})(data);
+```
+
+Никакого парсинга JSDoc в runtime!
+
+## IDE поддержка
+
+JSDoc комментарии отображаются в IDE подсказках:
+
+```typescript
+interface UserDto {
+  /**
+   * Имя пользователя
+   * @minLength 3
+   * @maxLength 20
+   */
+  username: string;
+}
+
+// При наведении на username в IDE:
+// (property) username: string
+// Имя пользователя
+// @minLength 3
+// @maxLength 20
+```
+
+## Отладка
+
+Для просмотра сгенерированных проверок используйте debug режим:
+
+```typescript
+// validator-config.ts
+import { plugin } from "bun";
+import { createValidatorPlugin } from "@ambrosia/validator/plugin";
+
+plugin(createValidatorPlugin({
+  debug: true,
+}));
+```
+
+## Ограничения
+
+Некоторые ограничения:
+
+1. JSDoc теги должны быть на **непосредственно связанном** свойстве
+2. Нельзя использовать JSDoc на type aliases (только на interface properties)
+3. Регулярные выражения должны быть валидными JavaScript RegExp
+
+**Не работает:**
+```typescript
+/**
+ * @minLength 3
+ */
+type Username = string; // ❌ JSDoc игнорируется на type alias
+
+interface Dto {
+  username: Username; // Не будет проверки minLength
+}
+```
+
+**Работает:**
+```typescript
+interface Dto {
+  /**
+   * @minLength 3
+   */
+  username: string; // ✅ JSDoc применяется
+}
+```

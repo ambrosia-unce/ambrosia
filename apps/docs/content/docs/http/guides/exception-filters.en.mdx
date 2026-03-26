@@ -1,0 +1,642 @@
+---
+title: Exception Filters
+description: Error handling with Exception Filters in Ambrosia HTTP
+---
+
+# Exception Filters
+
+Exception Filters handle all exceptions thrown during request execution. They intercept errors and transform them into proper HTTP responses.
+
+## Basics
+
+An Exception Filter is a class with a `catch()` method that receives the exception and context:
+
+```typescript
+import { Injectable } from '@ambrosia/core';
+import { ExceptionFilter, ExceptionFilterArgs, HttpException } from '@ambrosia/http';
+
+@Injectable()
+export class HttpExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { response, request } = context.switchToHttp();
+
+    const status = exception instanceof HttpException
+      ? exception.getStatus()
+      : 500;
+
+    const message = exception instanceof HttpException
+      ? exception.getMessage()
+      : 'Internal server error';
+
+    return {
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      message
+    };
+  }
+}
+```
+
+## Built-in Exceptions
+
+Ambrosia HTTP provides standard HTTP exceptions:
+
+```typescript
+import {
+  BadRequestException,          // 400
+  UnauthorizedException,        // 401
+  ForbiddenException,           // 403
+  NotFoundException,            // 404
+  MethodNotAllowedException,    // 405
+  ConflictException,            // 409
+  UnprocessableEntityException, // 422
+  InternalServerErrorException  // 500
+} from '@ambrosia/http';
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  async getOne(@Param('id') id: string) {
+    const user = await this.userService.findById(id);
+
+    if (!user) {
+      throw new NotFoundException(`User ${id} not found`);
+    }
+
+    return user;
+  }
+
+  @Http.Post('/')
+  async create(@Body() dto: CreateUserDto) {
+    const exists = await this.userService.existsByEmail(dto.email);
+
+    if (exists) {
+      throw new ConflictException('Email already in use');
+    }
+
+    return this.userService.create(dto);
+  }
+}
+```
+
+## Applying Exception Filters
+
+### At the Method Level
+
+```typescript
+import { UseFilter } from '@ambrosia/http';
+
+@Controller('/users')
+export class UserController {
+  @Http.Get('/:id')
+  @UseFilter(DatabaseExceptionFilter)
+  async getOne(@Param('id') id: string) {
+    return this.userService.findById(id);
+  }
+}
+```
+
+### At the Controller Level
+
+```typescript
+@Controller('/api')
+@UseFilter(ApiExceptionFilter, ValidationExceptionFilter)
+export class ApiController {
+  // All methods use these filters
+
+  @Http.Get('/data')
+  async getData() {
+    return [];
+  }
+}
+```
+
+### Global Exception Filters
+
+```typescript
+const app = await HttpApplication.create({
+  provider: ElysiaProvider,
+  globalFilters: [GlobalExceptionFilter],
+  port: 3000
+});
+```
+
+The `DefaultExceptionFilter` is used by default if no globalFilters are specified.
+
+## Default Exception Filter
+
+The default filter returns JSON with error details:
+
+```typescript
+// Response for NotFoundException:
+{
+  "statusCode": 404,
+  "error": "Not Found",
+  "message": "User 123 not found",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "path": "/users/123"
+}
+
+// Response for ValidationError:
+{
+  "statusCode": 422,
+  "error": "Unprocessable Entity",
+  "message": "Validation failed",
+  "errors": [
+    {
+      "path": "/email",
+      "message": "Expected string to match 'email'",
+      "value": "invalid"
+    }
+  ],
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "path": "/users"
+}
+```
+
+## @Catch -- Typed Filters
+
+The `@Catch(...ExceptionTypes)` decorator specifies which exception types a filter handles. Filters without `@Catch` catch all exceptions (as before).
+
+```typescript
+import { Injectable } from '@ambrosia/core';
+import {
+  ExceptionFilter, ExceptionFilterArgs, Catch,
+  NotFoundException, BadRequestException, HttpException
+} from '@ambrosia/http';
+
+// Catches only NotFoundException
+@Catch(NotFoundException)
+@Injectable()
+export class NotFoundFilter implements ExceptionFilter {
+  catch({ exception, httpContext }: ExceptionFilterArgs): any {
+    return {
+      statusCode: 404,
+      error: 'Not Found',
+      message: exception.getMessage(),
+      path: httpContext.request.url,
+    };
+  }
+}
+
+// Catches BadRequestException and UnprocessableEntityException
+@Catch(BadRequestException, UnprocessableEntityException)
+@Injectable()
+export class ValidationFilter implements ExceptionFilter {
+  catch({ exception, httpContext }: ExceptionFilterArgs): any {
+    return {
+      statusCode: exception.getStatus(),
+      error: 'Validation Error',
+      message: exception.getMessage(),
+    };
+  }
+}
+
+// Without @Catch -- catches everything else (fallback)
+@Injectable()
+export class FallbackFilter implements ExceptionFilter {
+  catch({ exception }: ExceptionFilterArgs): any {
+    const status = exception instanceof HttpException ? exception.getStatus() : 500;
+    return { statusCode: status, message: 'Internal error' };
+  }
+}
+```
+
+Usage:
+
+```typescript
+@Controller('/users')
+@UseFilter(NotFoundFilter, ValidationFilter, FallbackFilter)
+export class UserController {
+  @Http.Get('/:id')
+  async getOne(@Param('id') id: string) {
+    // NotFoundException → NotFoundFilter
+    // BadRequestException → ValidationFilter
+    // Other errors → FallbackFilter
+  }
+}
+```
+
+Filters are checked in order. If `@Catch` is specified, the filter handles the exception only when `exception instanceof Type`. Filters without `@Catch` catch everything that typed filters did not handle.
+
+## Custom Exception Filters
+
+### Database Exception Filter
+
+```typescript
+@Injectable()
+export class DatabaseExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { response, request } = context.switchToHttp();
+
+    if (this.isDatabaseError(exception)) {
+      console.error('Database error:', exception);
+
+      return {
+        statusCode: 503,
+        error: 'Service Unavailable',
+        message: 'Temporary database error. Please try again later.',
+        timestamp: new Date().toISOString(),
+        path: request.url
+      };
+    }
+
+    // Pass through for other filters
+    throw exception;
+  }
+
+  private isDatabaseError(exception: any): boolean {
+    return exception.name === 'DatabaseError' ||
+           exception.code?.startsWith('ER_');
+  }
+}
+```
+
+### Validation Exception Filter
+
+```typescript
+@Injectable()
+export class ValidationExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+
+    if (exception instanceof ValidationError) {
+      const { response, request } = context.switchToHttp();
+
+      return {
+        statusCode: 422,
+        error: 'Validation Failed',
+        message: exception.getMessage(),
+        errors: exception.errors.map(err => ({
+          field: err.path,
+          message: err.message,
+          value: err.value
+        })),
+        timestamp: new Date().toISOString(),
+        path: request.url
+      };
+    }
+
+    throw exception;
+  }
+}
+```
+
+### Logging Exception Filter
+
+```typescript
+@Injectable()
+export class LoggingExceptionFilter implements ExceptionFilter {
+  constructor(private logger: LoggerService) {}
+
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { request } = context.switchToHttp();
+
+    // Detailed logging
+    this.logger.error('Exception caught', {
+      error: exception.message,
+      stack: exception.stack,
+      method: request.method,
+      url: request.url,
+      userAgent: request.headers['user-agent'],
+      ip: request.ip,
+      timestamp: new Date().toISOString()
+    });
+
+    // Pass through for processing by other filters
+    throw exception;
+  }
+}
+```
+
+### API Exception Filter
+
+```typescript
+@Injectable()
+export class ApiExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { response } = context.switchToHttp();
+
+    let status = 500;
+    let error = 'Internal Server Error';
+    let message = 'An internal error occurred';
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      error = exception.getError();
+      message = exception.getMessage();
+    }
+
+    // Hide details in production
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    return {
+      success: false,
+      error: {
+        code: status,
+        type: error,
+        message: isProduction && status === 500
+          ? 'Internal Server Error'
+          : message
+      },
+      timestamp: Date.now()
+    };
+  }
+}
+```
+
+## Dependency Injection
+
+Exception Filters support full DI:
+
+```typescript
+@Injectable()
+export class MonitoringExceptionFilter implements ExceptionFilter {
+  constructor(
+    private monitoringService: MonitoringService,
+    private notificationService: NotificationService
+  ) {}
+
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { request } = context.switchToHttp();
+
+    // Send to monitoring system
+    this.monitoringService.recordException({
+      error: exception.message,
+      stack: exception.stack,
+      url: request.url,
+      method: request.method
+    });
+
+    // Notify admins on critical errors
+    if (this.isCritical(exception)) {
+      this.notificationService.alertAdmins({
+        message: 'Critical error occurred',
+        details: exception.message,
+        url: request.url
+      });
+    }
+
+    // Pass through for further processing
+    throw exception;
+  }
+
+  private isCritical(exception: any): boolean {
+    return !(exception instanceof HttpException) ||
+           exception.getStatus() === 500;
+  }
+}
+```
+
+## Custom Exceptions
+
+Create domain-specific exceptions:
+
+```typescript
+export class PaymentException extends HttpException {
+  constructor(message: string, public readonly paymentId: string) {
+    super(message, 402); // Payment Required
+    this.name = 'PaymentException';
+  }
+}
+
+export class RateLimitException extends HttpException {
+  constructor(
+    public readonly retryAfter: number,
+    message: string = 'Rate limit exceeded'
+  ) {
+    super(message, 429); // Too Many Requests
+    this.name = 'RateLimitException';
+  }
+}
+
+// Exception Filter for handling
+@Injectable()
+export class PaymentExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+
+    if (exception instanceof PaymentException) {
+      return {
+        statusCode: 402,
+        error: 'Payment Required',
+        message: exception.getMessage(),
+        paymentId: exception.paymentId
+      };
+    }
+
+    if (exception instanceof RateLimitException) {
+      const { response } = context.switchToHttp();
+      response.setHeader('Retry-After', exception.retryAfter.toString());
+
+      return {
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: exception.getMessage(),
+        retryAfter: exception.retryAfter
+      };
+    }
+
+    throw exception;
+  }
+}
+```
+
+## Execution Order
+
+Exception Filters execute in the following order (from specific to general):
+
+1. Method-level filters
+2. Controller-level filters
+3. Global filters
+
+```typescript
+const app = await HttpApplication.create({
+  globalFilters: [GlobalExceptionFilter], // 3. Last
+});
+
+@Controller('/users')
+@UseFilter(ControllerExceptionFilter) // 2. Second
+export class UserController {
+  @Http.Get('/:id')
+  @UseFilter(MethodExceptionFilter) // 1. First
+  async getOne(@Param('id') id: string) {
+    throw new Error('Test error');
+  }
+}
+```
+
+The first filter that handles the exception (without re-throwing) becomes the final handler.
+
+## Handling Chain
+
+Filters can re-throw exceptions:
+
+```typescript
+@Injectable()
+export class SpecificExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception } = args;
+
+    if (exception instanceof SpecificException) {
+      // Handle the specific exception
+      return { handled: true };
+    }
+
+    // Re-throw for other filters
+    throw exception;
+  }
+}
+
+@Injectable()
+export class GenericExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception } = args;
+
+    // Handle all remaining exceptions
+    return {
+      statusCode: 500,
+      message: 'Unexpected error'
+    };
+  }
+}
+```
+
+## Environment-Dependent Handling
+
+```typescript
+@Injectable()
+export class EnvironmentExceptionFilter implements ExceptionFilter {
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { request } = context.switchToHttp();
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    const status = exception instanceof HttpException
+      ? exception.getStatus()
+      : 500;
+
+    const response: any = {
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      message: exception.message
+    };
+
+    // Add stack trace only in development
+    if (isDevelopment) {
+      response.stack = exception.stack;
+      response.details = {
+        name: exception.name,
+        ...exception
+      };
+    }
+
+    return response;
+  }
+}
+```
+
+## External Service Integration
+
+### Sentry Integration
+
+```typescript
+@Injectable()
+export class SentryExceptionFilter implements ExceptionFilter {
+  constructor(private sentryService: SentryService) {}
+
+  catch(args: ExceptionFilterArgs): any {
+    const { exception, context } = args;
+    const { request } = context.switchToHttp();
+
+    // Send to Sentry
+    this.sentryService.captureException(exception, {
+      tags: {
+        endpoint: request.url,
+        method: request.method
+      },
+      user: {
+        ip: request.ip
+      },
+      extra: {
+        headers: request.headers,
+        query: request.query,
+        body: request.body
+      }
+    });
+
+    // Pass through
+    throw exception;
+  }
+}
+```
+
+## Best Practices
+
+1. **Specific filters first**: Place specific filters at the method/controller level, general ones globally
+2. **Hide details in production**: Don't expose internal error details in production
+3. **Log all exceptions**: Always log exceptions for debugging
+4. **Standard response format**: Use a consistent format for all errors
+5. **Correct HTTP codes**: Use proper status codes for different error types
+6. **Don't catch everything**: Let specific filters handle their own exceptions
+7. **Monitoring**: Integrate with monitoring systems (Sentry, Datadog, etc.)
+8. **Validation**: Use `ValidationError` for validation errors with details
+9. **Re-throwing**: If a filter cannot handle an exception, re-throw it
+10. **Testing**: Cover filters with tests for all exception types
+
+## Response Formats
+
+### REST API Format
+
+```typescript
+{
+  "error": {
+    "code": 404,
+    "type": "Not Found",
+    "message": "Resource not found"
+  },
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+### JSON:API Format
+
+```typescript
+{
+  "errors": [
+    {
+      "status": "404",
+      "title": "Not Found",
+      "detail": "The requested resource was not found",
+      "source": {
+        "pointer": "/users/123"
+      }
+    }
+  ]
+}
+```
+
+### Problem Details (RFC 7807)
+
+```typescript
+{
+  "type": "https://example.com/problems/not-found",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "The user with id 123 was not found",
+  "instance": "/users/123"
+}
+```
+
+## See Also
+
+- [Guards](/docs/http/guides/guards) - Route protection
+- [Interceptors](/docs/http/guides/interceptors) - Request and response transformation
+- [Exceptions](/docs/http/api/exceptions) - Built-in exceptions

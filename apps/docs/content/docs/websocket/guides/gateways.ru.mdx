@@ -1,0 +1,143 @@
+---
+title: "Гейтвеи"
+description: "Подробный гайд по WebSocket гейтвеям"
+---
+
+# WebSocket Гейтвеи
+
+Гейтвей — основная единица WebSocket функциональности. Один гейтвей обслуживает один WebSocket путь.
+
+## @WebSocketGateway
+
+Декоратор класса. Указывает путь для WebSocket подключения и автоматически регистрирует класс в DI.
+
+```typescript
+@WebSocketGateway("/chat")    // ws://host/chat
+@WebSocketGateway("/ws")      // ws://host/ws (по умолчанию)
+@WebSocketGateway()           // то же что "/ws"
+```
+
+## Обработка сообщений
+
+### @SubscribeMessage
+
+Привязывает метод к конкретному событию. Клиент отправляет `{ event: "eventName", data: ... }`, а метод получает `(client, data)`.
+
+```typescript
+@WebSocketGateway("/game")
+class GameGateway {
+  @SubscribeMessage("move")
+  handleMove(client: WsClient, data: { x: number; y: number }) {
+    // data — это содержимое поля "data" из сообщения
+    return { event: "moveResult", data: { valid: true } };
+  }
+
+  @SubscribeMessage("chat")
+  handleChat(client: WsClient, data: { text: string }) {
+    // Можно не возвращать ничего — клиент не получит ответ
+    console.log(`${client.id}: ${data.text}`);
+  }
+}
+```
+
+**Возвращаемое значение:**
+- `{ event, data }` — автоматически отправляется клиенту
+- `undefined` / `void` — ответ не отправляется
+
+### Несколько обработчиков
+
+Один гейтвей может подписываться на множество событий:
+
+```typescript
+@WebSocketGateway("/notifications")
+class NotificationGateway {
+  @SubscribeMessage("subscribe")
+  handleSubscribe(client: WsClient, data: { channel: string }) {
+    client.data.channels = client.data.channels || [];
+    client.data.channels.push(data.channel);
+    return { event: "subscribed", data: { channel: data.channel } };
+  }
+
+  @SubscribeMessage("unsubscribe")
+  handleUnsubscribe(client: WsClient, data: { channel: string }) {
+    client.data.channels = (client.data.channels || [])
+      .filter((ch: string) => ch !== data.channel);
+  }
+}
+```
+
+## Lifecycle события
+
+### @OnConnection
+
+Вызывается при подключении нового клиента. Используйте для инициализации, авторизации, отправки начальных данных.
+
+```typescript
+@OnConnection()
+handleConnection(client: WsClient) {
+  // client.id — уникальный идентификатор
+  // client.data — объект для хранения данных клиента
+  client.data.connectedAt = Date.now();
+}
+```
+
+### @OnDisconnection
+
+Вызывается при отключении клиента. Параметры `code` и `reason` соответствуют WebSocket close frame.
+
+```typescript
+@OnDisconnection()
+handleDisconnection(client: WsClient, code: number, reason: string) {
+  console.log(`Client ${client.id} disconnected: ${code} ${reason}`);
+}
+```
+
+## WsClient API
+
+```typescript
+interface WsClient {
+  id: string;                          // Уникальный ID
+  data: Record<string, any>;           // Пользовательские данные
+  send(event: string, data: any): void; // Отправить событие
+  sendRaw(data: string | ArrayBuffer): void; // Отправить сырые данные
+  close(code?: number, reason?: string): void; // Закрыть соединение
+}
+```
+
+`client.data` сохраняется между сообщениями — используйте для хранения состояния сессии.
+
+## Dependency Injection
+
+Гейтвеи полноценно участвуют в DI. Зависимости инжектируются через конструктор:
+
+```typescript
+@Injectable()
+class RoomService {
+  private rooms = new Map<string, Set<string>>();
+
+  join(room: string, clientId: string) {
+    if (!this.rooms.has(room)) this.rooms.set(room, new Set());
+    this.rooms.get(room)!.add(clientId);
+  }
+
+  leave(room: string, clientId: string) {
+    this.rooms.get(room)?.delete(clientId);
+  }
+}
+
+@WebSocketGateway("/rooms")
+class RoomGateway {
+  constructor(private roomService: RoomService) {}
+
+  @SubscribeMessage("join")
+  handleJoin(client: WsClient, data: { room: string }) {
+    this.roomService.join(data.room, client.id);
+    return { event: "joined", data: { room: data.room } };
+  }
+}
+```
+
+## Следующие шаги
+
+- [Тестирование гейтвеев](/docs/websocket/guides/testing)
+- [WebSocket паки](/docs/websocket/guides/packs)

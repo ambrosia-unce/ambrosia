@@ -1,0 +1,265 @@
+---
+title: "Публикация паков"
+description: "Как подготовить и опубликовать pack в Ambrosia Pack Registry с помощью registry.json и ambrosia build"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps } from 'fumadocs-ui/components/steps';
+
+# Публикация паков
+
+Публикация pack в registry состоит из трёх шагов: создание исходников, описание манифеста `registry.json` и сборка через `ambrosia build`. Результат — набор JSON-файлов для размещения на любом HTTP-сервере.
+
+## Обзор процесса
+
+```
+Авторский процесс:
+
+1. ambrosia g pack my-cache          ← исходные файлы в src/packs/my-cache/
+2. Реализуем бизнес-логику
+3. Создаём registry.json             ← манифест (пути к файлам, метаданные)
+4. ambrosia build                    ← читает файлы, генерирует JSON с content
+5. Размещаем dist/registry/ на HTTP  ← статический хостинг
+
+Потребительский процесс:
+
+1. ambrosia add my-cache             ← скачивает JSON, копирует исходники
+```
+
+## Пошаговое руководство
+
+<Steps>
+
+### Создайте pack
+
+Сгенерируйте исходные файлы внутри вашего проекта:
+
+```bash
+ambrosia g pack my-cache
+```
+
+CLI создаст файлы в `src/packs/my-cache/` (или `{packsDir}/my-cache/` из `ambrosia.json`):
+
+```
+src/packs/my-cache/
+├── index.ts
+├── my-cache.pack.ts
+├── my-cache.service.ts
+└── types.ts
+```
+
+### Реализуйте логику
+
+Отредактируйте сгенерированные файлы — добавьте сервисы, guards, interceptors по необходимости.
+
+### Создайте registry.json
+
+В корне проекта создайте манифест `registry.json`:
+
+```json title="registry.json"
+{
+  "$schema": "https://ambrosia.dev/schemas/registry.json",
+  "name": "my-registry",
+  "items": [
+    {
+      "name": "my-cache",
+      "version": "0.1.0",
+      "description": "In-memory кэш с TTL и автоматической очисткой",
+      "author": "your-name",
+      "tags": ["cache", "ttl", "memory"],
+      "category": "cache",
+      "files": [
+        { "path": "src/packs/my-cache/index.ts", "type": "index" },
+        { "path": "src/packs/my-cache/types.ts", "type": "types" },
+        { "path": "src/packs/my-cache/my-cache.pack.ts", "type": "pack" },
+        { "path": "src/packs/my-cache/my-cache.service.ts", "type": "service" }
+      ],
+      "dependencies": {},
+      "devDependencies": {},
+      "registryDependencies": [],
+      "ambrosiaDependencies": ["@ambrosia/core"]
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  В `files[].path` указывается **путь к файлу** относительно `registry.json`. Поле `content` отсутствует — оно будет заполнено автоматически при сборке.
+</Callout>
+
+### Соберите registry
+
+```bash
+ambrosia build
+```
+
+Команда прочитает `registry.json`, загрузит содержимое каждого файла и создаст:
+
+```
+dist/registry/
+├── index.json        ← индекс (метаданные без кода)
+└── my-cache.json     ← полный RegistryItem с content
+```
+
+### Разместите на HTTP-сервере
+
+Скопируйте содержимое `dist/registry/` на ваш сервер. Итоговые URL:
+
+```
+https://your-registry.com/api/registry/index.json
+https://your-registry.com/api/registry/my-cache.json
+```
+
+</Steps>
+
+## Формат registry.json (манифест)
+
+Манифест описывает все паки, которые вы публикуете:
+
+```typescript
+interface RegistryManifest {
+  $schema?: string;
+  /** Имя вашего registry */
+  name: string;
+  /** Список паков */
+  items: ManifestItem[];
+}
+
+interface ManifestItem {
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  tags: string[];
+  category: PackCategory;
+  /** Пути к файлам — content заполняется при ambrosia build */
+  files: { path: string; type: RegistryFileType }[];
+  dependencies: Record<string, string>;
+  devDependencies: Record<string, string>;
+  registryDependencies: string[];
+  ambrosiaDependencies: string[];
+}
+```
+
+## Несколько паков в одном registry
+
+`registry.json` поддерживает несколько паков:
+
+```json title="registry.json"
+{
+  "name": "company-packs",
+  "items": [
+    {
+      "name": "jwt-auth",
+      "version": "1.0.0",
+      "files": [
+        { "path": "packs/jwt-auth/index.ts", "type": "index" },
+        { "path": "packs/jwt-auth/jwt-auth.pack.ts", "type": "pack" },
+        { "path": "packs/jwt-auth/jwt-auth.service.ts", "type": "service" },
+        { "path": "packs/jwt-auth/jwt-auth.guard.ts", "type": "guard" },
+        { "path": "packs/jwt-auth/types.ts", "type": "types" }
+      ]
+    },
+    {
+      "name": "redis-cache",
+      "version": "0.2.0",
+      "files": [
+        { "path": "packs/redis-cache/index.ts", "type": "index" },
+        { "path": "packs/redis-cache/redis-cache.pack.ts", "type": "pack" },
+        { "path": "packs/redis-cache/redis-cache.service.ts", "type": "service" },
+        { "path": "packs/redis-cache/types.ts", "type": "types" }
+      ]
+    }
+  ]
+}
+```
+
+Результат `ambrosia build`:
+
+```
+dist/registry/
+├── index.json
+├── jwt-auth.json
+└── redis-cache.json
+```
+
+## Хостинг registry
+
+### Статический хостинг
+
+Registry — это набор JSON-файлов. Разместите `dist/registry/` на любом статическом хостинге:
+
+- **GitHub Pages** — бесплатно для публичных репозиториев
+- **Cloudflare Pages** — бесплатно, глобальный CDN
+- **Vercel** — бесплатный tier, мгновенные деплои
+- **S3 + CloudFront** — для корпоративных нужд
+
+### GitHub Pages
+
+```bash
+# Репозиторий registry
+mkdir my-registry && cd my-registry
+git init
+
+# Разработайте паки и создайте registry.json
+# ...
+
+# Соберите
+ambrosia build
+
+# Скопируйте dist/registry/ в корень (или в docs/)
+cp -r dist/registry/* .
+
+git add . && git commit -m "Publish packs"
+git push origin main
+```
+
+Включите GitHub Pages в настройках. URL registry:
+
+```
+https://your-username.github.io/my-registry
+```
+
+### Next.js API Routes
+
+Если вы используете `apps/pack-market` как маркетплейс, добавьте API routes, которые проксируют JSON:
+
+```typescript title="src/app/api/registry/[name]/route.ts"
+import { type NextRequest, NextResponse } from 'next/server';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { name: string } }
+) {
+  const packName = params.name.replace('.json', '');
+  const pack = await loadPack(packName);
+  if (!pack) {
+    return NextResponse.json(
+      { error: `Pack "${packName}" not found` },
+      { status: 404 }
+    );
+  }
+  return NextResponse.json(pack);
+}
+```
+
+## Чек-лист публикации
+
+Перед публикацией убедитесь:
+
+- [ ] `registry.json` содержит все паки с корректными метаданными
+- [ ] Все `files[].path` указывают на существующие файлы
+- [ ] `ambrosia build` завершается без ошибок
+- [ ] `index.ts` экспортирует всё необходимое
+- [ ] `dependencies` содержит все npm-зависимости с версиями
+- [ ] `ambrosiaDependencies` указывает нужные `@ambrosia/*` пакеты
+- [ ] `registryDependencies` перечисляет зависимости на другие паки
+- [ ] `version` соответствует semver
+- [ ] Тесты проходят: `bun test`
+- [ ] JSON в `dist/registry/` валиден
+
+## Следующие шаги
+
+1. Изучите [Custom Registry](/docs/cli/registry/custom-registry) для приватных паков
+2. См. [ambrosia build](/docs/cli/commands/build) — подробная документация команды сборки
+3. Вернитесь к [обзору Registry](/docs/cli/registry/overview)
