@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   check:
-    name: Lint, Typecheck, Test, Build
+    name: Build, Typecheck, Test
     runs-on: ubuntu-latest
 
     steps:
@@ -27,13 +27,28 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build all packages
+      # Build in dependency order (core first, then dependents)
+      - name: Build core
+        working-directory: packages/core
         run: bun run build
+
+      - name: Build http
+        working-directory: packages/http
+        run: bun run build
+
+      - name: Build remaining packages
+        run: |
+          cd packages/config && bun run build && cd ../..
+          cd packages/events && bun run build && cd ../..
+          cd packages/validator && bun run build && cd ../..
+          cd packages/http-elysia && bun run build && cd ../..
+          cd packages/websocket && bun run build && cd ../..
+          cd packages/websocket-elysia && bun run build && cd ../..
+          cd packages/cli && bun run build && cd ../..
+          cd packages/devtools && bun run build && cd ../..
 
       - name: Typecheck
         run: bun run typecheck
-        continue-on-error: false
 
       - name: Test
         run: bun run test
-        continue-on-error: false
