@@ -1,6 +1,6 @@
 {
   "name": "@ambrosia/http",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Provider-agnostic HTTP layer with decorators, guards, interceptors, pipes and middleware for the Ambrosia framework",
   "type": "module",
   "license": "MIT",
