@@ -16,7 +16,8 @@
   },
   "scripts": {
     "build": "bun run build.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "echo no tests"
   },
   "repository": {
     "type": "git",

@@ -7,10 +7,12 @@
 Decorator-based DI, provider-agnostic HTTP, compile-time validation, and a pack ecosystem.
 Built from the ground up for Bun.
 
+[![npm](https://img.shields.io/npm/v/@ambrosia-unce/core?label=npm&color=cb3837&logo=npm)](https://www.npmjs.com/package/@ambrosia-unce/core)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Bun](https://img.shields.io/badge/runtime-Bun-%23f9f1e1?logo=bun)](https://bun.sh)
+[![CI](https://github.com/ambrosia-unce/ambrosia/actions/workflows/ci.yml/badge.svg)](https://github.com/ambrosia-unce/ambrosia/actions/workflows/ci.yml)
 
-[Documentation](https://ambrosia.dev) · [Pack Market](https://packs.ambrosia.dev) · [Discord](https://discord.gg/ambrosia)
+[Documentation](https://ambrosia.dev) · [Pack Market](https://packs.ambrosia.dev) · [GitHub](https://github.com/ambrosia-unce/ambrosia)
 
 </div>
 
