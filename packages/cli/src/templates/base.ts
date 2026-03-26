@@ -12,10 +12,10 @@ export function packageJson(name: string): string {
     "test": "bun test"
   },
   "dependencies": {
-    "@ambrosia-unce/core": "^0.1.0",
-    "@ambrosia-unce/http": "^0.1.0",
-    "@ambrosia-unce/http-elysia": "^0.1.0",
-    "@ambrosia-unce/validator": "^0.1.0",
+    "@ambrosia-unce/core": "latest",
+    "@ambrosia-unce/http": "latest",
+    "@ambrosia-unce/http-elysia": "latest",
+    "@ambrosia-unce/validator": "latest",
     "elysia": "^1.4.22",
     "reflect-metadata": "^0.2.2"
   },

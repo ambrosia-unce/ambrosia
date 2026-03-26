@@ -364,7 +364,7 @@ async function generateStandalonePack(name: string, pascalName: string, cwd: str
         type: "module",
         main: "./src/index.ts",
         peerDependencies: {
-          "@ambrosia-unce/core": ">=0.1.0",
+          "@ambrosia-unce/core": "latest",
         },
       },
       null,
