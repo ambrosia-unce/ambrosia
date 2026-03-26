@@ -1,5 +1,11 @@
 # @ambrosia-unce/websocket-elysia
 
+## 1.0.1
+
+### Patch Changes
+
+- 85397bd: fix: add repository field for npm provenance
+
 ## 1.0.0
 
 ### Major Changes
