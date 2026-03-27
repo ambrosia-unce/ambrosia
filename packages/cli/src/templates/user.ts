@@ -10,21 +10,17 @@ export function userEntity(): string {
 }
 
 export function createUserDto(): string {
-  return `import type { Email } from "@ambrosia-unce/validator/types";
-
-export interface CreateUserDto {
+  return `export interface CreateUserDto {
   name: string;
-  email: Email;
+  email: string;
 }
 `;
 }
 
 export function updateUserDto(): string {
-  return `import type { Email } from "@ambrosia-unce/validator/types";
-
-export interface UpdateUserDto {
+  return `export interface UpdateUserDto {
   name?: string;
-  email?: Email;
+  email?: string;
 }
 `;
 }
@@ -83,8 +79,7 @@ export class UserService {
 
 export function userController(): string {
   return `import { Controller, Http, Body, Param, Status } from "@ambrosia-unce/http";
-import { NotFoundException } from "@ambrosia-unce/http";
-import { assert } from "@ambrosia-unce/validator";
+import { NotFoundException, BadRequestException } from "@ambrosia-unce/http";
 import { UserService } from "./user.service";
 import type { CreateUserDto } from "./dto/create-user.dto";
 import type { UpdateUserDto } from "./dto/update-user.dto";
@@ -108,16 +103,17 @@ export class UserController {
 
   @Http.Post("/")
   @Status(201)
-  create(@Body() body: unknown) {
-    const dto = assert<CreateUserDto>(body);
-    const user = this.userService.create(dto);
+  create(@Body() body: any) {
+    if (!body?.name || !body?.email) {
+      throw new BadRequestException("name and email are required");
+    }
+    const user = this.userService.create(body as CreateUserDto);
     return { data: user };
   }
 
   @Http.Put("/:id")
-  update(@Param("id") id: string, @Body() body: unknown) {
-    const dto = assert<UpdateUserDto>(body);
-    const user = this.userService.update(Number(id), dto);
+  update(@Param("id") id: string, @Body() body: any) {
+    const user = this.userService.update(Number(id), body as UpdateUserDto);
     if (!user) throw new NotFoundException(\`User #\${id} not found\`);
     return { data: user };
   }

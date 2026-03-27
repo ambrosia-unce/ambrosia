@@ -15,7 +15,6 @@ export function packageJson(name: string): string {
     "@ambrosia-unce/core": "latest",
     "@ambrosia-unce/http": "latest",
     "@ambrosia-unce/http-elysia": "latest",
-    "@ambrosia-unce/validator": "latest",
     "elysia": "^1.4.22",
     "reflect-metadata": "^0.2.2"
   },
@@ -109,6 +108,7 @@ export function buildTs(): string {
 
 export function bunfigToml(): string {
   return `# Bun configuration
-preload = ["@ambrosia-unce/validator/preload"]
+# Uncomment to enable compile-time validation:
+# preload = ["@ambrosia-unce/validator/preload"]
 `;
 }
