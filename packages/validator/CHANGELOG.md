@@ -1,5 +1,11 @@
 # @ambrosia-unce/validator
 
+## 1.0.3
+
+### Patch Changes
+
+- c501901: fix: CLI templates use Config+Events, validator preload uses package path
+
 ## 1.0.2
 
 ### Patch Changes
