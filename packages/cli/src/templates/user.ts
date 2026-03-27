@@ -103,17 +103,17 @@ export class UserController {
 
   @Http.Post("/")
   @Status(201)
-  create(@Body() body: any) {
+  create(@Body() body: CreateUserDto) {
     if (!body?.name || !body?.email) {
       throw new BadRequestException("name and email are required");
     }
-    const user = this.userService.create(body as CreateUserDto);
+    const user = this.userService.create(body);
     return { data: user };
   }
 
   @Http.Put("/:id")
-  update(@Param("id") id: string, @Body() body: any) {
-    const user = this.userService.update(Number(id), body as UpdateUserDto);
+  update(@Param("id") id: string, @Body() body: UpdateUserDto) {
+    const user = this.userService.update(Number(id), body);
     if (!user) throw new NotFoundException(\`User #\${id} not found\`);
     return { data: user };
   }

@@ -15,6 +15,8 @@ export function packageJson(name: string): string {
     "@ambrosia-unce/core": "latest",
     "@ambrosia-unce/http": "latest",
     "@ambrosia-unce/http-elysia": "latest",
+    "@ambrosia-unce/config": "latest",
+    "@ambrosia-unce/events": "latest",
     "elysia": "^1.4.22",
     "reflect-metadata": "^0.2.2"
   },
@@ -90,9 +92,14 @@ dist/
 `;
 }
 
-export function envExample(): string {
-  return `PORT=3000
+export function envExample(name: string): string {
+  return `# Server
+PORT=3000
 NODE_ENV=development
+
+# Application
+APP_NAME=${name}
+LOG_LEVEL=info
 `;
 }
 
@@ -108,7 +115,6 @@ export function buildTs(): string {
 
 export function bunfigToml(): string {
   return `# Bun configuration
-# Uncomment to enable compile-time validation:
 # preload = ["@ambrosia-unce/validator/preload"]
 `;
 }

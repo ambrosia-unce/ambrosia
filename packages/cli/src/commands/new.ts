@@ -94,7 +94,7 @@ function buildBaseFiles(name: string): FileEntry[] {
     { path: "biome.json", content: biomeJson() },
     { path: "bunfig.toml", content: bunfigToml() },
     { path: ".gitignore", content: gitignore() },
-    { path: ".env.example", content: envExample() },
+    { path: ".env.example", content: envExample(name) },
     { path: "build.ts", content: buildTs() },
   ];
 }

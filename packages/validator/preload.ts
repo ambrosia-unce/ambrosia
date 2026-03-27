@@ -21,7 +21,7 @@
  */
 
 import { plugin } from "bun";
-import { validatorPlugin } from "./src/plugin";
+import { validatorPlugin } from "@ambrosia-unce/validator/plugin";
 
 // Register plugin with default options
 plugin(validatorPlugin);
