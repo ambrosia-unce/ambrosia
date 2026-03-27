@@ -1,6 +1,6 @@
 {
   "name": "@ambrosia-unce/validator",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Type-safe compile-time validation for Ambrosia framework",
   "type": "module",
   "license": "MIT",
