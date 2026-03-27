@@ -1,6 +1,6 @@
 {
   "name": "@ambrosia-unce/http",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Provider-agnostic HTTP layer with decorators, guards, interceptors, pipes and middleware for the Ambrosia framework",
   "type": "module",
   "license": "MIT",
@@ -64,7 +64,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ambrosia-unce/core": "^1.0.0",
+    "@ambrosia-unce/core": "^1.0.1",
     "@sinclair/typebox": "^0.34.48",
     "reflect-metadata": "^0.2.1"
   }

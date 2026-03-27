@@ -1,6 +1,6 @@
 {
   "name": "@ambrosia-unce/websocket-elysia",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Elysia.js WebSocket adapter for @ambrosia-unce/websocket",
   "type": "module",
   "license": "MIT",
@@ -31,7 +31,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ambrosia-unce/websocket": "^1.0.0",
+    "@ambrosia-unce/websocket": "^1.0.1",
     "elysia": "^1.4.22"
   },
   "devDependencies": {

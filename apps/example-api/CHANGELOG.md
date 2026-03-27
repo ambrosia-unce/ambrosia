@@ -1,5 +1,17 @@
 # example-api
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [351e5b4]
+  - @ambrosia-unce/core@1.0.1
+  - @ambrosia-unce/http@1.0.1
+  - @ambrosia-unce/http-elysia@1.0.1
+  - @ambrosia-unce/config@1.0.1
+  - @ambrosia-unce/events@1.0.1
+  - @ambrosia-unce/devtools@1.0.1
+
 ## 0.1.1
 
 ### Patch Changes

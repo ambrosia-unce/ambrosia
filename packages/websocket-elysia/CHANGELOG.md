@@ -1,5 +1,13 @@
 # @ambrosia-unce/websocket-elysia
 
+## 1.0.2
+
+### Patch Changes
+
+- 351e5b4: fix: replace workspace:\* with real version ranges for npm compatibility
+- Updated dependencies [351e5b4]
+  - @ambrosia-unce/websocket@1.0.1
+
 ## 1.0.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ambrosia-unce/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lightweight decorator-based Dependency Injection container for TypeScript and Bun",
   "type": "module",
   "license": "MIT",
