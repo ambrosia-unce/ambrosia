@@ -1,5 +1,13 @@
 # @ambrosia-unce/http-elysia
 
+## 1.0.1
+
+### Patch Changes
+
+- 351e5b4: fix: replace workspace:\* with real version ranges for npm compatibility
+- Updated dependencies [351e5b4]
+  - @ambrosia-unce/http@1.0.1
+
 ## 1.0.0
 
 ### Major Changes

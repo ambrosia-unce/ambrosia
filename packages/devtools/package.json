@@ -1,6 +1,6 @@
 {
   "name": "@ambrosia-unce/devtools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "DevTools dashboard backend for the Ambrosia framework — introspection, live events, and plugin system",
   "type": "module",
   "license": "MIT",
@@ -52,8 +52,8 @@
   },
   "peerDependencies": {
     "typescript": "^5",
-    "@ambrosia-unce/events": "^1.0.0",
-    "@ambrosia-unce/config": "^1.0.0"
+    "@ambrosia-unce/events": "^1.0.1",
+    "@ambrosia-unce/config": "^1.0.1"
   },
   "peerDependenciesMeta": {
     "@ambrosia-unce/events": {
@@ -67,8 +67,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@ambrosia-unce/core": "^1.0.0",
-    "@ambrosia-unce/http": "^1.0.0",
+    "@ambrosia-unce/core": "^1.0.1",
+    "@ambrosia-unce/http": "^1.0.1",
     "reflect-metadata": "^0.2.2"
   }
 }
