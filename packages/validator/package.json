@@ -50,6 +50,7 @@
   },
   "files": [
     "dist",
+    "src",
     "preload.ts",
     "README.md",
     "LICENSE"
