@@ -52,7 +52,7 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "@ambrosia-unce/core": "workspace:*",
+    "@ambrosia-unce/core": "^1.0.0",
     "typescript": "^5"
   },
   "publishConfig": {

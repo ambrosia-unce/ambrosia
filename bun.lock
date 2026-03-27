@@ -53,7 +53,7 @@
     },
     "apps/example-api": {
       "name": "example-api",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@ambrosia-unce/config": "workspace:*",
         "@ambrosia-unce/core": "workspace:*",
@@ -100,7 +100,7 @@
     },
     "packages/cli": {
       "name": "@ambrosia-unce/cli",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "bin": {
         "ambrosia": "./dist/bin.js",
         "amb": "./dist/bin.js",
@@ -114,7 +114,7 @@
     },
     "packages/config": {
       "name": "@ambrosia-unce/config",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "devDependencies": {
         "@types/bun": "latest",
       },
@@ -125,7 +125,7 @@
     },
     "packages/core": {
       "name": "@ambrosia-unce/core",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
         "reflect-metadata": "^0.2.2",
       },
@@ -138,7 +138,7 @@
     },
     "packages/devtools": {
       "name": "@ambrosia-unce/devtools",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
         "@ambrosia-unce/core": "workspace:*",
         "@ambrosia-unce/http": "workspace:*",
@@ -159,7 +159,7 @@
     },
     "packages/events": {
       "name": "@ambrosia-unce/events",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
         "@ambrosia-unce/core": "workspace:*",
         "reflect-metadata": "^0.2.2",
@@ -173,7 +173,7 @@
     },
     "packages/http": {
       "name": "@ambrosia-unce/http",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
         "@ambrosia-unce/core": "workspace:*",
         "@sinclair/typebox": "^0.34.48",
@@ -189,7 +189,7 @@
     },
     "packages/http-elysia": {
       "name": "@ambrosia-unce/http-elysia",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
         "@ambrosia-unce/http": "workspace:*",
       },
@@ -203,7 +203,7 @@
     },
     "packages/validator": {
       "name": "@ambrosia-unce/validator",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "devDependencies": {
         "@types/bun": "latest",
         "typescript": "^5.6.0",
@@ -217,7 +217,7 @@
     },
     "packages/websocket": {
       "name": "@ambrosia-unce/websocket",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
         "@ambrosia-unce/core": "workspace:*",
         "reflect-metadata": "^0.2.1",
@@ -231,7 +231,7 @@
     },
     "packages/websocket-elysia": {
       "name": "@ambrosia-unce/websocket-elysia",
-      "version": "0.1.0",
+      "version": "1.0.1",
       "dependencies": {
         "@ambrosia-unce/websocket": "workspace:*",
         "elysia": "^1.4.22",

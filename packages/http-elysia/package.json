@@ -48,7 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ambrosia-unce/http": "workspace:*"
+    "@ambrosia-unce/http": "^1.0.0"
   },
   "peerDependencies": {
     "elysia": "^1.0.0"

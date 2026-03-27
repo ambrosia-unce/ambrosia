@@ -31,7 +31,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ambrosia-unce/websocket": "workspace:*",
+    "@ambrosia-unce/websocket": "^1.0.0",
     "elysia": "^1.4.22"
   },
   "devDependencies": {
